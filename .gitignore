@@ -1,0 +1,70 @@
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+build/
+out/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+node_modules/
+.cache/
+.parcel-cache/
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*~
+*.orig
+
+# SonarQube Scanner files
+.scannerwork/
+
+# Lighouse files
+lighthouse*
+Lighthouse*
+
+# AI generated files
+CLAUDE.md
+memory/
+.cursor/
+.claude/
+.agent/
+agent-transcripts/
+terminals/
+.aider*
+aider.chat.*.md
