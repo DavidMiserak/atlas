@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/models/program.dart';
 import '../data/models/session.dart';
+import '../data/models/workout.dart';
 import '../data/repositories/program_repository.dart';
 import '../data/repositories/session_repository.dart';
 import '../data/repositories/one_rm_repository.dart';
@@ -13,6 +14,8 @@ class SessionProvider extends ChangeNotifier {
 
   Session? _currentSession;
   int? _selectedWorkoutId;
+  Program? _currentProgram;
+  Workout? _currentWorkout;
   List<SessionExercise> _sessionExercises = [];
   Map<int, List<SessionSet>> _sessionSets = {};
   int? _currentExerciseIndex;
@@ -22,6 +25,8 @@ class SessionProvider extends ChangeNotifier {
   // Getters
   Session? get currentSession => _currentSession;
   int? get selectedWorkoutId => _selectedWorkoutId;
+  Program? get currentProgram => _currentProgram;
+  Workout? get currentWorkout => _currentWorkout;
   List<SessionExercise> get sessionExercises => _sessionExercises;
   Map<int, List<SessionSet>> get sessionSets => _sessionSets;
   int? get currentExerciseIndex => _currentExerciseIndex;
@@ -29,7 +34,9 @@ class SessionProvider extends ChangeNotifier {
   String? get error => _error;
 
   Future<Program?> getProgram() async {
-    return await programRepo.getProgramById(1);
+    final programs = await programRepo.getAllPrograms();
+    if (programs.isEmpty) return null;
+    return await programRepo.getProgramById(programs.first.id!);
   }
 
   Future<void> startSession(int workoutId) async {
@@ -38,6 +45,18 @@ class SessionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final programs = await programRepo.getAllPrograms();
+      if (programs.isEmpty) {
+        throw Exception('No programs found in database');
+      }
+      final program = await programRepo.getProgramById(programs.first.id!);
+      if (program == null) {
+        throw Exception('Program not found');
+      }
+
+      final workout = program.workouts
+          .firstWhere((w) => w.id == workoutId, orElse: () => program.workouts[0]);
+
       final now = DateTime.now();
       final session = Session(
         workoutId: workoutId,
@@ -49,6 +68,8 @@ class SessionProvider extends ChangeNotifier {
 
       _currentSession = createdSession;
       _selectedWorkoutId = workoutId;
+      _currentProgram = program;
+      _currentWorkout = workout;
       _currentExerciseIndex = 0;
       _isLoading = false;
       notifyListeners();
@@ -71,7 +92,8 @@ class SessionProvider extends ChangeNotifier {
 
       final exerciseId = await sessionRepo.createSessionExercise(sessionExercise);
 
-      _sessionExercises = [..._sessionExercises];
+      final createdExercise = sessionExercise.copyWith(id: exerciseId);
+      _sessionExercises = [..._sessionExercises, createdExercise];
       _sessionSets[exerciseId] = [];
       notifyListeners();
     } catch (e) {
@@ -117,8 +139,7 @@ class SessionProvider extends ChangeNotifier {
   }
 
   void nextExercise() {
-    if (_currentExerciseIndex != null &&
-        _currentExerciseIndex! < _sessionExercises.length - 1) {
+    if (_currentExerciseIndex != null) {
       _currentExerciseIndex = _currentExerciseIndex! + 1;
       notifyListeners();
     }
@@ -148,5 +169,47 @@ class SessionProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  Future<ExerciseVariant?> getVariantDetails(int variantId) async {
+    return await programRepo.getVariantById(variantId);
+  }
+
+  Future<double?> getVariantOneRm(int variantId) async {
+    return await oneRmRepo.getCurrentOneRm(variantId);
+  }
+
+  Future<List<SetTemplate>> getSlotSetTemplates(int slotId) async {
+    return await programRepo.getSetTemplatesForSlot(slotId);
+  }
+
+  ExerciseSlot? getSlotForExercise(int slotId) {
+    if (_currentWorkout == null) return null;
+    try {
+      return _currentWorkout!.exerciseSlots
+          .firstWhere((slot) => slot.id == slotId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> swapVariant(int sessionExerciseId, int newVariantId) async {
+    try {
+      final index = _sessionExercises.indexWhere((e) => e.id == sessionExerciseId);
+      if (index == -1) return;
+
+      final updatedExercise =
+          _sessionExercises[index].copyWith(chosenVariantId: newVariantId);
+      await sessionRepo.updateSessionExercise(updatedExercise);
+
+      _sessionExercises = [
+        for (var i = 0; i < _sessionExercises.length; i++)
+          if (i == index) updatedExercise else _sessionExercises[i]
+      ];
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to swap variant: $e';
+      notifyListeners();
+    }
   }
 }

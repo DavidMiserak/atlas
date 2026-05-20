@@ -25,16 +25,16 @@ void main() {
 
       final tableNames = tables.map((t) => t['name']).toSet();
 
-      expect(tableNames.contains(TABLE_PROGRAMS), true);
-      expect(tableNames.contains(TABLE_WORKOUTS), true);
-      expect(tableNames.contains(TABLE_EXERCISE_SLOTS), true);
-      expect(tableNames.contains(TABLE_EXERCISE_VARIANTS), true);
-      expect(tableNames.contains(TABLE_SET_TEMPLATES), true);
-      expect(tableNames.contains(TABLE_VARIANT_ONE_RM_HISTORY), true);
-      expect(tableNames.contains(TABLE_SESSIONS), true);
-      expect(tableNames.contains(TABLE_SESSION_EXERCISES), true);
-      expect(tableNames.contains(TABLE_SESSION_SETS), true);
-      expect(tableNames.contains(TABLE_SETTINGS), true);
+      expect(tableNames.contains(tablePrograms), true);
+      expect(tableNames.contains(tableWorkouts), true);
+      expect(tableNames.contains(tableExerciseSlots), true);
+      expect(tableNames.contains(tableExerciseVariants), true);
+      expect(tableNames.contains(tableSetTemplates), true);
+      expect(tableNames.contains(tableVariantOneRmHistory), true);
+      expect(tableNames.contains(tableSessions), true);
+      expect(tableNames.contains(tableSessionExercises), true);
+      expect(tableNames.contains(tableSessionSets), true);
+      expect(tableNames.contains(tableSettings), true);
 
       await closeDatabase();
     });
@@ -43,22 +43,22 @@ void main() {
       final db = await getDatabase();
 
       final schemaVersion = await db.query(
-        TABLE_SETTINGS,
-        where: '$COL_SETTINGS_KEY = ?',
-        whereArgs: [SETTING_SCHEMA_VERSION],
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingSchemaVersion],
       );
 
       expect(schemaVersion.isNotEmpty, true);
-      expect(schemaVersion.first[COL_SETTINGS_VALUE], '1');
+      expect(schemaVersion.first[colSettingsValue], '1');
 
       final deloadFreq = await db.query(
-        TABLE_SETTINGS,
-        where: '$COL_SETTINGS_KEY = ?',
-        whereArgs: [SETTING_DELOAD_FREQUENCY_WEEKS],
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingDeloadFrequencyWeeks],
       );
 
       expect(deloadFreq.isNotEmpty, true);
-      expect(deloadFreq.first[COL_SETTINGS_VALUE], '4');
+      expect(deloadFreq.first[colSettingsValue], '4');
 
       await closeDatabase();
     });
@@ -69,11 +69,11 @@ void main() {
       await loadSeedData();
 
       final db = await getDatabase();
-      final programs = await db.query(TABLE_PROGRAMS);
+      final programs = await db.query(tablePrograms);
 
       expect(programs.isNotEmpty, true);
-      expect(programs.first[COL_PROGRAM_NAME], '4-Day Novice Bodybuilding');
-      expect(programs.first[COL_PROGRAM_VERSION], 'v1');
+      expect(programs.first[colProgramName], '4-Day Novice Bodybuilding');
+      expect(programs.first[colProgramVersion], 'v1');
 
       await closeDatabase();
     });
@@ -84,8 +84,8 @@ void main() {
 
       final db = await getDatabase();
       final programs = await db.query(
-        TABLE_PROGRAMS,
-        where: '$COL_PROGRAM_NAME = ?',
+        tablePrograms,
+        where: '$colProgramName = ?',
         whereArgs: ['4-Day Novice Bodybuilding'],
       );
 

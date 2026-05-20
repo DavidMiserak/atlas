@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data/database/app_database.dart';
@@ -10,17 +11,28 @@ import 'screens/workout_selection_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  developer.log('main: Starting app initialization');
+
   // Initialize sqflite for desktop platforms
   if (Platform.isLinux || Platform.isWindows) {
+    developer.log('main: Initializing sqflite FFI');
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
 
-  // Initialize database
-  await getDatabase();
+  try {
+    // Initialize database
+    developer.log('main: Initializing database');
+    await getDatabase();
+    developer.log('main: Database initialized successfully');
 
-  // Load seed data on first launch
-  await loadSeedData();
+    // Load seed data on first launch
+    developer.log('main: Loading seed data');
+    await loadSeedData();
+    developer.log('main: Seed data loaded successfully');
+  } catch (e) {
+    developer.log('main: Error during initialization: $e');
+  }
 
   runApp(const MyApp());
 }

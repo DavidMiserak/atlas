@@ -2,10 +2,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'database_constants.dart';
 
-/// Singleton database instance
 Database? _database;
 
-/// Initialize and return the database
 Future<Database> getDatabase() async {
   if (_database != null) return _database!;
   _database = await _initDatabase();
@@ -14,193 +12,167 @@ Future<Database> getDatabase() async {
 
 Future<Database> _initDatabase() async {
   final dbPath = await getDatabasesPath();
-  final path = join(dbPath, DATABASE_NAME);
+  final path = join(dbPath, databaseName);
 
   return await openDatabase(
     path,
-    version: DATABASE_VERSION,
+    version: databaseVersion,
     onCreate: _onCreate,
     onUpgrade: _onUpgrade,
   );
 }
 
-/// Create all tables on first install
 Future<void> _onCreate(Database db, int version) async {
   await _createTables(db);
   await _initializeSettings(db);
 }
 
-/// Handle schema upgrades
-Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  // Future: implement migrations from v1 → v2, etc.
-  // For now, no upgrades (MVP is v1 only)
-}
+Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
 
 Future<void> _createTables(Database db) async {
-  // PROGRAMS table
   await db.execute('''
-    CREATE TABLE $TABLE_PROGRAMS (
-      $COL_PROGRAM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_PROGRAM_NAME TEXT NOT NULL,
-      $COL_PROGRAM_VERSION TEXT NOT NULL,
-      $COL_PROGRAM_DESCRIPTION TEXT,
-      $COL_PROGRAM_CREATED_AT TEXT NOT NULL,
-      $COL_PROGRAM_UPDATED_AT TEXT NOT NULL
+    CREATE TABLE $tablePrograms (
+      $colProgramId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colProgramName TEXT NOT NULL,
+      $colProgramVersion TEXT NOT NULL,
+      $colProgramDescription TEXT,
+      $colProgramCreatedAt TEXT NOT NULL,
+      $colProgramUpdatedAt TEXT NOT NULL
     )
   ''');
 
-  // WORKOUTS table
   await db.execute('''
-    CREATE TABLE $TABLE_WORKOUTS (
-      $COL_WORKOUT_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_WORKOUT_PROGRAM_ID INTEGER NOT NULL,
-      $COL_WORKOUT_NAME TEXT NOT NULL,
-      $COL_WORKOUT_DAY_NUMBER INTEGER NOT NULL,
-      $COL_WORKOUT_ORDER_IN_PROGRAM INTEGER NOT NULL,
-      $COL_WORKOUT_NOTES TEXT,
-      FOREIGN KEY ($COL_WORKOUT_PROGRAM_ID) REFERENCES $TABLE_PROGRAMS ($COL_PROGRAM_ID)
+    CREATE TABLE $tableWorkouts (
+      $colWorkoutId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colWorkoutProgramId INTEGER NOT NULL,
+      $colWorkoutName TEXT NOT NULL,
+      $colWorkoutDayNumber INTEGER NOT NULL,
+      $colWorkoutOrderInProgram INTEGER NOT NULL,
+      $colWorkoutNotes TEXT,
+      FOREIGN KEY ($colWorkoutProgramId) REFERENCES $tablePrograms ($colProgramId)
     )
   ''');
 
-  // EXERCISE_SLOTS table
   await db.execute('''
-    CREATE TABLE $TABLE_EXERCISE_SLOTS (
-      $COL_SLOT_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_SLOT_WORKOUT_ID INTEGER NOT NULL,
-      $COL_SLOT_NAME TEXT NOT NULL,
-      $COL_SLOT_ORDER INTEGER NOT NULL,
-      $COL_SLOT_CATEGORY TEXT,
-      FOREIGN KEY ($COL_SLOT_WORKOUT_ID) REFERENCES $TABLE_WORKOUTS ($COL_WORKOUT_ID)
+    CREATE TABLE $tableExerciseSlots (
+      $colSlotId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colSlotWorkoutId INTEGER NOT NULL,
+      $colSlotName TEXT NOT NULL,
+      $colSlotOrder INTEGER NOT NULL,
+      $colSlotCategory TEXT,
+      FOREIGN KEY ($colSlotWorkoutId) REFERENCES $tableWorkouts ($colWorkoutId)
     )
   ''');
 
-  // EXERCISE_VARIANTS table
   await db.execute('''
-    CREATE TABLE $TABLE_EXERCISE_VARIANTS (
-      $COL_VARIANT_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_VARIANT_SLOT_ID INTEGER NOT NULL,
-      $COL_VARIANT_NAME TEXT NOT NULL,
-      $COL_VARIANT_DESCRIPTION TEXT,
-      FOREIGN KEY ($COL_VARIANT_SLOT_ID) REFERENCES $TABLE_EXERCISE_SLOTS ($COL_SLOT_ID)
+    CREATE TABLE $tableExerciseVariants (
+      $colVariantId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colVariantSlotId INTEGER NOT NULL,
+      $colVariantName TEXT NOT NULL,
+      $colVariantDescription TEXT,
+      FOREIGN KEY ($colVariantSlotId) REFERENCES $tableExerciseSlots ($colSlotId)
     )
   ''');
 
-  // SET_TEMPLATES table
   await db.execute('''
-    CREATE TABLE $TABLE_SET_TEMPLATES (
-      $COL_SET_TEMPLATE_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_SET_TEMPLATE_SLOT_ID INTEGER NOT NULL,
-      $COL_SET_TEMPLATE_SET_NUMBER INTEGER NOT NULL,
-      $COL_SET_TEMPLATE_SET_TYPE TEXT NOT NULL,
-      $COL_SET_TEMPLATE_REPS_MIN INTEGER,
-      $COL_SET_TEMPLATE_REPS_MAX INTEGER,
-      $COL_SET_TEMPLATE_PERCENTAGE_1RM REAL,
-      $COL_SET_TEMPLATE_RPE_TARGET INTEGER,
-      $COL_SET_TEMPLATE_REST_SECONDS INTEGER NOT NULL,
-      FOREIGN KEY ($COL_SET_TEMPLATE_SLOT_ID) REFERENCES $TABLE_EXERCISE_SLOTS ($COL_SLOT_ID)
+    CREATE TABLE $tableSetTemplates (
+      $colSetTemplateId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colSetTemplateSlotId INTEGER NOT NULL,
+      $colSetTemplateSetNumber INTEGER NOT NULL,
+      $colSetTemplateSetType TEXT NOT NULL,
+      $colSetTemplateRepsMin INTEGER,
+      $colSetTemplateRepsMax INTEGER,
+      $colSetTemplatePercentage1rm REAL,
+      $colSetTemplateRpeTarget INTEGER,
+      $colSetTemplateRestSeconds INTEGER NOT NULL,
+      FOREIGN KEY ($colSetTemplateSlotId) REFERENCES $tableExerciseSlots ($colSlotId)
     )
   ''');
 
-  // VARIANT_ONE_RM_HISTORY table
   await db.execute('''
-    CREATE TABLE $TABLE_VARIANT_ONE_RM_HISTORY (
-      $COL_1RM_HISTORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_1RM_HISTORY_VARIANT_ID INTEGER NOT NULL,
-      $COL_1RM_HISTORY_WEIGHT REAL NOT NULL,
-      $COL_1RM_HISTORY_DATE TEXT NOT NULL,
-      $COL_1RM_HISTORY_NOTES TEXT,
-      $COL_1RM_HISTORY_IS_CURRENT INTEGER NOT NULL DEFAULT 0,
-      FOREIGN KEY ($COL_1RM_HISTORY_VARIANT_ID) REFERENCES $TABLE_EXERCISE_VARIANTS ($COL_VARIANT_ID)
+    CREATE TABLE $tableVariantOneRmHistory (
+      $col1rmHistoryId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $col1rmHistoryVariantId INTEGER NOT NULL,
+      $col1rmHistoryWeight REAL NOT NULL,
+      $col1rmHistoryDate TEXT NOT NULL,
+      $col1rmHistoryNotes TEXT,
+      $col1rmHistoryIsCurrent INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY ($col1rmHistoryVariantId) REFERENCES $tableExerciseVariants ($colVariantId)
     )
   ''');
 
-  // SESSIONS table
   await db.execute('''
-    CREATE TABLE $TABLE_SESSIONS (
-      $COL_SESSION_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_SESSION_WORKOUT_ID INTEGER NOT NULL,
-      $COL_SESSION_DATE_COMPLETED TEXT NOT NULL,
-      $COL_SESSION_IS_DELOAD INTEGER NOT NULL DEFAULT 0,
-      $COL_SESSION_NOTES TEXT,
-      FOREIGN KEY ($COL_SESSION_WORKOUT_ID) REFERENCES $TABLE_WORKOUTS ($COL_WORKOUT_ID)
+    CREATE TABLE $tableSessions (
+      $colSessionId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colSessionWorkoutId INTEGER NOT NULL,
+      $colSessionDateCompleted TEXT NOT NULL,
+      $colSessionIsDeload INTEGER NOT NULL DEFAULT 0,
+      $colSessionNotes TEXT,
+      FOREIGN KEY ($colSessionWorkoutId) REFERENCES $tableWorkouts ($colWorkoutId)
     )
   ''');
 
-  // SESSION_EXERCISES table
   await db.execute('''
-    CREATE TABLE $TABLE_SESSION_EXERCISES (
-      $COL_SESSION_EXERCISE_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_SESSION_EXERCISE_SESSION_ID INTEGER NOT NULL,
-      $COL_SESSION_EXERCISE_SLOT_ID INTEGER NOT NULL,
-      $COL_SESSION_EXERCISE_CHOSEN_VARIANT_ID INTEGER NOT NULL,
-      FOREIGN KEY ($COL_SESSION_EXERCISE_SESSION_ID) REFERENCES $TABLE_SESSIONS ($COL_SESSION_ID),
-      FOREIGN KEY ($COL_SESSION_EXERCISE_SLOT_ID) REFERENCES $TABLE_EXERCISE_SLOTS ($COL_SLOT_ID),
-      FOREIGN KEY ($COL_SESSION_EXERCISE_CHOSEN_VARIANT_ID) REFERENCES $TABLE_EXERCISE_VARIANTS ($COL_VARIANT_ID)
+    CREATE TABLE $tableSessionExercises (
+      $colSessionExerciseId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colSessionExerciseSessionId INTEGER NOT NULL,
+      $colSessionExerciseSlotId INTEGER NOT NULL,
+      $colSessionExerciseChosenVariantId INTEGER NOT NULL,
+      FOREIGN KEY ($colSessionExerciseSessionId) REFERENCES $tableSessions ($colSessionId),
+      FOREIGN KEY ($colSessionExerciseSlotId) REFERENCES $tableExerciseSlots ($colSlotId),
+      FOREIGN KEY ($colSessionExerciseChosenVariantId) REFERENCES $tableExerciseVariants ($colVariantId)
     )
   ''');
 
-  // SESSION_SETS table
   await db.execute('''
-    CREATE TABLE $TABLE_SESSION_SETS (
-      $COL_SESSION_SET_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-      $COL_SESSION_SET_SESSION_EXERCISE_ID INTEGER NOT NULL,
-      $COL_SESSION_SET_NUMBER INTEGER NOT NULL,
-      $COL_SESSION_SET_REPS_COMPLETED INTEGER,
-      $COL_SESSION_SET_WEIGHT_LIFTED REAL,
-      $COL_SESSION_SET_ONE_RM_AT_TIME REAL,
-      $COL_SESSION_SET_RPE_ACTUAL INTEGER,
-      $COL_SESSION_SET_NOTES TEXT,
-      $COL_SESSION_SET_TIMESTAMP TEXT,
-      FOREIGN KEY ($COL_SESSION_SET_SESSION_EXERCISE_ID) REFERENCES $TABLE_SESSION_EXERCISES ($COL_SESSION_EXERCISE_ID)
+    CREATE TABLE $tableSessionSets (
+      $colSessionSetId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colSessionSetSessionExerciseId INTEGER NOT NULL,
+      $colSessionSetNumber INTEGER NOT NULL,
+      $colSessionSetRepsCompleted INTEGER,
+      $colSessionSetWeightLifted REAL,
+      $colSessionSetOneRmAtTime REAL,
+      $colSessionSetRpeActual INTEGER,
+      $colSessionSetNotes TEXT,
+      $colSessionSetTimestamp TEXT,
+      FOREIGN KEY ($colSessionSetSessionExerciseId) REFERENCES $tableSessionExercises ($colSessionExerciseId)
     )
   ''');
 
-  // SETTINGS table
   await db.execute('''
-    CREATE TABLE $TABLE_SETTINGS (
-      $COL_SETTINGS_KEY TEXT PRIMARY KEY,
-      $COL_SETTINGS_VALUE TEXT NOT NULL
+    CREATE TABLE $tableSettings (
+      $colSettingsKey TEXT PRIMARY KEY,
+      $colSettingsValue TEXT NOT NULL
     )
   ''');
 
-  // Create indexes for critical queries
-  await db.execute(
-    'CREATE INDEX idx_sessions_workout_id ON $TABLE_SESSIONS ($COL_SESSION_WORKOUT_ID)'
-  );
-  await db.execute(
-    'CREATE INDEX idx_session_sets_session_exercise_id ON $TABLE_SESSION_SETS ($COL_SESSION_SET_SESSION_EXERCISE_ID)'
-  );
-  await db.execute(
-    'CREATE INDEX idx_variant_1rm_history_variant_id_date ON $TABLE_VARIANT_ONE_RM_HISTORY ($COL_1RM_HISTORY_VARIANT_ID, $COL_1RM_HISTORY_DATE)'
-  );
-  await db.execute(
-    'CREATE INDEX idx_sessions_date ON $TABLE_SESSIONS ($COL_SESSION_DATE_COMPLETED)'
-  );
+  await db.execute('CREATE INDEX idx_sessions_workout_id ON $tableSessions ($colSessionWorkoutId)');
+  await db.execute('CREATE INDEX idx_session_sets_session_exercise_id ON $tableSessionSets ($colSessionSetSessionExerciseId)');
+  await db.execute('CREATE INDEX idx_variant_1rm_history_variant_id_date ON $tableVariantOneRmHistory ($col1rmHistoryVariantId, $col1rmHistoryDate)');
+  await db.execute('CREATE INDEX idx_sessions_date ON $tableSessions ($colSessionDateCompleted)');
 }
 
-/// Initialize settings table with defaults
 Future<void> _initializeSettings(Database db) async {
-  await db.insert(
-    TABLE_SETTINGS,
-    {
-      COL_SETTINGS_KEY: SETTING_SCHEMA_VERSION,
-      COL_SETTINGS_VALUE: DATABASE_VERSION.toString(),
-    },
-  );
-
-  await db.insert(
-    TABLE_SETTINGS,
-    {
-      COL_SETTINGS_KEY: SETTING_DELOAD_FREQUENCY_WEEKS,
-      COL_SETTINGS_VALUE: '4',
-    },
-  );
+  await db.insert(tableSettings, {
+    colSettingsKey: settingSchemaVersion,
+    colSettingsValue: databaseVersion.toString(),
+  });
+  await db.insert(tableSettings, {
+    colSettingsKey: settingDeloadFrequencyWeeks,
+    colSettingsValue: '4',
+  });
 }
 
-/// Close database (call on app shutdown)
 Future<void> closeDatabase() async {
   if (_database != null) {
     await _database!.close();
     _database = null;
   }
+}
+
+Future<void> resetDatabase() async {
+  await closeDatabase();
+  final dbPath = await getDatabasesPath();
+  final path = join(dbPath, databaseName);
+  await deleteDatabase(path);
 }

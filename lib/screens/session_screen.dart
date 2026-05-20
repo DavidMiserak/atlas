@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/session_provider.dart';
-import '../data/models/session.dart';
 import 'set_logging_screen.dart';
-import 'completion_screen.dart';
+import 'widgets/exercise_details.dart';
+import 'widgets/variant_selector.dart';
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key});
@@ -67,8 +67,8 @@ class _SessionScreenState extends State<SessionScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        final nav = Navigator.of(context);
         if (await _onWillPop()) {
-          final nav = Navigator.of(context);
           if (mounted) {
             nav.pop();
           }
@@ -96,14 +96,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
                 final exerciseIndex = provider.currentExerciseIndex ?? 0;
                 if (exerciseIndex >= provider.sessionExercises.length) {
-                  // Session complete
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const CompletionScreen(),
-                      ),
-                    );
-                  });
                   return const SizedBox();
                 }
 
@@ -120,9 +112,20 @@ class _SessionScreenState extends State<SessionScreen> {
                           total: provider.sessionExercises.length,
                         ),
                         const SizedBox(height: 24),
-                        _ExerciseHeader(sessionExercise: sessionExercise),
+                        ExerciseDetails(sessionExercise: sessionExercise),
                         const SizedBox(height: 24),
-                        _WarmupSets(sessionExercise: sessionExercise),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: VariantSelector(
+                                sessionExercise: sessionExercise,
+                                onVariantSwapped: () {
+                                  setState(() {});
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
@@ -136,6 +139,8 @@ class _SessionScreenState extends State<SessionScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => SetLoggingScreen(
                                     sessionExerciseId: sessionExercise.id!,
+                                    slotId: sessionExercise.slotId,
+                                    chosenVariantId: sessionExercise.chosenVariantId,
                                   ),
                                 ),
                               );
@@ -180,69 +185,6 @@ class _ExerciseProgressIndicator extends StatelessWidget {
           child: LinearProgressIndicator(
             value: current / total,
             minHeight: 4,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ExerciseHeader extends StatelessWidget {
-  final SessionExercise sessionExercise;
-
-  const _ExerciseHeader({required this.sessionExercise});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Exercise',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-      ],
-    );
-  }
-}
-
-class _WarmupSets extends StatelessWidget {
-  final SessionExercise sessionExercise;
-
-  const _WarmupSets({required this.sessionExercise});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Warm-up',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Warm-up sets will be shown after loading exercise details',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Working Sets',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Working sets will be shown after loading exercise details',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ),
         ),
       ],

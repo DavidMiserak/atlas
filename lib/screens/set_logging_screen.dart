@@ -1,13 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/session_provider.dart';
+import '../utils/weight_calculator.dart';
+import 'completion_screen.dart';
+import 'widgets/rest_timer.dart';
+
+class _SetContext {
+  final bool isWarmup;
+  final int displayNumber;
+  final double suggestedWeight;
+  final int targetReps;
+  final double? percentage;
+  final int? rpeTarget;
+
+  const _SetContext({
+    required this.isWarmup,
+    required this.displayNumber,
+    required this.suggestedWeight,
+    required this.targetReps,
+    this.percentage,
+    this.rpeTarget,
+  });
+
+  String get label => isWarmup ? 'Warm-up Set $displayNumber' : 'Working Set $displayNumber';
+
+  String get weightLabel => suggestedWeight > 0
+      ? '${suggestedWeight.toStringAsFixed(0)} lbs'
+      : 'Enter weight';
+
+  String get repsLabel => '$targetReps reps';
+}
 
 class SetLoggingScreen extends StatefulWidget {
   final int sessionExerciseId;
+  final int slotId;
+  final int chosenVariantId;
 
   const SetLoggingScreen({
     super.key,
     required this.sessionExerciseId,
+    required this.slotId,
+    required this.chosenVariantId,
   });
 
   @override
@@ -15,65 +48,179 @@ class SetLoggingScreen extends StatefulWidget {
 }
 
 class _SetLoggingScreenState extends State<SetLoggingScreen> {
-  int _setNumber = 1;
-  int _reps = 5;
+  List<_SetContext> _allSets = [];
+  int _currentSetIndex = 0;
+  bool _loadingContext = true;
+
   double _weight = 0.0;
+  int _reps = 5;
   int _rpe = 7;
   String? _notes;
 
   final _weightController = TextEditingController();
   final _repsController = TextEditingController();
-  final _rpeController = TextEditingController();
   final _notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _weightController.text = _weight.toString();
-    _repsController.text = _reps.toString();
-    _rpeController.text = _rpe.toString();
+    _loadSetContext();
   }
 
   @override
   void dispose() {
     _weightController.dispose();
     _repsController.dispose();
-    _rpeController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  Future<void> _loadSetContext() async {
+    final provider = context.read<SessionProvider>();
+
+    final oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
+    final templates = await provider.getSlotSetTemplates(widget.slotId);
+
+    final sets = <_SetContext>[];
+
+    if (oneRm != null && oneRm > 0 && templates.isNotEmpty) {
+      final firstTemplate = templates.first;
+      // Warm-ups are always based on the working set weight, not the 1RM.
+      // For percentage-based: working weight = 1RM × percentage.
+      // For RPE-based: estimate working weight from the RPE target.
+      final workingWeight = firstTemplate.percentage1rm != null
+          ? calculatePercentageWeight(oneRm, firstTemplate.percentage1rm!)
+          : estimateWorkingWeightFromRpe(oneRm, firstTemplate.rpeTarget ?? 8);
+
+      final warmupWeights = calculateWarmupProgression(workingWeight);
+      final warmupPercentages = [0.50, 0.70, 0.90];
+      for (var i = 0; i < warmupWeights.length; i++) {
+        sets.add(_SetContext(
+          isWarmup: true,
+          displayNumber: i + 1,
+          suggestedWeight: warmupWeights[i],
+          targetReps: 5,
+          percentage: warmupPercentages[i],
+        ));
+      }
+
+      for (var i = 0; i < templates.length; i++) {
+        final t = templates[i];
+        // Percentage-based: exact weight. RPE-based: estimated working weight as starting point.
+        final weight = t.percentage1rm != null
+            ? calculatePercentageWeight(oneRm, t.percentage1rm!)
+            : estimateWorkingWeightFromRpe(oneRm, t.rpeTarget ?? 8);
+        sets.add(_SetContext(
+          isWarmup: false,
+          displayNumber: i + 1,
+          suggestedWeight: weight,
+          targetReps: t.repsTargetMin ?? 5,
+          percentage: t.percentage1rm,
+          rpeTarget: t.rpeTarget,
+        ));
+      }
+    } else {
+      // No 1RM — show blank working sets from templates
+      for (var i = 0; i < (templates.isNotEmpty ? templates.length : 3); i++) {
+        final t = templates.isNotEmpty ? templates[i] : null;
+        sets.add(_SetContext(
+          isWarmup: false,
+          displayNumber: i + 1,
+          suggestedWeight: 0.0,
+          targetReps: t?.repsTargetMin ?? 5,
+          rpeTarget: t?.rpeTarget,
+        ));
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _allSets = sets;
+        _loadingContext = false;
+      });
+      _prefillFromContext();
+    }
+  }
+
+  void _prefillFromContext() {
+    if (_allSets.isEmpty || _currentSetIndex >= _allSets.length) return;
+    final ctx = _allSets[_currentSetIndex];
+    setState(() {
+      _weight = ctx.suggestedWeight;
+      _reps = ctx.targetReps;
+      _rpe = ctx.rpeTarget ?? 7;
+    });
+    _weightController.text = ctx.suggestedWeight > 0
+        ? ctx.suggestedWeight.toStringAsFixed(0)
+        : '';
+    _repsController.text = ctx.targetReps.toString();
+  }
+
   Future<void> _submitSet() async {
     final provider = context.read<SessionProvider>();
+    final loggedSetIndex = _currentSetIndex;
+    // Use actual set number (overall sequence) for the database record
+    final dbSetNumber = loggedSetIndex + 1;
 
     try {
       await provider.logSet(
         widget.sessionExerciseId,
-        _setNumber,
+        dbSetNumber,
         _reps,
         _weight,
         _rpe,
         notes: _notes,
       );
 
-      if (mounted) {
-        _setNumber++;
-        _repsController.clear();
-        _weightController.clear();
-        _rpeController.clear();
+      if (!mounted) return;
+
+      final isLastSet = _currentSetIndex >= _allSets.length - 1;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isLastSet
+                ? 'Last set logged!'
+                : '${_allSets[_currentSetIndex].label} logged',
+          ),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+
+      if (isLastSet) {
+        provider.nextExercise();
+        final sessionDone = provider.currentExerciseIndex! >=
+            provider.sessionExercises.length;
+        if (sessionDone) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const CompletionScreen(),
+            ),
+          );
+        } else {
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
+      setState(() {
+        _currentSetIndex++;
+        _notes = null;
         _notesController.clear();
+      });
+      _prefillFromContext();
 
-        setState(() {
-          _reps = 5;
-          _weight = 0.0;
-          _rpe = 7;
-          _notes = null;
-        });
+      final restSeconds = _allSets[loggedSetIndex].isWarmup ? 60 : 90;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Set $_setNumber logged'),
-            duration: const Duration(seconds: 2),
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => RestTimer(
+            restSeconds: restSeconds,
+            onComplete: () {
+              if (mounted) Navigator.of(context).pop();
+            },
           ),
         );
       }
@@ -89,17 +236,29 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     }
   }
 
-  void _finishExercise() {
-    final provider = context.read<SessionProvider>();
-    provider.nextExercise();
-    Navigator.of(context).pop();
+  void _skipToWorking() {
+    final firstWorkingIndex = _allSets.indexWhere((s) => !s.isWarmup);
+    if (firstWorkingIndex != -1 && firstWorkingIndex > _currentSetIndex) {
+      setState(() => _currentSetIndex = firstWorkingIndex);
+      _prefillFromContext();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingContext) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Log Sets')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final currentCtx =
+        _currentSetIndex < _allSets.length ? _allSets[_currentSetIndex] : null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Log Set'),
+        title: Text(currentCtx?.label ?? 'Log Set'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -107,58 +266,46 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Set $_setNumber',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 32),
-              _buildInputField(
-                label: 'Reps',
-                controller: _repsController,
-                hint: '5',
-                onChanged: (value) {
-                  setState(() => _reps = int.tryParse(value) ?? 5);
-                },
+              _SetProgressRow(
+                sets: _allSets,
+                currentIndex: _currentSetIndex,
               ),
               const SizedBox(height: 16),
-              _buildInputField(
-                label: 'Weight (lbs)',
-                controller: _weightController,
-                hint: '225',
-                onChanged: (value) {
-                  setState(() => _weight = double.tryParse(value) ?? 0.0);
-                },
-              ),
+              if (currentCtx != null) _SetContextCard(ctx: currentCtx),
+              const SizedBox(height: 24),
+              _buildWeightField(),
               const SizedBox(height: 16),
-              _buildRPESelector(),
+              _buildRepsField(),
               const SizedBox(height: 16),
+              if (currentCtx?.isWarmup == false) _buildRPESelector(),
+              if (currentCtx?.isWarmup == false) const SizedBox(height: 16),
               _buildNotesField(),
               const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        minimumSize: const Size(double.infinity, 56),
-                      ),
-                      onPressed: _submitSet,
-                      child: const Text('Log Set'),
-                    ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(double.infinity, 56),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        minimumSize: const Size(double.infinity, 56),
-                      ),
-                      onPressed: _finishExercise,
-                      child: const Text('Done'),
-                    ),
+                  onPressed: _submitSet,
+                  child: Text(
+                    _currentSetIndex >= _allSets.length - 1
+                        ? 'Log & Finish Exercise'
+                        : 'Log Set',
                   ),
-                ],
+                ),
               ),
+              if (currentCtx?.isWarmup == true) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: _skipToWorking,
+                    child: const Text('Skip Warm-ups'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -166,33 +313,40 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     );
   }
 
-  Widget _buildInputField({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    required Function(String) onChanged,
-  }) {
+  Widget _buildWeightField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        Text('Weight (lbs)', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         TextField(
-          controller: controller,
+          controller: _weightController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: onChanged,
+          onChanged: (v) => setState(() => _weight = double.tryParse(v) ?? 0.0),
           decoration: InputDecoration(
-            hintText: hint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
+            hintText: '0',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRepsField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Reps', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _repsController,
+          keyboardType: TextInputType.number,
+          onChanged: (v) => setState(() => _reps = int.tryParse(v) ?? 5),
+          decoration: InputDecoration(
+            hintText: '5',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
       ],
@@ -203,10 +357,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'RPE (Rate of Perceived Exertion)',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        Text('RPE (Rate of Perceived Exertion)',
+            style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
@@ -222,15 +374,10 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                   min: 1,
                   max: 10,
                   divisions: 9,
-                  onChanged: (value) {
-                    setState(() => _rpe = value.toInt());
-                  },
+                  onChanged: (v) => setState(() => _rpe = v.toInt()),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'RPE $_rpe / 10',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text('RPE $_rpe / 10',
+                    style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
           ),
@@ -243,27 +390,176 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Notes (optional)',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        Text('Notes (optional)', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         TextField(
           controller: _notesController,
-          onChanged: (value) => setState(() => _notes = value.isEmpty ? null : value),
-          maxLines: 3,
+          onChanged: (v) => setState(() => _notes = v.isEmpty ? null : v),
+          maxLines: 2,
           decoration: InputDecoration(
-            hintText: 'Felt strong, form good, etc.',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
+            hintText: 'Felt strong, form good...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SetContextCard extends StatelessWidget {
+  final _SetContext ctx;
+
+  const _SetContextCard({required this.ctx});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final cardColor = ctx.isWarmup
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.primaryContainer;
+
+    return Card(
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              ctx.isWarmup ? Icons.whatshot_outlined : Icons.fitness_center,
+              size: 28,
+              color: ctx.isWarmup
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onPrimaryContainer,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ctx.isWarmup ? 'Warm-up' : 'Working Set',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: ctx.isWarmup
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        ctx.weightLabel,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: ctx.isWarmup
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '× ${ctx.repsLabel}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: ctx.isWarmup
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.onPrimaryContainer,
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (ctx.percentage != null) ...[
+                  Text(
+                    '${(ctx.percentage! * 100).toStringAsFixed(0)}%',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: ctx.isWarmup
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  Text(
+                    ctx.isWarmup ? 'of work wt' : 'of 1RM',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: ctx.isWarmup
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                ],
+                if (ctx.rpeTarget != null)
+                  Text(
+                    'Goal: RPE ${ctx.rpeTarget}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: ctx.isWarmup
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onPrimaryContainer,
+                          fontWeight: ctx.percentage == null
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                  ),
+                if (!ctx.isWarmup && ctx.percentage == null && ctx.rpeTarget != null)
+                  Text(
+                    'adjust by feel',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SetProgressRow extends StatelessWidget {
+  final List<_SetContext> sets;
+  final int currentIndex;
+
+  const _SetProgressRow({required this.sets, required this.currentIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: sets.asMap().entries.map((entry) {
+        final i = entry.key;
+        final s = entry.value;
+        final isDone = i < currentIndex;
+        final isCurrent = i == currentIndex;
+        final colorScheme = Theme.of(context).colorScheme;
+
+        Color bgColor;
+        if (isDone) {
+          bgColor = colorScheme.primary;
+        } else if (isCurrent) {
+          bgColor = s.isWarmup
+              ? colorScheme.onSurfaceVariant
+              : colorScheme.primaryContainer;
+        } else {
+          bgColor = colorScheme.surfaceContainerHighest;
+        }
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -64,6 +64,20 @@ class SessionExercise {
       chosenVariantId: map['chosen_variant_id'] as int,
     );
   }
+
+  SessionExercise copyWith({
+    int? id,
+    int? sessionId,
+    int? slotId,
+    int? chosenVariantId,
+  }) {
+    return SessionExercise(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      slotId: slotId ?? this.slotId,
+      chosenVariantId: chosenVariantId ?? this.chosenVariantId,
+    );
+  }
 }
 
 class SessionSet {

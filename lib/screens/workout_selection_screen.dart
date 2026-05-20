@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/session_provider.dart';
+import '../data/models/program.dart';
 import 'session_screen.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
@@ -11,6 +12,14 @@ class WorkoutSelectionScreen extends StatefulWidget {
 }
 
 class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
+  late Future<Program?> _programFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _programFuture = context.read<SessionProvider>().getProgram();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,15 +27,21 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         title: const Text('Select Workout'),
       ),
       body: FutureBuilder(
-        future: context.read<SessionProvider>().getProgram(),
+        future: _programFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+
           if (!snapshot.hasData || snapshot.data == null) {
             return const Center(
-              child: Text('No program found'),
+              child: Text('No program found - database may not be initialized'),
             );
           }
 

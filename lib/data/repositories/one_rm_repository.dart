@@ -2,36 +2,28 @@ import '../database/app_database.dart';
 import '../database/database_constants.dart';
 
 class OneRmRepository {
-  /// Get current 1RM for a variant (most recent entry marked as current)
   Future<double?> getCurrentOneRm(int variantId) async {
     final db = await getDatabase();
-
     final results = await db.query(
-      TABLE_VARIANT_ONE_RM_HISTORY,
-      where: '$COL_1RM_HISTORY_VARIANT_ID = ? AND $COL_1RM_HISTORY_IS_CURRENT = 1',
+      tableVariantOneRmHistory,
+      where: '$col1rmHistoryVariantId = ? AND $col1rmHistoryIsCurrent = 1',
       whereArgs: [variantId],
     );
-
     if (results.isEmpty) return null;
-    return results.first[COL_1RM_HISTORY_WEIGHT] as double?;
+    return results.first[col1rmHistoryWeight] as double?;
   }
 
-  /// Get 1RM history for a variant (all entries, most recent first)
   Future<List<OneRmHistory>> getOneRmHistory(int variantId) async {
     final db = await getDatabase();
-
     final historyMaps = await db.query(
-      TABLE_VARIANT_ONE_RM_HISTORY,
-      where: '$COL_1RM_HISTORY_VARIANT_ID = ?',
+      tableVariantOneRmHistory,
+      where: '$col1rmHistoryVariantId = ?',
       whereArgs: [variantId],
-      orderBy: '$COL_1RM_HISTORY_DATE DESC',
+      orderBy: '$col1rmHistoryDate DESC',
     );
-
     return historyMaps.map((map) => OneRmHistory.fromMap(map)).toList();
   }
 
-  /// Record a new 1RM and mark it as current
-  /// (Sets all previous entries for this variant as not current)
   Future<int> recordNewOneRm(
     int variantId,
     double weight,
@@ -39,65 +31,41 @@ class OneRmRepository {
     String? notes,
   }) async {
     final db = await getDatabase();
-
-    // Start transaction to ensure consistency
     return await db.transaction<int>((txn) async {
-      // Mark all previous entries as not current
       await txn.update(
-        TABLE_VARIANT_ONE_RM_HISTORY,
-        {COL_1RM_HISTORY_IS_CURRENT: 0},
-        where: '$COL_1RM_HISTORY_VARIANT_ID = ?',
+        tableVariantOneRmHistory,
+        {col1rmHistoryIsCurrent: 0},
+        where: '$col1rmHistoryVariantId = ?',
         whereArgs: [variantId],
       );
-
-      // Insert new entry as current
-      return await txn.insert(
-        TABLE_VARIANT_ONE_RM_HISTORY,
-        {
-          COL_1RM_HISTORY_VARIANT_ID: variantId,
-          COL_1RM_HISTORY_WEIGHT: weight,
-          COL_1RM_HISTORY_DATE: date.toIso8601String(),
-          COL_1RM_HISTORY_NOTES: notes,
-          COL_1RM_HISTORY_IS_CURRENT: 1,
-        },
-      );
+      return await txn.insert(tableVariantOneRmHistory, {
+        col1rmHistoryVariantId: variantId,
+        col1rmHistoryWeight: weight,
+        col1rmHistoryDate: date.toIso8601String(),
+        col1rmHistoryNotes: notes,
+        col1rmHistoryIsCurrent: 1,
+      });
     });
   }
 
-  /// Get 1RM entry by ID
   Future<OneRmHistory?> getOneRmHistoryById(int historyId) async {
     final db = await getDatabase();
-
     final results = await db.query(
-      TABLE_VARIANT_ONE_RM_HISTORY,
-      where: '$COL_1RM_HISTORY_ID = ?',
+      tableVariantOneRmHistory,
+      where: '$col1rmHistoryId = ?',
       whereArgs: [historyId],
     );
-
     if (results.isEmpty) return null;
     return OneRmHistory.fromMap(results.first);
   }
 
-  /// Get 1RM history for multiple variants (for comparing lifts)
   Future<Map<int, double?>> getCurrentOneRmsForVariants(
       List<int> variantIds) async {
     final result = <int, double?>{};
-
     for (final variantId in variantIds) {
-      final oneRm = await getCurrentOneRm(variantId);
-      result[variantId] = oneRm;
+      result[variantId] = await getCurrentOneRm(variantId);
     }
-
     return result;
-  }
-
-  /// Cascade: update all future sessions when 1RM changes
-  /// Note: For MVP, sessions recalculate on load when querying with current 1RM.
-  /// In Phase 3, consider denormalizing or marking sessions that need updates.
-  Future<void> cascadeOneRmUpdate(int variantId, DateTime fromDate) async {
-    // Future implementation: mark sessions that need recalculation
-    // For now, app recalculates on load using current 1RM values
-    // This prevents N+1 query problems when fetching all sessions
   }
 }
 

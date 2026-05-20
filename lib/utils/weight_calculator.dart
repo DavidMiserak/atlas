@@ -21,6 +21,19 @@ List<double> calculateWarmupProgression(double firstWorkingSetWeight) {
   ];
 }
 
+/// Estimates working weight from a 1RM and RPE target using standard RPE→%1RM table
+double estimateWorkingWeightFromRpe(double oneRm, int rpeTarget) {
+  const rpeToPercent = {
+    10: 1.00,
+    9: 0.94,
+    8: 0.88,
+    7: 0.82,
+    6: 0.76,
+  };
+  final percentage = rpeToPercent[rpeTarget] ?? 0.75;
+  return calculatePercentageWeight(oneRm, percentage);
+}
+
 /// Rounds a weight to the nearest 5 lbs
 ///
 /// Examples:
