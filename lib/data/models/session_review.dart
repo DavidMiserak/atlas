@@ -28,11 +28,19 @@ class SessionDetailExercise {
   final String slotName;
   final String variantName;
   final List<SessionDetailSet> sets;
+  final double? sessionPr;
+  final double? allTimePr;
+  final double? session1rm;
+  final double? allTime1rm;
 
   SessionDetailExercise({
     required this.slotName,
     required this.variantName,
     required this.sets,
+    this.sessionPr,
+    this.allTimePr,
+    this.session1rm,
+    this.allTime1rm,
   });
 }
 
@@ -46,6 +54,7 @@ class SessionDetailSet {
   final int? actualReps;
   final double? actualWeight;
   final int? actualRpe;
+  final double? oneRmAtSessionTime;
 
   SessionDetailSet({
     required this.setNumber,
@@ -57,6 +66,7 @@ class SessionDetailSet {
     this.actualReps,
     this.actualWeight,
     this.actualRpe,
+    this.oneRmAtSessionTime,
   });
 
   SessionDetailSet.fromMap(Map<String, dynamic> map)
@@ -71,7 +81,8 @@ class SessionDetailSet {
         targetRpe = map['rpe_target'],
         actualReps = map['reps_completed'],
         actualWeight = map['weight_lifted'],
-        actualRpe = map['rpe_actual'];
+        actualRpe = map['rpe_actual'],
+        oneRmAtSessionTime = (map['one_rm_at_session_time'] as num?)?.toDouble();
 
   static double? _computeTargetWeight(
     double? percentage1rm,

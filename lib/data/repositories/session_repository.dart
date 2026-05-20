@@ -147,8 +147,18 @@ class SessionRepository {
       SELECT
         se.$colSessionExerciseId,
         se.$colSessionExerciseSlotId,
+        se.$colSessionExerciseChosenVariantId,
         es.$colSlotName AS slot_name,
-        ev.$colVariantName AS variant_name
+        ev.$colVariantName AS variant_name,
+        (SELECT MAX(ss2.$colSessionSetWeightLifted)
+         FROM $tableSessionSets ss2
+         JOIN $tableSessionExercises se2 ON ss2.$colSessionSetSessionExerciseId = se2.$colSessionExerciseId
+         WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
+        ) AS all_time_pr,
+        (SELECT MAX(h.$col1rmHistoryWeight)
+         FROM $tableVariantOneRmHistory h
+         WHERE h.$col1rmHistoryVariantId = se.$colSessionExerciseChosenVariantId
+        ) AS all_time_1rm
       FROM $tableSessionExercises se
       JOIN $tableExerciseSlots es ON es.$colSlotId = se.$colSessionExerciseSlotId
       JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
@@ -163,6 +173,8 @@ class SessionRepository {
       final slotId = exerciseRow['slot_id'] as int;
       final slotName = exerciseRow['slot_name'] as String;
       final variantName = exerciseRow['variant_name'] as String;
+      final allTimePr = (exerciseRow['all_time_pr'] as num?)?.toDouble();
+      final allTime1rm = (exerciseRow['all_time_1rm'] as num?)?.toDouble();
 
       final setsResult = await db.rawQuery('''
         SELECT
@@ -189,10 +201,24 @@ class SessionRepository {
           .map((row) => SessionDetailSet.fromMap(row))
           .toList();
 
+      final workingSets = sets.where((s) => s.setType != 'warm-up');
+      final sessionPr = workingSets
+          .map((s) => s.actualWeight)
+          .whereType<double>()
+          .fold<double?>(null, (a, b) => a == null || b > a ? b : a);
+      final session1rm = sets
+          .map((s) => s.oneRmAtSessionTime)
+          .whereType<double>()
+          .fold<double?>(null, (a, b) => a == null || b > a ? b : a);
+
       exercises.add(SessionDetailExercise(
         slotName: slotName,
         variantName: variantName,
         sets: sets,
+        sessionPr: sessionPr,
+        allTimePr: allTimePr,
+        session1rm: session1rm,
+        allTime1rm: allTime1rm,
       ));
     }
 

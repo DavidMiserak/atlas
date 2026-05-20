@@ -225,6 +225,32 @@ class _ExerciseBlock extends StatelessWidget {
             ],
           ),
 
+          // ── PR / 1RM stat pair ───────────────────────────
+          if (exercise.sessionPr != null || exercise.session1rm != null) ...[
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.only(left: 26),
+              child: Row(
+                children: [
+                  if (exercise.sessionPr != null)
+                    _StatPair(
+                      thisValue: exercise.sessionPr!.toStringAsFixed(0),
+                      maxValue: exercise.allTimePr?.toStringAsFixed(0),
+                      label: 'PR',
+                    ),
+                  if (exercise.sessionPr != null && exercise.session1rm != null)
+                    const SizedBox(width: 24),
+                  if (exercise.session1rm != null)
+                    _StatPair(
+                      thisValue: exercise.session1rm!.toStringAsFixed(0),
+                      maxValue: exercise.allTime1rm?.toStringAsFixed(0),
+                      label: '1RM',
+                    ),
+                ],
+              ),
+            ),
+          ],
+
           // ── Warm-up summary ──────────────────────────────
           if (warmUpSets.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -417,6 +443,73 @@ class _WorkingSetRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Stat pair (this / max) ───────────────────────────────────────────────────
+
+class _StatPair extends StatelessWidget {
+  final String thisValue;
+  final String? maxValue;
+  final String label;
+
+  const _StatPair({
+    required this.thisValue,
+    required this.maxValue,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+            color: const Color(0xFF2A2A2A),
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              thisValue,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: -0.5,
+                height: 1.0,
+              ),
+            ),
+            if (maxValue != null) ...[
+              Text(
+                ' / ',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 12,
+                  color: const Color(0xFF2A2A2A),
+                ),
+              ),
+              Text(
+                maxValue!,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF00D9FF),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
