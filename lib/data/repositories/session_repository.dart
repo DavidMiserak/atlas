@@ -137,7 +137,95 @@ class SessionRepository {
       HAVING COUNT(ss.$colSessionSetId) > 0
       ORDER BY s.$colSessionDateCompleted DESC
     ''');
-    return result.map((row) => SessionSummary.fromMap(row)).toList();
+    final summaries = result.map((row) => SessionSummary.fromMap(row)).toList();
+    final prMap = await _fetchNewPrs(db);
+    return summaries.map((s) {
+      final prs = prMap[s.sessionId];
+      if (prs == null || prs.isEmpty) return s;
+      return SessionSummary(
+        sessionId: s.sessionId,
+        workoutName: s.workoutName,
+        dateCompleted: s.dateCompleted,
+        exerciseCount: s.exerciseCount,
+        totalSetsLogged: s.totalSetsLogged,
+        totalVolume: s.totalVolume,
+        newPrs: prs,
+      );
+    }).toList();
+  }
+
+  Future<Map<int, List<PrRecord>>> _fetchNewPrs(dynamic db) async {
+    final prMap = <int, List<PrRecord>>{};
+
+    // Weight PRs: session max weight > prior session max weight for same variant
+    final weightRows = await db.rawQuery('''
+      SELECT * FROM (
+        SELECT
+          se.$colSessionExerciseSessionId AS session_id,
+          ev.$colVariantName AS variant_name,
+          MAX(ss.$colSessionSetWeightLifted) AS session_max,
+          (SELECT MAX(ss2.$colSessionSetWeightLifted)
+           FROM $tableSessionSets ss2
+           JOIN $tableSessionExercises se2 ON ss2.$colSessionSetSessionExerciseId = se2.$colSessionExerciseId
+           JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
+           WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
+             AND s2.$colSessionDateCompleted < s.$colSessionDateCompleted
+             AND ss2.$colSessionSetIsWarmup = 0
+          ) AS prior_max
+        FROM $tableSessionSets ss
+        JOIN $tableSessionExercises se ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
+        JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
+        JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
+        WHERE ss.$colSessionSetIsWarmup = 0
+          AND ss.$colSessionSetWeightLifted IS NOT NULL
+        GROUP BY se.$colSessionExerciseSessionId, se.$colSessionExerciseChosenVariantId
+      ) WHERE prior_max IS NOT NULL AND session_max > prior_max
+    ''');
+
+    for (final row in weightRows) {
+      final sessionId = row['session_id'] as int;
+      prMap.putIfAbsent(sessionId, () => []).add(PrRecord(
+        variantName: row['variant_name'] as String,
+        prev: (row['prior_max'] as num).toDouble(),
+        value: (row['session_max'] as num).toDouble(),
+        is1rm: false,
+      ));
+    }
+
+    // 1RM PRs: session max one_rm_at_session_time > prior session max
+    final oneRmRows = await db.rawQuery('''
+      SELECT * FROM (
+        SELECT
+          se.$colSessionExerciseSessionId AS session_id,
+          ev.$colVariantName AS variant_name,
+          MAX(ss.$colSessionSetOneRmAtTime) AS session_max,
+          (SELECT MAX(ss2.$colSessionSetOneRmAtTime)
+           FROM $tableSessionSets ss2
+           JOIN $tableSessionExercises se2 ON ss2.$colSessionSetSessionExerciseId = se2.$colSessionExerciseId
+           JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
+           WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
+             AND s2.$colSessionDateCompleted < s.$colSessionDateCompleted
+          ) AS prior_max
+        FROM $tableSessionSets ss
+        JOIN $tableSessionExercises se ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
+        JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
+        JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
+        WHERE ss.$colSessionSetOneRmAtTime IS NOT NULL
+        GROUP BY se.$colSessionExerciseSessionId, se.$colSessionExerciseChosenVariantId
+      ) WHERE prior_max IS NOT NULL AND session_max > prior_max
+    ''');
+
+    for (final row in oneRmRows) {
+      final sessionId = row['session_id'] as int;
+      prMap.putIfAbsent(sessionId, () => []).add(PrRecord(
+        variantName: row['variant_name'] as String,
+        prev: (row['prior_max'] as num).toDouble(),
+        value: (row['session_max'] as num).toDouble(),
+        is1rm: true,
+      ));
+    }
+
+    return prMap;
   }
 
   Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {

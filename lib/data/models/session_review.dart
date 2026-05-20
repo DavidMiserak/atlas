@@ -1,3 +1,17 @@
+class PrRecord {
+  final String variantName;
+  final double prev;
+  final double value;
+  final bool is1rm;
+
+  const PrRecord({
+    required this.variantName,
+    required this.prev,
+    required this.value,
+    required this.is1rm,
+  });
+}
+
 class SessionSummary {
   final int sessionId;
   final String workoutName;
@@ -5,6 +19,7 @@ class SessionSummary {
   final int exerciseCount;
   final int totalSetsLogged;
   final double totalVolume;
+  final List<PrRecord> newPrs;
 
   SessionSummary({
     required this.sessionId,
@@ -13,6 +28,7 @@ class SessionSummary {
     required this.exerciseCount,
     required this.totalSetsLogged,
     required this.totalVolume,
+    this.newPrs = const [],
   });
 
   SessionSummary.fromMap(Map<String, dynamic> map)
@@ -21,7 +37,8 @@ class SessionSummary {
         dateCompleted = DateTime.parse(map['date_completed']),
         exerciseCount = map['exercise_count'],
         totalSetsLogged = map['total_sets'],
-        totalVolume = (map['total_volume'] as num).toDouble();
+        totalVolume = (map['total_volume'] as num).toDouble(),
+        newPrs = const [];
 }
 
 class SessionDetailExercise {
