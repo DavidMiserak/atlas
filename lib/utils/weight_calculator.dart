@@ -34,6 +34,22 @@ double estimateWorkingWeightFromRpe(double oneRm, int rpeTarget) {
   return calculatePercentageWeight(oneRm, percentage);
 }
 
+/// Calculates estimated 1RM from actual weight lifted at given RPE
+/// Uses standard RPE table to determine percentage of 1RM
+/// Example: 135 lbs at RPE 7 (82% of 1RM) = 135 / 0.82 = ~164 lbs 1RM
+double calculateOneRmFromLift(double weightLifted, int rpe) {
+  const rpeToPercent = {
+    10: 1.00,
+    9: 0.94,
+    8: 0.88,
+    7: 0.82,
+    6: 0.76,
+  };
+  final percentage = rpeToPercent[rpe] ?? 0.75;
+  if (percentage == 0) return 0;
+  return weightLifted / percentage;
+}
+
 /// Rounds a weight to the nearest 5 lbs
 ///
 /// Examples:

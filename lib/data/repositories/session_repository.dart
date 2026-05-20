@@ -104,4 +104,17 @@ class SessionRepository {
       whereArgs: [sessionId],
     );
   }
+
+  Future<double?> getHighestWeightForVariant(int variantId) async {
+    final db = await getDatabase();
+    final result = await db.rawQuery(
+      'SELECT MAX($colSessionSetWeightLifted) as max_weight FROM $tableSessionSets '
+      'INNER JOIN $tableSessionExercises ON '
+      '$tableSessionSets.$colSessionSetSessionExerciseId = $tableSessionExercises.$colSessionExerciseId '
+      'WHERE $tableSessionExercises.$colSessionExerciseChosenVariantId = ?',
+      [variantId],
+    );
+    if (result.isEmpty || result.first['max_weight'] == null) return null;
+    return (result.first['max_weight'] as num?)?.toDouble();
+  }
 }

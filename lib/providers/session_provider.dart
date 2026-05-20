@@ -196,6 +196,10 @@ class SessionProvider extends ChangeNotifier {
     return await programRepo.getSetTemplatesForSlot(slotId);
   }
 
+  Future<double?> getHighestWeightForVariant(int variantId) async {
+    return await sessionRepo.getHighestWeightForVariant(variantId);
+  }
+
   ExerciseSlot? getSlotForExercise(int slotId) {
     if (_currentWorkout == null) return null;
     try {

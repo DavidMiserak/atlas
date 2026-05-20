@@ -63,6 +63,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   int _currentSetIndex = 0;
   bool _loadingContext = true;
   double? _estimatedOneRm; // Temporary 1RM estimate if variant has no history
+  double? _currentOneRm; // Current 1RM being used for this exercise
+  double? _pr; // Personal record - highest weight ever logged
   String _exerciseName = '';
   Map<int, double> _loggedWeights = {}; // Track actual weights entered per set index
 
@@ -99,6 +101,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     }
 
     var oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
+    final pr = await provider.getHighestWeightForVariant(widget.chosenVariantId);
     final templates = await provider.getSlotSetTemplates(widget.slotId);
 
     final sets = <_SetContext>[];
@@ -182,6 +185,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     if (mounted) {
       setState(() {
         _allSets = sets;
+        _currentOneRm = oneRm;
+        _pr = pr;
         _loadingContext = false;
       });
       _prefillFromContext();
@@ -281,6 +286,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
   Future<void> _submitSet() async {
     final provider = context.read<SessionProvider>();
+    final oneRmRepo = OneRmRepository();
     final loggedSetIndex = _currentSetIndex;
     // Use actual set number (overall sequence) for the database record
     final dbSetNumber = loggedSetIndex + 1;
@@ -302,6 +308,33 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
       // Track the logged weight for cascading to next sets
       _loggedWeights[loggedSetIndex] = _weight;
+
+      // Update PR if this weight is higher
+      if (_weight > 0 && (_pr == null || _weight > _pr!)) {
+        if (mounted) {
+          setState(() => _pr = _weight);
+        }
+      }
+
+      // For working sets, calculate 1RM equivalent and update if higher
+      final currentCtx = _allSets[loggedSetIndex];
+      if (!currentCtx.isWarmup && _weight > 0 && _rpe >= 6 && _rpe <= 10) {
+        final estimatedOneRm = calculateOneRmFromLift(_weight, _rpe);
+        // Round down to nearest 5 lbs
+        final roundedOneRm = (estimatedOneRm / 5).floor() * 5.0;
+
+        if (currentOneRm == null || roundedOneRm > currentOneRm) {
+          await oneRmRepo.recordNewOneRm(
+            widget.chosenVariantId,
+            roundedOneRm,
+            DateTime.now(),
+            notes: 'Calculated from $_reps reps @ $_rpe RPE × $_weight lbs',
+          );
+          if (mounted) {
+            setState(() => _currentOneRm = roundedOneRm);
+          }
+        }
+      }
 
       if (!mounted) return;
 
@@ -393,7 +426,28 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_exerciseName),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_exerciseName),
+                if (_currentOneRm != null && _currentOneRm! > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0),
+                    child: Text(
+                      '1RM: ${_currentOneRm!.toStringAsFixed(0)} lbs',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                if (_pr != null && _pr! > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0),
+                    child: Text(
+                      'PR: ${_pr!.toStringAsFixed(0)} lbs',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+              ],
+            ),
             if (currentCtx != null)
               Text(
                 currentCtx.label,
