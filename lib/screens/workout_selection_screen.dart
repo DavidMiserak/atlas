@@ -74,7 +74,9 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _WorkoutCard(
                   name: workout.name,
-                  exerciseCount: workout.exerciseSlots.length,
+                  exerciseCount: workout.exerciseSlots
+                      .where((s) => s.variants.isNotEmpty)
+                      .length,
                   accentColor: accentColor,
                   onPressed: () async {
                     final nav = Navigator.of(context);

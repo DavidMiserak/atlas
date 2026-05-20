@@ -73,6 +73,9 @@ class SessionProvider extends ChangeNotifier {
       _currentProgram = program;
       _currentWorkout = workout;
       _currentExerciseIndex = 0;
+      _sessionExercises = [];
+      _sessionSets = {};
+      _estimatedOneRms = {};
       _isLoading = false;
       notifyListeners();
     } catch (e) {
