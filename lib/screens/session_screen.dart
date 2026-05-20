@@ -41,11 +41,17 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Future<bool> _onWillPop() async {
+    final hasSets = _sessionProvider.sessionSets.values.any((sets) => sets.isNotEmpty);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Session?'),
-        content: const Text('Your progress will be lost.'),
+        title: const Text('Go Back?'),
+        content: Text(
+          hasSets
+            ? 'Any logged sets will be saved, but you\'ll need to restart to continue this session.'
+            : 'Select a different workout?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -53,7 +59,7 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Cancel'),
+            child: const Text('Go Back'),
           ),
         ],
       ),

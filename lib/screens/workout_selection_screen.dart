@@ -65,7 +65,7 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                         .read<SessionProvider>()
                         .startSession(workout.id!);
                     if (mounted) {
-                      nav.pushReplacement(
+                      nav.push(
                         MaterialPageRoute(
                           builder: (context) => const SessionScreen(),
                         ),

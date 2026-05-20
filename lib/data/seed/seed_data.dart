@@ -119,8 +119,8 @@ Future<void> _seedDay1(Transaction txn, int programId) async {
   );
 
   await _addSetTemplates(txn, squatSlotId, reps: 5, percentage: 0.825);
-  await _addOneRm(txn, backSquatId, 310);
-  await _addOneRm(txn, frontSquatId, 280);
+  // await _addOneRm(txn, backSquatId, 135); // REMOVED FOR TESTING 1RM ESTIMATION
+  await _addOneRm(txn, frontSquatId, 135);
 
   // Deadlift Variant
   final deadliftSlotId = await txn.insert(
@@ -152,8 +152,8 @@ Future<void> _seedDay1(Transaction txn, int programId) async {
   );
 
   await _addSetTemplates(txn, deadliftSlotId, reps: 5, percentage: 0.825);
-  await _addOneRm(txn, convDeadliftId, 330);
-  await _addOneRm(txn, sumoDeadliftId, 310);
+  await _addOneRm(txn, convDeadliftId, 135);
+  await _addOneRm(txn, sumoDeadliftId, 135);
 
   // Single Leg Variant
   final singleLegSlotId = await txn.insert(
@@ -185,8 +185,8 @@ Future<void> _seedDay1(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, singleLegSlotId, reps: 8, rpe: 8);
-  await _addOneRm(txn, splitSquatId, 200);
-  await _addOneRm(txn, lungesId, 185);
+  await _addOneRm(txn, splitSquatId, 50);
+  await _addOneRm(txn, lungesId, 50);
 
   // Standing Calf Raise
   final calfSlotId = await txn.insert(
@@ -218,8 +218,8 @@ Future<void> _seedDay1(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, calfSlotId, reps: 8, rpe: 8, sets: 4);
-  await _addOneRm(txn, barbellCalfId, 450);
-  await _addOneRm(txn, machineCalfId, 500);
+  await _addOneRm(txn, barbellCalfId, 135);
+  await _addOneRm(txn, machineCalfId, 135);
 }
 
 Future<void> _seedDay2(Transaction txn, int programId) async {
@@ -264,8 +264,8 @@ Future<void> _seedDay2(Transaction txn, int programId) async {
   );
 
   await _addSetTemplates(txn, benchSlotId, reps: 5, percentage: 0.825);
-  await _addOneRm(txn, barbellBenchId, 225);
-  await _addOneRm(txn, dumbbellBenchId, 165);
+  await _addOneRm(txn, barbellBenchId, 135);
+  await _addOneRm(txn, dumbbellBenchId, 135);
 
   // Horizontal Pull
   final rowSlotId = await txn.insert(
@@ -297,8 +297,8 @@ Future<void> _seedDay2(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, rowSlotId, reps: 5, rpe: 8);
-  await _addOneRm(txn, barbellRowId, 275);
-  await _addOneRm(txn, dumbbellRowId, 160);
+  await _addOneRm(txn, barbellRowId, 45);
+  await _addOneRm(txn, dumbbellRowId, 25);
 
   // Vertical Push
   final ohpSlotId = await txn.insert(
@@ -330,8 +330,8 @@ Future<void> _seedDay2(Transaction txn, int programId) async {
   );
 
   await _addSetTemplates(txn, ohpSlotId, reps: 8, percentage: 0.725, sets: 2);
-  await _addOneRm(txn, ohpId, 155);
-  await _addOneRm(txn, shoulderPressId, 125);
+  await _addOneRm(txn, ohpId, 95);
+  await _addOneRm(txn, shoulderPressId, 95);
 
   // Vertical Pull
   final pullSlotId = await txn.insert(
@@ -363,8 +363,8 @@ Future<void> _seedDay2(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, pullSlotId, reps: 8, rpe: 8, sets: 2);
-  await _addOneRm(txn, pullupId, 280);
-  await _addOneRm(txn, chinupId, 295);
+  await _addOneRm(txn, pullupId, 160);
+  await _addOneRm(txn, chinupId, 160);
 
   // Chest Flys
   final flySlotId = await txn.insert(
@@ -396,8 +396,8 @@ Future<void> _seedDay2(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, flySlotId, reps: 15, rpe: 8, sets: 2);
-  await _addOneRm(txn, dumbbellFlyId, 130);
-  await _addOneRm(txn, cableFlyId, 150);
+  await _addOneRm(txn, dumbbellFlyId, 25);
+  await _addOneRm(txn, cableFlyId, 135);
 }
 
 Future<void> _seedDay3(Transaction txn, int programId) async {
@@ -442,8 +442,8 @@ Future<void> _seedDay3(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, hipHingeSlotId, reps: 8, rpe: 8);
-  await _addOneRm(txn, rDLId, 280);
-  await _addOneRm(txn, goodMorningId, 240);
+  await _addOneRm(txn, rDLId, 135);
+  await _addOneRm(txn, goodMorningId, 25);
 
   // Leg Press Variant
   final legPressSlotId = await txn.insert(
@@ -466,7 +466,7 @@ Future<void> _seedDay3(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, legPressSlotId, reps: 8, rpe: 8);
-  await _addOneRm(txn, legPressId, 450);
+  await _addOneRm(txn, legPressId, 135);
 
   // Leg Extension
   final legExtSlotId = await txn.insert(
@@ -489,7 +489,7 @@ Future<void> _seedDay3(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, legExtSlotId, reps: 12, rpe: 8);
-  await _addOneRm(txn, legExtId, 300);
+  await _addOneRm(txn, legExtId, 135);
 
   // Leg Curl
   final legCurlSlotId = await txn.insert(
@@ -512,7 +512,7 @@ Future<void> _seedDay3(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, legCurlSlotId, reps: 12, rpe: 8);
-  await _addOneRm(txn, legCurlId, 280);
+  await _addOneRm(txn, legCurlId, 135);
 
   // Seated Calf Raise
   final seatedCalfSlotId = await txn.insert(
@@ -535,7 +535,7 @@ Future<void> _seedDay3(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, seatedCalfSlotId, reps: 15, rpe: 8, sets: 4);
-  await _addOneRm(txn, seatedCalfId, 350);
+  await _addOneRm(txn, seatedCalfId, 135);
 }
 
 Future<void> _seedDay4(Transaction txn, int programId) async {
@@ -571,7 +571,7 @@ Future<void> _seedDay4(Transaction txn, int programId) async {
   );
 
   await _addSetTemplates(txn, benchSlotId, reps: 10, percentage: 0.675);
-  await _addOneRm(txn, benchVolId, 225);
+  await _addOneRm(txn, benchVolId, 135);
 
   // Horizontal Pull (Volume)
   final rowVolSlotId = await txn.insert(
@@ -594,7 +594,7 @@ Future<void> _seedDay4(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, rowVolSlotId, reps: 10, rpe: 8);
-  await _addOneRm(txn, rowVolId, 275);
+  await _addOneRm(txn, rowVolId, 135);
 
   // Incline Push
   final inclinePushSlotId = await txn.insert(
@@ -626,8 +626,8 @@ Future<void> _seedDay4(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, inclinePushSlotId, reps: 12, rpe: 8, sets: 2);
-  await _addOneRm(txn, inclineBenchId, 185);
-  await _addOneRm(txn, inclineDumbId, 140);
+  await _addOneRm(txn, inclineBenchId, 135);
+  await _addOneRm(txn, inclineDumbId, 25);
 
   // Vertical Pull (Volume)
   final latPullSlotId = await txn.insert(
@@ -650,7 +650,7 @@ Future<void> _seedDay4(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, latPullSlotId, reps: 12, rpe: 8, sets: 2);
-  await _addOneRm(txn, latPulldownId, 250);
+  await _addOneRm(txn, latPulldownId, 135);
 
   // Triceps Isolation
   final tricepsSlotId = await txn.insert(
@@ -682,8 +682,8 @@ Future<void> _seedDay4(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, tricepsSlotId, reps: 12, rpe: 8, sets: 2);
-  await _addOneRm(txn, dipsId, 315);
-  await _addOneRm(txn, tricepPushId, 180);
+  await _addOneRm(txn, dipsId, 135);
+  await _addOneRm(txn, tricepPushId, 135);
 
   // Biceps Isolation
   final bicepsSlotId = await txn.insert(
@@ -715,8 +715,8 @@ Future<void> _seedDay4(Transaction txn, int programId) async {
   );
 
   await _addSetTemplatesRPE(txn, bicepsSlotId, reps: 12, rpe: 8, sets: 2);
-  await _addOneRm(txn, barbellCurlId, 155);
-  await _addOneRm(txn, dumbbellCurlId, 115);
+  await _addOneRm(txn, barbellCurlId, 135);
+  await _addOneRm(txn, dumbbellCurlId, 135);
 }
 
 Future<void> _addSetTemplates(
