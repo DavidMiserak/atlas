@@ -344,9 +344,7 @@ class _PrPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = pr.is1rm ? '1RM' : 'PR';
-    final prev = pr.prev.toStringAsFixed(0);
-    final val = pr.value.toStringAsFixed(0);
+    final label = pr.is1rm ? 'New 1RM' : 'New PR';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -354,29 +352,14 @@ class _PrPill extends StatelessWidget {
         border: Border.all(color: const Color(0xFF00D9FF).withValues(alpha: 0.2)),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-              color: const Color(0xFF2E2E2E),
-            ),
-          ),
-          const SizedBox(width: 7),
-          Text(
-            '$prev → $val',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF00D9FF),
-              letterSpacing: -0.3,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: GoogleFonts.outfit(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: const Color(0xFF00D9FF),
+        ),
       ),
     );
   }

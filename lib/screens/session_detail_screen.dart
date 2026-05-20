@@ -225,28 +225,17 @@ class _ExerciseBlock extends StatelessWidget {
             ],
           ),
 
-          // ── PR / 1RM stat pair ───────────────────────────
-          if (exercise.sessionPr != null || exercise.session1rm != null) ...[
+          // ── New PR / 1RM pills ──────────────────────────
+          if (exercise.newPrs.isNotEmpty) ...[
             const SizedBox(height: 14),
             Padding(
               padding: const EdgeInsets.only(left: 26),
-              child: Row(
-                children: [
-                  if (exercise.sessionPr != null)
-                    _StatPair(
-                      thisValue: exercise.sessionPr!.toStringAsFixed(0),
-                      maxValue: exercise.allTimePr?.toStringAsFixed(0),
-                      label: 'PR',
-                    ),
-                  if (exercise.sessionPr != null && exercise.session1rm != null)
-                    const SizedBox(width: 24),
-                  if (exercise.session1rm != null)
-                    _StatPair(
-                      thisValue: exercise.session1rm!.toStringAsFixed(0),
-                      maxValue: exercise.allTime1rm?.toStringAsFixed(0),
-                      label: '1RM',
-                    ),
-                ],
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 5,
+                children: exercise.newPrs
+                    .map((pr) => _PrPill(pr: pr))
+                    .toList(),
               ),
             ),
           ],
@@ -447,69 +436,49 @@ class _WorkingSetRow extends StatelessWidget {
   }
 }
 
-// ─── Stat pair (this / max) ───────────────────────────────────────────────────
 
-class _StatPair extends StatelessWidget {
-  final String thisValue;
-  final String? maxValue;
-  final String label;
+// ─── PR pill ──────────────────────────────────────────────────────────────────
 
-  const _StatPair({
-    required this.thisValue,
-    required this.maxValue,
-    required this.label,
-  });
+class _PrPill extends StatelessWidget {
+  final PrRecord pr;
+  const _PrPill({required this.pr});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 2,
-            color: const Color(0xFF2A2A2A),
-          ),
-        ),
-        const SizedBox(height: 3),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              thisValue,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: -0.5,
-                height: 1.0,
-              ),
+    final label = pr.is1rm ? '1RM' : 'PR';
+    final prev = pr.prev.toStringAsFixed(0);
+    final val = pr.value.toStringAsFixed(0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF00D9FF).withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+              color: const Color(0xFF2E2E2E),
             ),
-            if (maxValue != null) ...[
-              Text(
-                ' / ',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  color: const Color(0xFF2A2A2A),
-                ),
-              ),
-              Text(
-                maxValue!,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF00D9FF),
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(width: 7),
+          Text(
+            '$prev → $val',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF00D9FF),
+              letterSpacing: -0.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

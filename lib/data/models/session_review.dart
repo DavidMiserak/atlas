@@ -49,6 +49,7 @@ class SessionDetailExercise {
   final double? allTimePr;
   final double? session1rm;
   final double? allTime1rm;
+  final List<PrRecord> newPrs;
 
   SessionDetailExercise({
     required this.slotName,
@@ -58,6 +59,7 @@ class SessionDetailExercise {
     this.allTimePr,
     this.session1rm,
     this.allTime1rm,
+    this.newPrs = const [],
   });
 }
 

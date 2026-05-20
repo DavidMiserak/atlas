@@ -246,7 +246,22 @@ class SessionRepository {
         (SELECT MAX(h.$col1rmHistoryWeight)
          FROM $tableVariantOneRmHistory h
          WHERE h.$col1rmHistoryVariantId = se.$colSessionExerciseChosenVariantId
-        ) AS all_time_1rm
+        ) AS all_time_1rm,
+        (SELECT MAX(ss2.$colSessionSetWeightLifted)
+         FROM $tableSessionSets ss2
+         JOIN $tableSessionExercises se2 ON ss2.$colSessionSetSessionExerciseId = se2.$colSessionExerciseId
+         JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
+         WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
+           AND s2.$colSessionDateCompleted < (SELECT $colSessionDateCompleted FROM $tableSessions WHERE $colSessionId = $sessionId)
+           AND ss2.$colSessionSetIsWarmup = 0
+        ) AS prior_pr,
+        (SELECT MAX(ss2.$colSessionSetOneRmAtTime)
+         FROM $tableSessionSets ss2
+         JOIN $tableSessionExercises se2 ON ss2.$colSessionSetSessionExerciseId = se2.$colSessionExerciseId
+         JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
+         WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
+           AND s2.$colSessionDateCompleted < (SELECT $colSessionDateCompleted FROM $tableSessions WHERE $colSessionId = $sessionId)
+        ) AS prior_1rm
       FROM $tableSessionExercises se
       JOIN $tableExerciseSlots es ON es.$colSlotId = se.$colSessionExerciseSlotId
       JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
@@ -298,6 +313,26 @@ class SessionRepository {
           .map((s) => s.oneRmAtSessionTime)
           .whereType<double>()
           .fold<double?>(null, (a, b) => a == null || b > a ? b : a);
+      final priorPr = (exerciseRow['prior_pr'] as num?)?.toDouble();
+      final prior1rm = (exerciseRow['prior_1rm'] as num?)?.toDouble();
+
+      final newPrs = <PrRecord>[];
+      if (sessionPr != null && priorPr != null && sessionPr > priorPr) {
+        newPrs.add(PrRecord(
+          variantName: variantName,
+          prev: priorPr,
+          value: sessionPr,
+          is1rm: false,
+        ));
+      }
+      if (session1rm != null && prior1rm != null && session1rm > prior1rm) {
+        newPrs.add(PrRecord(
+          variantName: variantName,
+          prev: prior1rm,
+          value: session1rm,
+          is1rm: true,
+        ));
+      }
 
       exercises.add(SessionDetailExercise(
         slotName: slotName,
@@ -307,6 +342,7 @@ class SessionRepository {
         allTimePr: allTimePr,
         session1rm: session1rm,
         allTime1rm: allTime1rm,
+        newPrs: newPrs,
       ));
     }
 
