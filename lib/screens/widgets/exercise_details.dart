@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../providers/session_provider.dart';
 import '../../data/models/session.dart';
 import '../../data/models/workout.dart';
@@ -15,281 +16,254 @@ class ExerciseDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<(ExerciseVariant?, double?, List<SetTemplate>)>(
+    return FutureBuilder<(double?, List<SetTemplate>)>(
       future: _loadDetails(context),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Unable to load exercise details',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
+          return const SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        final (variant, oneRm, templates) = snapshot.data!;
+        if (!snapshot.hasData) return const SizedBox();
 
-        if (variant == null || oneRm == null) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'No 1RM Set',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Set a 1RM for ${variant?.name ?? "this exercise"} to calculate warm-ups',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          );
+        final (oneRm, templates) = snapshot.data!;
+
+        if (oneRm == null || templates.isEmpty) {
+          return _NoDataCard();
         }
 
-        // Warm-ups are always based on the working set weight.
-        // For RPE-only exercises, estimate working weight from the RPE target.
-        final firstTemplate = templates.isNotEmpty ? templates.first : null;
-        final firstWorkingWeight = firstTemplate?.percentage1rm != null
-            ? calculatePercentageWeight(oneRm, firstTemplate!.percentage1rm!)
-            : estimateWorkingWeightFromRpe(oneRm, firstTemplate?.rpeTarget ?? 8);
+        final firstTemplate = templates.first;
+        final firstWorkingWeight = firstTemplate.percentage1rm != null
+            ? calculatePercentageWeight(oneRm, firstTemplate.percentage1rm!)
+            : estimateWorkingWeightFromRpe(oneRm, firstTemplate.rpeTarget ?? 8);
         final warmupWeights = calculateWarmupProgression(firstWorkingWeight);
-        final workingSets = templates;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _VariantCard(variant: variant, oneRm: oneRm),
-            const SizedBox(height: 24),
-            _WarmupSetsCard(weights: warmupWeights),
-            if (workingSets.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              _WorkingSetsCard(
-                sets: workingSets,
-                oneRm: oneRm,
-              ),
-            ],
+            _SectionHeader(label: 'Warm-up'),
+            const SizedBox(height: 12),
+            _WarmupRow(weights: warmupWeights),
+            const SizedBox(height: 28),
+            _SectionHeader(label: 'Working Sets'),
+            const SizedBox(height: 12),
+            ...templates.asMap().entries.map((entry) {
+              final i = entry.key;
+              final t = entry.value;
+              final isRpeBased = t.percentage1rm == null;
+              final weight = isRpeBased
+                  ? estimateWorkingWeightFromRpe(oneRm, t.rpeTarget ?? 8)
+                  : calculatePercentageWeight(oneRm, t.percentage1rm!);
+              final reps = t.repsTargetMin ?? 0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _WorkingSetRow(
+                  setNumber: i + 1,
+                  weight: weight,
+                  reps: reps,
+                  rpeTarget: t.rpeTarget,
+                  percentageLabel: isRpeBased
+                      ? 'RPE ${t.rpeTarget ?? 8}'
+                      : '${(t.percentage1rm! * 100).toStringAsFixed(0)}%',
+                ),
+              );
+            }),
           ],
         );
       },
     );
   }
 
-  Future<(ExerciseVariant?, double?, List<SetTemplate>)> _loadDetails(
-    BuildContext context,
-  ) async {
+  Future<(double?, List<SetTemplate>)> _loadDetails(BuildContext context) async {
     final provider = context.read<SessionProvider>();
-
-    final variant = await provider.getVariantDetails(sessionExercise.chosenVariantId);
     final oneRm = await provider.getVariantOneRm(sessionExercise.chosenVariantId);
     final templates = await provider.getSlotSetTemplates(sessionExercise.slotId);
-
-    return (variant, oneRm, templates);
+    return (oneRm, templates);
   }
 }
 
-class _VariantCard extends StatelessWidget {
-  final ExerciseVariant variant;
-  final double oneRm;
-
-  const _VariantCard({
-    required this.variant,
-    required this.oneRm,
-  });
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  const _SectionHeader({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              variant.name,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Current 1RM',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${oneRm.toStringAsFixed(0)} lbs',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ],
-                ),
-                if (variant.description != null)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: Text(
-                        variant.description!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+    return Text(
+      label.toUpperCase(),
+      style: GoogleFonts.outfit(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF909090),
+        letterSpacing: 1.5,
+      ),
+    );
+  }
+}
+
+class _NoDataCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        'No 1RM set — you\'ll be prompted when you start logging.',
+        style: GoogleFonts.outfit(
+          fontSize: 14,
+          color: const Color(0xFF909090),
         ),
       ),
     );
   }
 }
 
-class _WarmupSetsCard extends StatelessWidget {
+class _WarmupRow extends StatelessWidget {
   final List<double> weights;
-
-  const _WarmupSetsCard({required this.weights});
+  const _WarmupRow({required this.weights});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Warm-up Sets',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                ...weights.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final weight = entry.value;
-                  final percentage = [50, 70, 90][index];
+    final colorScheme = Theme.of(context).colorScheme;
+    final percentages = [50, 70, 90];
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$percentage% × 5 reps',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            Text(
-                              '${weight.toStringAsFixed(0)} lbs',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                          ],
-                        ),
-                        Icon(
-                          Icons.check_circle_outline,
-                          color: Colors.grey[600],
-                          size: 20,
-                        ),
-                      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: weights.asMap().entries.map((entry) {
+          final pct = percentages[entry.key];
+          final w = entry.value;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Column(
+                children: [
+                  Text(
+                    '$pct%',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF909090),
+                      letterSpacing: 0.5,
                     ),
-                  );
-                }),
-              ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${w.toStringAsFixed(0)}',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'lbs × 5',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: const Color(0xFF909090),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-      ],
+          );
+        }).toList(),
+      ),
     );
   }
 }
 
-class _WorkingSetsCard extends StatelessWidget {
-  final List<SetTemplate> sets;
-  final double oneRm;
+class _WorkingSetRow extends StatelessWidget {
+  final int setNumber;
+  final double weight;
+  final int reps;
+  final int? rpeTarget;
+  final String percentageLabel;
 
-  const _WorkingSetsCard({
-    required this.sets,
-    required this.oneRm,
+  const _WorkingSetRow({
+    required this.setNumber,
+    required this.weight,
+    required this.reps,
+    required this.percentageLabel,
+    this.rpeTarget,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Working Sets',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        ...sets.map((template) {
-          final isRpeBased = template.percentage1rm == null;
-          final weight = isRpeBased
-              ? estimateWorkingWeightFromRpe(oneRm, template.rpeTarget ?? 8)
-              : calculatePercentageWeight(oneRm, template.percentage1rm!);
-          final reps = template.repsTargetMin ?? 0;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Set ${template.setNumber}',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        Text(
-                          '${weight.toStringAsFixed(0)} lbs',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          isRpeBased
-                              ? '$reps reps — adjust by feel'
-                              : '$reps reps @ ${(template.percentage1rm! * 100).toStringAsFixed(1)}%',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        if (template.rpeTarget != null)
-                          Text(
-                            'Goal: RPE ${template.rpeTarget}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                      ],
-                    ),
-                  ],
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.surfaceContainerHigh,
+            ),
+            child: Center(
+              child: Text(
+                '$setNumber',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF909090),
                 ),
               ),
             ),
-          );
-        }),
-      ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Row(
+              children: [
+                Text(
+                  '$reps reps',
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  percentageLabel,
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    color: const Color(0xFF909090),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${weight.toStringAsFixed(0)} lbs',
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
