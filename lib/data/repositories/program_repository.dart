@@ -49,6 +49,25 @@ class ProgramRepository {
     return await db.insert(TABLE_PROGRAMS, program.toMap());
   }
 
+  /// Get exercise variant by ID
+  Future<ExerciseVariant?> getVariantById(int variantId) async {
+    final db = await getDatabase();
+
+    final variantMaps = await db.query(
+      TABLE_EXERCISE_VARIANTS,
+      where: '$COL_VARIANT_ID = ?',
+      whereArgs: [variantId],
+    );
+
+    if (variantMaps.isEmpty) return null;
+    return ExerciseVariant.fromMap(variantMaps.first);
+  }
+
+  /// Get set templates for a slot
+  Future<List<SetTemplate>> getSetTemplatesForSlot(int slotId) async {
+    return _getSetTemplatesForSlot(slotId);
+  }
+
   /// Get exercise slots for a workout with variants and set templates
   Future<List<ExerciseSlot>> _getExerciseSlotsForWorkout(
       int workoutId) async {
