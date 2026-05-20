@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data/database/app_database.dart';
 import 'data/seed/seed_data.dart';
+import 'theme/app_theme.dart';
 import 'providers/session_provider.dart';
 import 'screens/workout_selection_screen.dart';
 
@@ -45,14 +46,8 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => SessionProvider(),
       child: MaterialApp(
-        title: 'Workout Logger',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        title: 'Atlas',
+        theme: AppTheme.darkTheme,
         home: const WorkoutSelectionScreen(),
       ),
     );
