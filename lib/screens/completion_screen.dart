@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import 'workout_selection_screen.dart';
+import 'session_detail_screen.dart';
 
 class CompletionScreen extends StatefulWidget {
   const CompletionScreen({super.key});
@@ -17,6 +18,8 @@ class _CompletionScreenState extends State<CompletionScreen>
   int _exerciseCount = 0;
   int _totalSets = 0;
   double _totalVolume = 0;
+  int? _completedSessionId;
+  DateTime? _sessionDate;
   bool _done = false;
   String? _error;
 
@@ -104,6 +107,8 @@ class _CompletionScreenState extends State<CompletionScreen>
             (sum, s) => sum + ((s.weightLifted ?? 0) * (s.repsCompleted ?? 0)),
           );
 
+      final sessionId = provider.currentSession?.id;
+      final sessionDate = provider.currentSession?.dateCompleted;
       await provider.completeSession();
 
       if (mounted) {
@@ -112,6 +117,8 @@ class _CompletionScreenState extends State<CompletionScreen>
           _exerciseCount = exerciseCount;
           _totalSets = totalSets;
           _totalVolume = totalVolume;
+          _completedSessionId = sessionId;
+          _sessionDate = sessionDate;
           _done = true;
         });
         _controller.forward();
@@ -292,16 +299,37 @@ class _CompletionScreenState extends State<CompletionScreen>
 
                 FadeTransition(
                   opacity: _ctaFade,
-                  child: _NewSessionButton(
-                    accentColor: colorScheme.primary,
-                    onTap: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const WorkoutSelectionScreen(),
+                  child: Column(
+                    children: [
+                      if (_completedSessionId != null)
+                        _SecondaryButton(
+                          label: 'Review Session',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SessionDetailScreen(
+                                  sessionId: _completedSessionId!,
+                                  workoutName: _workoutName ?? '',
+                                  dateCompleted: _sessionDate ?? DateTime.now(),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        (route) => false,
-                      );
-                    },
+                      if (_completedSessionId != null) const SizedBox(height: 12),
+                      _NewSessionButton(
+                        accentColor: colorScheme.primary,
+                        onTap: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const WorkoutSelectionScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -488,6 +516,92 @@ class _NewSessionButtonState extends State<_NewSessionButton>
                       Icons.arrow_forward_rounded,
                       size: 20,
                       color: Color(0xFF0D0D0D),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryButton extends StatefulWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SecondaryButton({required this.label, required this.onTap});
+
+  @override
+  State<_SecondaryButton> createState() => _SecondaryButtonState();
+}
+
+class _SecondaryButtonState extends State<_SecondaryButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _hover;
+
+  @override
+  void initState() {
+    super.initState();
+    _hover = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hover.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => _hover.forward(),
+      onExit: (_) => _hover.reverse(),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _hover,
+          builder: (context, child) {
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: Color.lerp(
+                  Colors.grey[800],
+                  Colors.grey[700],
+                  _hover.value,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.grey[600]!.withValues(
+                    alpha: 0.5 + _hover.value * 0.3,
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    widget.label,
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Transform.translate(
+                    offset: Offset(_hover.value * 5, 0),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 20,
+                      color: Colors.white,
                     ),
                   ),
                 ],

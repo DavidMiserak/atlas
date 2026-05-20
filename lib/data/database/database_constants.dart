@@ -1,4 +1,4 @@
-const int databaseVersion = 1;
+const int databaseVersion = 3;
 const String databaseName = 'workout_logger.db';
 
 const String tablePrograms = 'programs';
@@ -11,6 +11,7 @@ const String tableSessions = 'sessions';
 const String tableSessionExercises = 'session_exercises';
 const String tableSessionSets = 'session_sets';
 const String tableSettings = 'settings';
+const String tableWarmupItems = 'warmup_items';
 
 const String colProgramId = 'program_id';
 const String colProgramName = 'name';
@@ -74,9 +75,15 @@ const String colSessionSetOneRmAtTime = 'one_rm_at_session_time';
 const String colSessionSetRpeActual = 'rpe_actual';
 const String colSessionSetNotes = 'notes';
 const String colSessionSetTimestamp = 'timestamp';
+const String colSessionSetIsWarmup = 'is_warmup';
 
 const String colSettingsKey = 'key';
 const String colSettingsValue = 'value';
 
 const String settingSchemaVersion = 'schema_version';
 const String settingDeloadFrequencyWeeks = 'deload_frequency_weeks';
+
+const String colWarmupItemId = 'warmup_item_id';
+const String colWarmupItemName = 'name';
+const String colWarmupItemReps = 'reps';
+const String colWarmupItemOrder = 'order_index';

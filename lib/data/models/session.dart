@@ -90,6 +90,7 @@ class SessionSet {
   final int? rpeActual;
   final String? notes;
   final DateTime? timestamp;
+  final bool isWarmup;
 
   SessionSet({
     this.id,
@@ -101,6 +102,7 @@ class SessionSet {
     this.rpeActual,
     this.notes,
     this.timestamp,
+    this.isWarmup = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -114,6 +116,7 @@ class SessionSet {
       'rpe_actual': rpeActual,
       'notes': notes,
       'timestamp': timestamp?.toIso8601String(),
+      'is_warmup': isWarmup ? 1 : 0,
     };
   }
 
@@ -130,6 +133,7 @@ class SessionSet {
       timestamp: map['timestamp'] != null
           ? DateTime.parse(map['timestamp'] as String)
           : null,
+      isWarmup: (map['is_warmup'] as int?) == 1,
     );
   }
 }

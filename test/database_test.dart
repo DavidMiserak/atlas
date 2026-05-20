@@ -24,7 +24,7 @@ void main() {
   });
 
   group('Database Schema Tests', () {
-    test('Database initializes with all 10 tables', () async {
+    test('Database initializes with all 11 tables', () async {
       final db = await getDatabase();
 
       // Check all tables exist
@@ -44,6 +44,7 @@ void main() {
       expect(tableNames.contains(tableSessionExercises), true);
       expect(tableNames.contains(tableSessionSets), true);
       expect(tableNames.contains(tableSettings), true);
+      expect(tableNames.contains(tableWarmupItems), true);
 
     });
 
@@ -57,7 +58,7 @@ void main() {
       );
 
       expect(schemaVersion.isNotEmpty, true);
-      expect(schemaVersion.first[colSettingsValue], '1');
+      expect(schemaVersion.first[colSettingsValue], '3');
 
       final deloadFreq = await db.query(
         tableSettings,

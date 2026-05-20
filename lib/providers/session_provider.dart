@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/models/program.dart';
 import '../data/models/session.dart';
 import '../data/models/workout.dart';
+import '../data/models/session_review.dart';
 import '../data/repositories/program_repository.dart';
 import '../data/repositories/session_repository.dart';
 import '../data/repositories/one_rm_repository.dart';
@@ -115,6 +116,7 @@ class SessionProvider extends ChangeNotifier {
     int rpe, {
     String? notes,
     double? oneRmAtSessionTime,
+    bool isWarmup = false,
   }) async {
     if (!isValidReps(reps) || !isValidWeight(weight) || !isValidRpe(rpe)) {
       _error = 'Invalid input values';
@@ -132,6 +134,7 @@ class SessionProvider extends ChangeNotifier {
         notes: notes,
         oneRmAtSessionTime: oneRmAtSessionTime,
         timestamp: DateTime.now(),
+        isWarmup: isWarmup,
       );
 
       await sessionRepo.logSet(sessionSet);
@@ -231,5 +234,13 @@ class SessionProvider extends ChangeNotifier {
       _error = 'Failed to swap variant: $e';
       notifyListeners();
     }
+  }
+
+  Future<List<SessionSummary>> getAllSessionSummaries() async {
+    return await sessionRepo.getAllSessionSummaries();
+  }
+
+  Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {
+    return await sessionRepo.getSessionDetail(sessionId);
   }
 }

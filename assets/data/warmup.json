@@ -1,0 +1,8 @@
+[
+  { "order": 1, "name": "Leg Swings Front to Back", "reps": 10 },
+  { "order": 2, "name": "Leg Swings Side to Side", "reps": 10 },
+  { "order": 3, "name": "Arm Circles Forward", "reps": 10 },
+  { "order": 4, "name": "Arm Circles Backward", "reps": 10 },
+  { "order": 5, "name": "Cross Body Arm Slaps", "reps": 10 },
+  { "order": 6, "name": "Walking Lunges with Trunk Rotation", "reps": 10 }
+]

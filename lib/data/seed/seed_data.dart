@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'dart:developer' as developer;
+import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 import '../database/database_constants.dart';
 import '../database/app_database.dart';
 
@@ -75,6 +77,14 @@ Future<void> loadSeedData() async {
     developer.log('loadSeedData: Error during transaction: $e');
     rethrow;
   }
+
+  developer.log('loadSeedData: Starting warmup seeding');
+  await seedWarmupItems(db);
+  developer.log('loadSeedData: Warmup seeding completed');
+
+  developer.log('loadSeedData: Starting variant seeding');
+  await seedVariants(db);
+  developer.log('loadSeedData: Variant seeding completed');
 }
 
 Future<void> _seedDay1(Transaction txn, int programId) async {
@@ -779,4 +789,90 @@ Future<void> _addOneRm(Transaction txn, int variantId, double weight) async {
       col1rmHistoryIsCurrent: 1,
     },
   );
+}
+
+Future<void> seedWarmupItems(Database db) async {
+  try {
+    final count = await db.query(
+      tableWarmupItems,
+      limit: 1,
+    );
+    if (count.isNotEmpty) {
+      developer.log('seedWarmupItems: Warmup items already exist, skipping');
+      return;
+    }
+
+    final jsonString = await rootBundle.loadString('assets/data/warmup.json');
+    final jsonData = jsonDecode(jsonString) as List<dynamic>;
+
+    for (final item in jsonData) {
+      await db.insert(
+        tableWarmupItems,
+        {
+          colWarmupItemName: item['name'],
+          colWarmupItemReps: item['reps'],
+          colWarmupItemOrder: item['order'],
+        },
+      );
+    }
+    developer.log('seedWarmupItems: Seeded ${jsonData.length} warmup items');
+  } catch (e) {
+    developer.log('seedWarmupItems: Error: $e');
+  }
+}
+
+Future<void> seedVariants(Database db) async {
+  try {
+    final jsonString = await rootBundle.loadString('assets/data/exercises.json');
+    final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+
+    int variantsAdded = 0;
+
+    for (final entry in jsonData.entries) {
+      final slotName = entry.key;
+      final categories = entry.value as Map<String, dynamic>;
+
+      final slotRows = await db.query(
+        tableExerciseSlots,
+        where: '$colSlotName = ?',
+        whereArgs: [slotName],
+      );
+
+      for (final slot in slotRows) {
+        final slotId = slot[colSlotId];
+
+        final variants = <String>[];
+        if (categories.containsKey('free_weight')) {
+          variants.addAll(List<String>.from(categories['free_weight']));
+        }
+        if (categories.containsKey('machine')) {
+          variants.addAll(List<String>.from(categories['machine']));
+        }
+
+        for (final variantName in variants) {
+          final existing = await db.query(
+            tableExerciseVariants,
+            where: '$colVariantSlotId = ? AND $colVariantName = ?',
+            whereArgs: [slotId, variantName],
+            limit: 1,
+          );
+
+          if (existing.isEmpty) {
+            await db.insert(
+              tableExerciseVariants,
+              {
+                colVariantSlotId: slotId,
+                colVariantName: variantName,
+                colVariantDescription: variantName,
+              },
+            );
+            variantsAdded++;
+          }
+        }
+      }
+    }
+    developer.log('seedVariants: Added $variantsAdded new variants');
+  } catch (e) {
+    developer.log('seedVariants: Error: $e');
+  }
 }

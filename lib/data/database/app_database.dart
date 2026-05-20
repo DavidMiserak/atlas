@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'database_constants.dart';
+import '../seed/seed_data.dart';
 
 Database? _database;
 String? _testDatabasePath;
@@ -32,7 +33,34 @@ Future<void> _onCreate(Database db, int version) async {
   await _initializeSettings(db);
 }
 
-Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
+Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 2) {
+    await db.transaction((txn) async {
+      await txn.execute('''
+        CREATE TABLE $tableWarmupItems (
+          $colWarmupItemId INTEGER PRIMARY KEY AUTOINCREMENT,
+          $colWarmupItemName TEXT NOT NULL,
+          $colWarmupItemReps INTEGER NOT NULL,
+          $colWarmupItemOrder INTEGER NOT NULL
+        )
+      ''');
+      await txn.rawUpdate(
+        'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+        ['2', settingSchemaVersion],
+      );
+    });
+    await seedWarmupItems(db);
+  }
+  if (oldVersion < 3) {
+    await db.execute(
+      'ALTER TABLE $tableSessionSets ADD COLUMN $colSessionSetIsWarmup INTEGER NOT NULL DEFAULT 0',
+    );
+    await db.rawUpdate(
+      'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+      ['3', settingSchemaVersion],
+    );
+  }
+}
 
 Future<void> _createTables(Database db) async {
   await db.execute('''
@@ -140,6 +168,7 @@ Future<void> _createTables(Database db) async {
       $colSessionSetRpeActual INTEGER,
       $colSessionSetNotes TEXT,
       $colSessionSetTimestamp TEXT,
+      $colSessionSetIsWarmup INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY ($colSessionSetSessionExerciseId) REFERENCES $tableSessionExercises ($colSessionExerciseId)
     )
   ''');
@@ -148,6 +177,15 @@ Future<void> _createTables(Database db) async {
     CREATE TABLE $tableSettings (
       $colSettingsKey TEXT PRIMARY KEY,
       $colSettingsValue TEXT NOT NULL
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE $tableWarmupItems (
+      $colWarmupItemId INTEGER PRIMARY KEY AUTOINCREMENT,
+      $colWarmupItemName TEXT NOT NULL,
+      $colWarmupItemReps INTEGER NOT NULL,
+      $colWarmupItemOrder INTEGER NOT NULL
     )
   ''');
 

@@ -1,6 +1,7 @@
 import '../database/app_database.dart';
 import '../database/database_constants.dart';
 import '../models/session.dart';
+import '../models/session_review.dart';
 
 class SessionRepository {
   Future<int> createSession(Session session) async {
@@ -116,5 +117,85 @@ class SessionRepository {
     );
     if (result.isEmpty || result.first['max_weight'] == null) return null;
     return (result.first['max_weight'] as num?)?.toDouble();
+  }
+
+  Future<List<SessionSummary>> getAllSessionSummaries() async {
+    final db = await getDatabase();
+    final result = await db.rawQuery('''
+      SELECT
+        s.$colSessionId,
+        w.$colWorkoutName AS workout_name,
+        s.$colSessionDateCompleted,
+        COUNT(DISTINCT se.$colSessionExerciseId) AS exercise_count,
+        COUNT(ss.$colSessionSetId) AS total_sets,
+        COALESCE(SUM(ss.$colSessionSetWeightLifted * ss.$colSessionSetRepsCompleted), 0) AS total_volume
+      FROM $tableSessions s
+      JOIN $tableWorkouts w ON s.$colSessionWorkoutId = w.$colWorkoutId
+      LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
+      LEFT JOIN $tableSessionSets ss ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
+      GROUP BY s.$colSessionId
+      HAVING COUNT(ss.$colSessionSetId) > 0
+      ORDER BY s.$colSessionDateCompleted DESC
+    ''');
+    return result.map((row) => SessionSummary.fromMap(row)).toList();
+  }
+
+  Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {
+    final db = await getDatabase();
+
+    final exercisesResult = await db.rawQuery('''
+      SELECT
+        se.$colSessionExerciseId,
+        se.$colSessionExerciseSlotId,
+        es.$colSlotName AS slot_name,
+        ev.$colVariantName AS variant_name
+      FROM $tableSessionExercises se
+      JOIN $tableExerciseSlots es ON es.$colSlotId = se.$colSessionExerciseSlotId
+      JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
+      WHERE se.$colSessionExerciseSessionId = ?
+      ORDER BY es.$colSlotOrder
+    ''', [sessionId]);
+
+    final exercises = <SessionDetailExercise>[];
+
+    for (final exerciseRow in exercisesResult) {
+      final sessionExerciseId = exerciseRow['session_exercise_id'] as int;
+      final slotId = exerciseRow['slot_id'] as int;
+      final slotName = exerciseRow['slot_name'] as String;
+      final variantName = exerciseRow['variant_name'] as String;
+
+      final setsResult = await db.rawQuery('''
+        SELECT
+          ss.$colSessionSetNumber,
+          CASE WHEN ss.$colSessionSetIsWarmup = 1 THEN 'warm-up'
+               ELSE COALESCE(st.$colSetTemplateSetType, 'working')
+          END as set_type,
+          st.$colSetTemplateRepsMin,
+          st.$colSetTemplateRepsMax,
+          st.$colSetTemplatePercentage1rm,
+          st.$colSetTemplateRpeTarget,
+          ss.$colSessionSetRepsCompleted,
+          ss.$colSessionSetWeightLifted,
+          ss.$colSessionSetOneRmAtTime,
+          ss.$colSessionSetRpeActual
+        FROM $tableSessionSets ss
+        LEFT JOIN $tableSetTemplates st ON st.$colSetTemplateSlotId = ?
+          AND st.$colSetTemplateSetNumber = ss.$colSessionSetNumber
+        WHERE ss.$colSessionSetSessionExerciseId = ?
+        ORDER BY ss.$colSessionSetNumber
+      ''', [slotId, sessionExerciseId]);
+
+      final sets = setsResult
+          .map((row) => SessionDetailSet.fromMap(row))
+          .toList();
+
+      exercises.add(SessionDetailExercise(
+        slotName: slotName,
+        variantName: variantName,
+        sets: sets,
+      ));
+    }
+
+    return exercises;
   }
 }

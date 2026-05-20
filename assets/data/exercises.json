@@ -1,0 +1,70 @@
+{
+  "Squat Variant": {
+    "free_weight": ["Back Squat", "Front Squat", "Goblet Squat", "Safety Bar Squat"],
+    "machine": ["Hack Squat", "Smith Machine Squat", "V-Squat Machine", "Leg Press Machine"]
+  },
+  "Deadlift Variant": {
+    "free_weight": ["Conventional Deadlift", "Romanian Deadlift", "Sumo Deadlift"],
+    "machine": ["Cable Deadlift", "Smith Machine Deadlift"]
+  },
+  "Hip Hinge Variant": {
+    "free_weight": ["Romanian Deadlift", "Good Morning", "Weighted Back Extension"],
+    "machine": ["Cable Pull-Through"]
+  },
+  "Single Leg Variant": {
+    "free_weight": ["Bulgarian Split Squat", "Walking Lunges", "Step-Ups", "Single-Leg RDL"],
+    "machine": ["Single-Leg Press", "Machine Step-Ups"]
+  },
+  "Horizontal Push": {
+    "free_weight": ["Barbell Bench Press", "Dumbbell Bench Press", "Incline Barbell Press"],
+    "machine": ["Chest Press Machine", "Cable Chest Press"]
+  },
+  "Horizontal Pull": {
+    "free_weight": ["Barbell Row", "Dumbbell Row", "T-Bar Row"],
+    "machine": ["Cable Row", "Machine Row", "T-Bar Row Machine"]
+  },
+  "Vertical Push": {
+    "free_weight": ["Overhead Press", "Dumbbell Shoulder Press", "Seated Press"],
+    "machine": ["Shoulder Press Machine", "Cable Shoulder Press"]
+  },
+  "Vertical Pull": {
+    "free_weight": ["Pull-ups", "Chin-ups"],
+    "machine": ["Lat Pulldown", "Cable Pulldown"]
+  },
+  "Incline Push": {
+    "free_weight": ["Incline Barbell Press", "Incline Dumbbell Press"],
+    "machine": ["Incline Chest Press Machine", "Incline Cable Press"]
+  },
+  "Chest Flys": {
+    "free_weight": ["Dumbbell Flys"],
+    "machine": ["Cable Flys", "Pec Deck Machine"]
+  },
+  "Triceps Isolation": {
+    "free_weight": ["Close-Grip Bench Press", "Dips", "Overhead Dumbbell Extension"],
+    "machine": ["Cable Tricep Pushdown", "Cable Overhead Extensions", "Tricep Dips"]
+  },
+  "Biceps Isolation": {
+    "free_weight": ["Barbell Curls", "Dumbbell Curls", "Hammer Curls"],
+    "machine": ["Cable Curls", "Machine Curls", "Preacher Curl Machine"]
+  },
+  "Leg Press Variant": {
+    "machine": ["Leg Press Machine", "Hack Squat Machine"]
+  },
+  "Standing Calf Raise": {
+    "free_weight": ["Barbell Calf Raise", "Dumbbell Calf Raises"],
+    "machine": ["Calf Raise Machine"]
+  },
+  "Seated Calf Raise": {
+    "machine": ["Seated Calf Raise Machine"]
+  },
+  "Leg Extension": {
+    "machine": ["Leg Extension Machine"]
+  },
+  "Leg Curl": {
+    "machine": [
+      "Seated Leg Curl",
+      "Lying Leg Curl Machine",
+      "Standing Leg Curl Machine"
+    ]
+  }
+}

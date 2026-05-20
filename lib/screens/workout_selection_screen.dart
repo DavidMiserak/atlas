@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import '../data/models/program.dart';
 import 'session_screen.dart';
+import 'warmup_screen.dart';
+import 'session_review_screen.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
   const WorkoutSelectionScreen({super.key});
@@ -36,6 +38,31 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
           ),
         ),
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Center(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SessionReviewScreen(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'History',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: FutureBuilder(
         future: _programFuture,
@@ -61,14 +88,31 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: workouts.length,
+            itemCount: workouts.length + 1,
             itemBuilder: (context, index) {
-              final workout = workouts[index];
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _WarmupCard(
+                    accentColor: colorScheme.primary,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const WarmupScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }
+
+              final workout = workouts[index - 1];
               final colors = [
                 colorScheme.primary,
                 colorScheme.secondary,
               ];
-              final accentColor = colors[index % colors.length];
+              final accentColor = colors[(index - 1) % colors.length];
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -202,6 +246,154 @@ class _WorkoutCardState extends State<_WorkoutCard>
                               const SizedBox(height: 8),
                               Text(
                                 '${widget.exerciseCount} exercises',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFFB0B0B0),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: widget.accentColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: widget.accentColor.withValues(alpha: 0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            color: widget.accentColor,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: 0.0,
+                        minHeight: 3,
+                        backgroundColor: colorScheme.surfaceContainerHigh,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _WarmupCard extends StatefulWidget {
+  final Color accentColor;
+  final VoidCallback onPressed;
+
+  const _WarmupCard({
+    required this.accentColor,
+    required this.onPressed,
+  });
+
+  @override
+  State<_WarmupCard> createState() => _WarmupCardState();
+}
+
+class _WarmupCardState extends State<_WarmupCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _hoverController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoverController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hoverController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return MouseRegion(
+      onEnter: (_) => _hoverController.forward(),
+      onExit: (_) => _hoverController.reverse(),
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedBuilder(
+          animation: _hoverController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: 1 + (_hoverController.value * 0.02),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colorScheme.surfaceContainer,
+                      colorScheme.surfaceContainer.withValues(alpha: 0.5),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: widget.accentColor.withValues(
+                      alpha: 0.2 + (_hoverController.value * 0.3),
+                    ),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.accentColor.withValues(
+                        alpha: _hoverController.value * 0.2,
+                      ),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Dynamic Warm-Up',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -1,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '5-10 minutes',
                                 style: GoogleFonts.outfit(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,

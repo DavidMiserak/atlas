@@ -268,6 +268,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final dbSetNumber = loggedSetIndex + 1;
 
     try {
+      final currentCtx = _allSets[loggedSetIndex];
       var currentOneRm = await provider.getVariantOneRm(widget.chosenVariantId);
       currentOneRm = currentOneRm ?? _estimatedOneRm;
 
@@ -279,6 +280,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         _rpe,
         notes: _notes,
         oneRmAtSessionTime: currentOneRm,
+        isWarmup: currentCtx.isWarmup,
       );
 
       _loggedWeights[loggedSetIndex] = _weight;
@@ -286,8 +288,6 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       if (_weight > 0 && (_pr == null || _weight > _pr!)) {
         if (mounted) setState(() => _pr = _weight);
       }
-
-      final currentCtx = _allSets[loggedSetIndex];
       if (!currentCtx.isWarmup && _weight > 0 && _rpe >= 6 && _rpe <= 10) {
         final estimatedOneRm = calculateOneRmFromLift(_weight, _rpe);
         final roundedOneRm = (estimatedOneRm / 5).floor() * 5.0;
