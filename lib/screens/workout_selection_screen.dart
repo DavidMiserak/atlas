@@ -156,20 +156,20 @@ class _WorkoutCardState extends State<_WorkoutCard>
                     end: Alignment.bottomRight,
                     colors: [
                       colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainer.withOpacity(0.5),
+                      colorScheme.surfaceContainer.withValues(alpha: 0.5),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: widget.accentColor.withOpacity(
-                      0.2 + (_hoverController.value * 0.3),
+                    color: widget.accentColor.withValues(
+                      alpha: 0.2 + (_hoverController.value * 0.3),
                     ),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.accentColor.withOpacity(
-                        _hoverController.value * 0.2,
+                      color: widget.accentColor.withValues(
+                        alpha: _hoverController.value * 0.2,
                       ),
                       blurRadius: 20,
                       spreadRadius: 0,
@@ -213,10 +213,10 @@ class _WorkoutCardState extends State<_WorkoutCard>
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: widget.accentColor.withOpacity(0.15),
+                            color: widget.accentColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: widget.accentColor.withOpacity(0.3),
+                              color: widget.accentColor.withValues(alpha: 0.3),
                               width: 1.5,
                             ),
                           ),

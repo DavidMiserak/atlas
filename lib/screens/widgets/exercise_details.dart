@@ -159,7 +159,7 @@ class _WarmupRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${w.toStringAsFixed(0)}',
+                    w.toStringAsFixed(0),
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,

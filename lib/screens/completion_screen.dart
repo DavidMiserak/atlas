@@ -207,7 +207,7 @@ class _AnimatedCheckmarkState extends State<_AnimatedCheckmark>
           height: 96,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: widget.color.withOpacity(0.15),
+            color: widget.color.withValues(alpha: 0.15),
             border: Border.all(
               color: widget.color,
               width: 2,

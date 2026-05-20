@@ -39,7 +39,7 @@ class _SetContext {
   String get typeLabel => isWarmup ? 'WARM-UP' : 'WORKING SET';
 
   String get weightLabel => suggestedWeight > 0
-      ? '${suggestedWeight.toStringAsFixed(0)}'
+      ? suggestedWeight.toStringAsFixed(0)
       : '—';
 
   String get repsLabel => '$targetReps reps';
@@ -69,7 +69,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   double? _currentOneRm;
   double? _pr;
   String _exerciseName = '';
-  Map<int, double> _loggedWeights = {};
+  final Map<int, double> _loggedWeights = {};
 
   double _weight = 0.0;
   int _reps = 5;
@@ -488,7 +488,7 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: c.withOpacity(0.12),
+        color: c.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -536,7 +536,7 @@ class _SetTrack extends StatelessWidget {
         Color color;
         double height;
         if (isDone) {
-          color = accentColor.withOpacity(0.5);
+          color = accentColor.withValues(alpha: 0.5);
           height = 4;
         } else if (isCurrent) {
           color = accentColor;
@@ -558,7 +558,7 @@ class _SetTrack extends StatelessWidget {
                     color: color,
                     borderRadius: BorderRadius.circular(3),
                     boxShadow: isCurrent
-                        ? [BoxShadow(color: accentColor.withOpacity(0.5), blurRadius: 6)]
+                        ? [BoxShadow(color: accentColor.withValues(alpha: 0.5), blurRadius: 6)]
                         : null,
                   ),
                 ),
@@ -594,8 +594,8 @@ class _CurrentSetBadge extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.08),
-        border: Border.all(color: accentColor.withOpacity(0.25), width: 1.5),
+        color: accentColor.withValues(alpha: 0.08),
+        border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -687,9 +687,9 @@ class _WeightStepper extends StatelessWidget {
         const SizedBox(height: 10),
         Row(
           children: [
-            _StepButton(label: '−5', onTap: () => onAdjust(-5)),
+            _StepButton(label: '−10', onTap: () => onAdjust(-10)),
             const SizedBox(width: 4),
-            _StepButton(label: '−1.25', onTap: () => onAdjust(-1.25), small: true),
+            _StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
             const SizedBox(width: 12),
             Expanded(
               child: Center(
@@ -727,9 +727,9 @@ class _WeightStepper extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            _StepButton(label: '+1.25', onTap: () => onAdjust(1.25), small: true),
+            _StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
             const SizedBox(width: 4),
-            _StepButton(label: '+5', onTap: () => onAdjust(5)),
+            _StepButton(label: '+10', onTap: () => onAdjust(10)),
           ],
         ),
       ],
@@ -884,7 +884,7 @@ class _RpeSelector extends StatelessWidget {
                       color: isSelected ? accentColor : colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: isSelected
-                          ? [BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8)]
+                          ? [BoxShadow(color: accentColor.withValues(alpha: 0.4), blurRadius: 8)]
                           : null,
                     ),
                     child: Column(
@@ -997,12 +997,12 @@ class _SubmitButtonState extends State<_SubmitButton>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [widget.accentColor, widget.accentColor.withOpacity(0.85)],
+                colors: [widget.accentColor, widget.accentColor.withValues(alpha: 0.85)],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: widget.accentColor.withOpacity(0.3 + _controller.value * 0.2),
+                  color: widget.accentColor.withValues(alpha: 0.3 + _controller.value * 0.2),
                   blurRadius: 20 + _controller.value * 10,
                   offset: const Offset(0, 6),
                 ),

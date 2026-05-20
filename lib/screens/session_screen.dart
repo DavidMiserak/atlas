@@ -237,7 +237,7 @@ class _PremiumProgressBar extends StatelessWidget {
                         end: Alignment.centerRight,
                         colors: [
                           accentColor,
-                          accentColor.withOpacity(0.7),
+                          accentColor.withValues(alpha: 0.7),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(8),
@@ -280,8 +280,8 @@ class _ExerciseHero extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: accentColor.withOpacity(0.07),
-            border: Border.all(color: accentColor.withOpacity(0.2), width: 1.5),
+            color: accentColor.withValues(alpha: 0.07),
+            border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1.5),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -420,14 +420,14 @@ class _LogSetsCTAState extends State<_LogSetsCTA>
                     end: Alignment.bottomRight,
                     colors: [
                       widget.accentColor,
-                      widget.accentColor.withOpacity(0.85),
+                      widget.accentColor.withValues(alpha: 0.85),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.accentColor.withOpacity(
-                        0.3 + (_hoverController.value * 0.2),
+                      color: widget.accentColor.withValues(
+                        alpha: 0.3 + (_hoverController.value * 0.2),
                       ),
                       blurRadius: 24,
                       spreadRadius: 0,

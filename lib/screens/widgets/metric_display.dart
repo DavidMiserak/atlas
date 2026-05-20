@@ -30,7 +30,7 @@ class MetricDisplay extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
         decoration: BoxDecoration(
           color: isHighlight
-              ? accentColor.withOpacity(0.1)
+              ? accentColor.withValues(alpha: 0.1)
               : colorScheme.surfaceContainer,
           border: isHighlight
               ? Border.all(

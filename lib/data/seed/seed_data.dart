@@ -100,6 +100,7 @@ Future<void> _seedDay1(Transaction txn, int programId) async {
     },
   );
 
+  // ignore: unused_local_variable
   final backSquatId = await txn.insert(
     tableExerciseVariants,
     {
