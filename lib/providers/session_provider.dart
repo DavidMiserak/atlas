@@ -21,6 +21,7 @@ class SessionProvider extends ChangeNotifier {
   int? _currentExerciseIndex;
   bool _isLoading = false;
   String? _error;
+  Map<int, double> _estimatedOneRms = {};
 
   // Getters
   Session? get currentSession => _currentSession;
@@ -32,6 +33,7 @@ class SessionProvider extends ChangeNotifier {
   int? get currentExerciseIndex => _currentExerciseIndex;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  Map<int, double> get estimatedOneRms => _estimatedOneRms;
 
   Future<Program?> getProgram() async {
     final programs = await programRepo.getAllPrograms();
@@ -109,6 +111,7 @@ class SessionProvider extends ChangeNotifier {
     double weight,
     int rpe, {
     String? notes,
+    double? oneRmAtSessionTime,
   }) async {
     if (!isValidReps(reps) || !isValidWeight(weight) || !isValidRpe(rpe)) {
       _error = 'Invalid input values';
@@ -124,6 +127,7 @@ class SessionProvider extends ChangeNotifier {
         weightLifted: weight,
         rpeActual: rpe,
         notes: notes,
+        oneRmAtSessionTime: oneRmAtSessionTime,
         timestamp: DateTime.now(),
       );
 
@@ -145,6 +149,14 @@ class SessionProvider extends ChangeNotifier {
     }
   }
 
+  void storeEstimatedOneRm(int sessionExerciseId, double estimate) {
+    _estimatedOneRms[sessionExerciseId] = estimate;
+  }
+
+  double? getEstimatedOneRm(int sessionExerciseId) {
+    return _estimatedOneRms[sessionExerciseId];
+  }
+
   Future<void> completeSession() async {
     if (_currentSession == null) return;
 
@@ -157,6 +169,7 @@ class SessionProvider extends ChangeNotifier {
       _sessionExercises = [];
       _sessionSets = {};
       _currentExerciseIndex = null;
+      _estimatedOneRms = {};
       _isLoading = false;
       notifyListeners();
     } catch (e) {

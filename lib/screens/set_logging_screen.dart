@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../providers/session_provider.dart';
+import '../data/repositories/one_rm_repository.dart';
 import '../utils/weight_calculator.dart';
 import 'completion_screen.dart';
 import 'widgets/rest_timer.dart';
@@ -12,6 +14,7 @@ class _SetContext {
   final int targetReps;
   final double? percentage;
   final int? rpeTarget;
+  final double? workingSetWeight;
 
   const _SetContext({
     required this.isWarmup,
@@ -20,9 +23,17 @@ class _SetContext {
     required this.targetReps,
     this.percentage,
     this.rpeTarget,
+    this.workingSetWeight,
   });
 
-  String get label => isWarmup ? 'Warm-up Set $displayNumber' : 'Working Set $displayNumber';
+  String get label {
+    if (isWarmup && percentage != null && workingSetWeight != null && workingSetWeight! > 0) {
+      final percentStr = (percentage! * 100).toStringAsFixed(0);
+      final workStr = workingSetWeight!.toStringAsFixed(0);
+      return 'Warm-up Set $displayNumber: $percentStr% of $workStr lbs';
+    }
+    return isWarmup ? 'Warm-up Set $displayNumber' : 'Working Set $displayNumber';
+  }
 
   String get weightLabel => suggestedWeight > 0
       ? '${suggestedWeight.toStringAsFixed(0)} lbs'
@@ -51,6 +62,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   List<_SetContext> _allSets = [];
   int _currentSetIndex = 0;
   bool _loadingContext = true;
+  double? _estimatedOneRm; // Temporary 1RM estimate if variant has no history
+  String _exerciseName = '';
 
   double _weight = 0.0;
   int _reps = 5;
@@ -77,11 +90,42 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
   Future<void> _loadSetContext() async {
     final provider = context.read<SessionProvider>();
+    final oneRmRepo = OneRmRepository();
 
-    final oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
+    final variant = await provider.getVariantDetails(widget.chosenVariantId);
+    if (mounted) {
+      setState(() => _exerciseName = variant?.name ?? 'Exercise');
+    }
+
+    var oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
     final templates = await provider.getSlotSetTemplates(widget.slotId);
 
     final sets = <_SetContext>[];
+
+    // If no 1RM exists, check if we already estimated it in this session
+    if ((oneRm == null || oneRm <= 0) && templates.isNotEmpty) {
+      final sessionEstimate = provider.getEstimatedOneRm(widget.sessionExerciseId);
+      if (sessionEstimate != null && sessionEstimate > 0) {
+        oneRm = sessionEstimate;
+        _estimatedOneRm = sessionEstimate;
+      } else if (mounted) {
+        // First time seeing this exercise, prompt for estimate
+        final estimate = await _promptFor1RmEstimate(variant?.name ?? 'Exercise');
+        if (estimate != null && estimate > 0) {
+          oneRm = estimate;
+          _estimatedOneRm = estimate;
+          provider.storeEstimatedOneRm(widget.sessionExerciseId, estimate);
+          // Save to database so it persists for future sessions
+          await oneRmRepo.recordNewOneRm(
+            widget.chosenVariantId,
+            estimate,
+            DateTime.now(),
+            notes: 'Estimated during session',
+          );
+        }
+        // If user cancels or enters invalid value, proceed with blank weights (oneRm stays null)
+      }
+    }
 
     if (oneRm != null && oneRm > 0 && templates.isNotEmpty) {
       final firstTemplate = templates.first;
@@ -101,6 +145,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           suggestedWeight: warmupWeights[i],
           targetReps: 5,
           percentage: warmupPercentages[i],
+          workingSetWeight: workingWeight,
         ));
       }
 
@@ -156,6 +201,73 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     _repsController.text = ctx.targetReps.toString();
   }
 
+  Future<double?> _promptFor1RmEstimate(String variantName) async {
+    final estimateController = TextEditingController();
+    final completer = Completer<double?>();
+
+    if (!mounted) return null;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Estimate 1RM'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'No 1RM history for $variantName.\n\nEstimate your 1RM for this exercise to calculate warm-ups and working set weights.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: estimateController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: '1RM (lbs)',
+                hintText: 'e.g., 225',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              completer.complete(null);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final estimate = double.tryParse(estimateController.text);
+              if (estimate != null && estimate > 0) {
+                Navigator.of(context).pop();
+                setState(() => _estimatedOneRm = estimate);
+                completer.complete(estimate);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid weight'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    return completer.future;
+  }
+
   Future<void> _submitSet() async {
     final provider = context.read<SessionProvider>();
     final loggedSetIndex = _currentSetIndex;
@@ -163,6 +275,10 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final dbSetNumber = loggedSetIndex + 1;
 
     try {
+      // Get current 1RM (from database or estimate)
+      var currentOneRm = await provider.getVariantOneRm(widget.chosenVariantId);
+      currentOneRm = currentOneRm ?? _estimatedOneRm;
+
       await provider.logSet(
         widget.sessionExerciseId,
         dbSetNumber,
@@ -170,6 +286,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         _weight,
         _rpe,
         notes: _notes,
+        oneRmAtSessionTime: currentOneRm,
       );
 
       if (!mounted) return;
@@ -258,7 +375,18 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentCtx?.label ?? 'Log Set'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_exerciseName),
+            if (currentCtx != null)
+              Text(
+                currentCtx.label,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
