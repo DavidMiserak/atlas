@@ -14,6 +14,9 @@ help:
 	@echo "  build-apk-release   Build release APK"
 	@echo "  push-apk            Build and push debug APK to device"
 	@echo "  push-apk-release    Build and push release APK to device"
+	@echo ""
+	@echo "General Commands:"
+	@echo "  run                 Analyze, test, and run the Flutter app"
 
 .PHONY: pre-commit-setup
 pre-commit-setup:
@@ -38,3 +41,9 @@ push-apk: build-apk
 .PHONY: push-apk-release
 push-apk-release: build-apk-release
 	adb install -r build/app/outputs/flutter-apk/app-release.apk
+
+.PHONY: run
+run:
+	flutter analyze
+	flutter test
+	flutter run
