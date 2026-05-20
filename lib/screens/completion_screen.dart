@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../data/repositories/one_rm_repository.dart';
+import '../data/repositories/program_repository.dart';
+import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
+import '../utils/progression_service.dart';
 import 'workout_selection_screen.dart';
 import 'session_detail_screen.dart';
 
@@ -20,6 +24,7 @@ class _CompletionScreenState extends State<CompletionScreen>
   double _totalVolume = 0;
   int? _completedSessionId;
   DateTime? _sessionDate;
+  List<ProgressionResult> _progressions = const [];
   bool _done = false;
   String? _error;
 
@@ -111,6 +116,16 @@ class _CompletionScreenState extends State<CompletionScreen>
       final sessionDate = provider.currentSession?.dateCompleted;
       await provider.completeSession();
 
+      List<ProgressionResult> progressions = const [];
+      if (sessionId != null) {
+        progressions = await ProgressionService().evaluateAndApplyProgression(
+          sessionId,
+          SessionRepository(),
+          OneRmRepository(),
+          ProgramRepository(),
+        );
+      }
+
       if (mounted) {
         setState(() {
           _workoutName = workoutName;
@@ -119,6 +134,7 @@ class _CompletionScreenState extends State<CompletionScreen>
           _totalVolume = totalVolume;
           _completedSessionId = sessionId;
           _sessionDate = sessionDate;
+          _progressions = progressions;
           _done = true;
         });
         _controller.forward();
@@ -294,6 +310,17 @@ class _CompletionScreenState extends State<CompletionScreen>
                     ),
                   ),
                 ),
+
+                if (_progressions.isNotEmpty) ...[
+                  const SizedBox(height: 32),
+                  FadeTransition(
+                    opacity: _ctaFade,
+                    child: _ProgressionCallout(
+                      progressions: _progressions,
+                      accentColor: colorScheme.primary,
+                    ),
+                  ),
+                ],
 
                 const Spacer(),
 
@@ -610,6 +637,124 @@ class _SecondaryButtonState extends State<_SecondaryButton>
           },
         ),
       ),
+    );
+  }
+}
+
+class _ProgressionCallout extends StatelessWidget {
+  final List<ProgressionResult> progressions;
+  final Color accentColor;
+
+  const _ProgressionCallout({
+    required this.progressions,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayed = progressions.take(4).toList();
+    final overflow = progressions.length - displayed.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NEXT SESSION READY',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: accentColor,
+            letterSpacing: 2.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(height: 1, color: const Color(0xFF1E1E1E)),
+        const SizedBox(height: 14),
+        for (int i = 0; i < displayed.length; i++) ...[
+          _ProgressionRow(progression: displayed[i], accentColor: accentColor),
+          if (i < displayed.length - 1) const SizedBox(height: 10),
+        ],
+        if (overflow > 0) ...[
+          const SizedBox(height: 10),
+          Text(
+            '...and $overflow more',
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              color: const Color(0xFF555555),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProgressionRow extends StatelessWidget {
+  final ProgressionResult progression;
+  final Color accentColor;
+
+  const _ProgressionRow({required this.progression, required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final inc = progression.incrementLbs.toInt();
+    final weight = progression.newSuggestedWeight;
+    final weightStr = weight == weight.truncateToDouble()
+        ? '${weight.toInt()} lbs'
+        : '${weight.toStringAsFixed(1)} lbs';
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 18,
+          child: Text(
+            '↑',
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: accentColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            progression.slotName,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 68,
+          child: Text(
+            weightStr,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFFB0B0B0),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 44,
+          child: Text(
+            '(+$inc)',
+            textAlign: TextAlign.right,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: accentColor,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

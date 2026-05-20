@@ -45,6 +45,17 @@ class ProgramRepository {
     return await db.insert(tablePrograms, program.toMap());
   }
 
+  Future<ExerciseSlot?> getSlotById(int slotId) async {
+    final db = await getDatabase();
+    final rows = await db.query(
+      tableExerciseSlots,
+      where: '$colSlotId = ?',
+      whereArgs: [slotId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : ExerciseSlot.fromMap(rows.first);
+  }
+
   Future<ExerciseVariant?> getVariantById(int variantId) async {
     final db = await getDatabase();
     final variantMaps = await db.query(
