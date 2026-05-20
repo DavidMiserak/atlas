@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../providers/session_provider.dart';
 import '../data/repositories/one_rm_repository.dart';
@@ -30,14 +31,16 @@ class _SetContext {
     if (isWarmup && percentage != null && workingSetWeight != null && workingSetWeight! > 0) {
       final percentStr = (percentage! * 100).toStringAsFixed(0);
       final workStr = workingSetWeight!.toStringAsFixed(0);
-      return 'Warm-up Set $displayNumber: $percentStr% of $workStr lbs';
+      return 'Warm-up $displayNumber: $percentStr% of $workStr lbs';
     }
-    return isWarmup ? 'Warm-up Set $displayNumber' : 'Working Set $displayNumber';
+    return isWarmup ? 'Warm-up $displayNumber' : 'Working Set $displayNumber';
   }
 
+  String get typeLabel => isWarmup ? 'WARM-UP' : 'WORKING SET';
+
   String get weightLabel => suggestedWeight > 0
-      ? '${suggestedWeight.toStringAsFixed(0)} lbs'
-      : 'Enter weight';
+      ? '${suggestedWeight.toStringAsFixed(0)}'
+      : '—';
 
   String get repsLabel => '$targetReps reps';
 }
@@ -62,11 +65,11 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   List<_SetContext> _allSets = [];
   int _currentSetIndex = 0;
   bool _loadingContext = true;
-  double? _estimatedOneRm; // Temporary 1RM estimate if variant has no history
-  double? _currentOneRm; // Current 1RM being used for this exercise
-  double? _pr; // Personal record - highest weight ever logged
+  double? _estimatedOneRm;
+  double? _currentOneRm;
+  double? _pr;
   String _exerciseName = '';
-  Map<int, double> _loggedWeights = {}; // Track actual weights entered per set index
+  Map<int, double> _loggedWeights = {};
 
   double _weight = 0.0;
   int _reps = 5;
@@ -96,30 +99,24 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final oneRmRepo = OneRmRepository();
 
     final variant = await provider.getVariantDetails(widget.chosenVariantId);
-    if (mounted) {
-      setState(() => _exerciseName = variant?.name ?? 'Exercise');
-    }
+    if (mounted) setState(() => _exerciseName = variant?.name ?? 'Exercise');
 
     var oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
     final pr = await provider.getHighestWeightForVariant(widget.chosenVariantId);
     final templates = await provider.getSlotSetTemplates(widget.slotId);
-
     final sets = <_SetContext>[];
 
-    // If no 1RM exists, check if we already estimated it in this session
     if ((oneRm == null || oneRm <= 0) && templates.isNotEmpty) {
       final sessionEstimate = provider.getEstimatedOneRm(widget.sessionExerciseId);
       if (sessionEstimate != null && sessionEstimate > 0) {
         oneRm = sessionEstimate;
         _estimatedOneRm = sessionEstimate;
       } else if (mounted) {
-        // First time seeing this exercise, prompt for estimate
         final estimate = await _promptFor1RmEstimate(variant?.name ?? 'Exercise');
         if (estimate != null && estimate > 0) {
           oneRm = estimate;
           _estimatedOneRm = estimate;
           provider.storeEstimatedOneRm(widget.sessionExerciseId, estimate);
-          // Save to database so it persists for future sessions
           await oneRmRepo.recordNewOneRm(
             widget.chosenVariantId,
             estimate,
@@ -127,19 +124,14 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
             notes: 'Estimated during session',
           );
         }
-        // If user cancels or enters invalid value, proceed with blank weights (oneRm stays null)
       }
     }
 
     if (oneRm != null && oneRm > 0 && templates.isNotEmpty) {
       final firstTemplate = templates.first;
-      // Warm-ups are always based on the working set weight, not the 1RM.
-      // For percentage-based: working weight = 1RM × percentage.
-      // For RPE-based: estimate working weight from the RPE target.
       final workingWeight = firstTemplate.percentage1rm != null
           ? calculatePercentageWeight(oneRm, firstTemplate.percentage1rm!)
           : estimateWorkingWeightFromRpe(oneRm, firstTemplate.rpeTarget ?? 8);
-
       final warmupWeights = calculateWarmupProgression(workingWeight);
       final warmupPercentages = [0.50, 0.70, 0.90];
       for (var i = 0; i < warmupWeights.length; i++) {
@@ -152,10 +144,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           workingSetWeight: workingWeight,
         ));
       }
-
       for (var i = 0; i < templates.length; i++) {
         final t = templates[i];
-        // Percentage-based: exact weight. RPE-based: estimated working weight as starting point.
         final weight = t.percentage1rm != null
             ? calculatePercentageWeight(oneRm, t.percentage1rm!)
             : estimateWorkingWeightFromRpe(oneRm, t.rpeTarget ?? 8);
@@ -169,7 +159,6 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         ));
       }
     } else {
-      // No 1RM — show blank working sets from templates
       for (var i = 0; i < (templates.isNotEmpty ? templates.length : 3); i++) {
         final t = templates.isNotEmpty ? templates[i] : null;
         sets.add(_SetContext(
@@ -196,8 +185,6 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   void _prefillFromContext() {
     if (_allSets.isEmpty || _currentSetIndex >= _allSets.length) return;
     final ctx = _allSets[_currentSetIndex];
-
-    // For working sets, cascade weight from previous working set if available
     double suggestedWeight = ctx.suggestedWeight;
     if (!ctx.isWarmup && _currentSetIndex > 0) {
       final prevCtx = _allSets[_currentSetIndex - 1];
@@ -205,47 +192,44 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         suggestedWeight = _loggedWeights[_currentSetIndex - 1]!;
       }
     }
-
     setState(() {
       _weight = suggestedWeight;
       _reps = ctx.targetReps;
       _rpe = ctx.rpeTarget ?? 7;
     });
-    _weightController.text = suggestedWeight > 0
-        ? suggestedWeight.toStringAsFixed(0)
-        : '';
+    _weightController.text = suggestedWeight > 0 ? suggestedWeight.toStringAsFixed(0) : '';
     _repsController.text = ctx.targetReps.toString();
   }
 
   Future<double?> _promptFor1RmEstimate(String variantName) async {
     final estimateController = TextEditingController();
     final completer = Completer<double?>();
-
     if (!mounted) return null;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Estimate 1RM'),
+        title: Text(
+          'Set 1RM',
+          style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'No 1RM history for $variantName.\n\nEstimate your 1RM for this exercise to calculate warm-ups and working set weights.',
-              style: Theme.of(context).textTheme.bodyMedium,
+              'No 1RM found for $variantName. Enter your estimated max to calculate weights.',
+              style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFFB0B0B0)),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: estimateController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
+              style: GoogleFonts.spaceGrotesk(fontSize: 24, fontWeight: FontWeight.w700),
+              decoration: const InputDecoration(
                 labelText: '1RM (lbs)',
-                hintText: 'e.g., 225',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                hintText: '225',
               ),
               autofocus: true,
             ),
@@ -253,11 +237,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              completer.complete(null);
-            },
-            child: const Text('Cancel'),
+            onPressed: () { Navigator.of(context).pop(); completer.complete(null); },
+            child: const Text('Skip'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -268,10 +249,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                 completer.complete(estimate);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid weight'),
-                    duration: Duration(seconds: 2),
-                  ),
+                  const SnackBar(content: Text('Enter a valid weight'), duration: Duration(seconds: 2)),
                 );
               }
             },
@@ -280,7 +258,6 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         ],
       ),
     );
-
     return completer.future;
   }
 
@@ -288,11 +265,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
     final loggedSetIndex = _currentSetIndex;
-    // Use actual set number (overall sequence) for the database record
     final dbSetNumber = loggedSetIndex + 1;
 
     try {
-      // Get current 1RM (from database or estimate)
       var currentOneRm = await provider.getVariantOneRm(widget.chosenVariantId);
       currentOneRm = currentOneRm ?? _estimatedOneRm;
 
@@ -306,23 +281,16 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         oneRmAtSessionTime: currentOneRm,
       );
 
-      // Track the logged weight for cascading to next sets
       _loggedWeights[loggedSetIndex] = _weight;
 
-      // Update PR if this weight is higher
       if (_weight > 0 && (_pr == null || _weight > _pr!)) {
-        if (mounted) {
-          setState(() => _pr = _weight);
-        }
+        if (mounted) setState(() => _pr = _weight);
       }
 
-      // For working sets, calculate 1RM equivalent and update if higher
       final currentCtx = _allSets[loggedSetIndex];
       if (!currentCtx.isWarmup && _weight > 0 && _rpe >= 6 && _rpe <= 10) {
         final estimatedOneRm = calculateOneRmFromLift(_weight, _rpe);
-        // Round down to nearest 5 lbs
         final roundedOneRm = (estimatedOneRm / 5).floor() * 5.0;
-
         if (currentOneRm == null || roundedOneRm > currentOneRm) {
           await oneRmRepo.recordNewOneRm(
             widget.chosenVariantId,
@@ -330,9 +298,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
             DateTime.now(),
             notes: 'Calculated from $_reps reps @ $_rpe RPE × $_weight lbs',
           );
-          if (mounted) {
-            setState(() => _currentOneRm = roundedOneRm);
-          }
+          if (mounted) setState(() => _currentOneRm = roundedOneRm);
         }
       }
 
@@ -340,26 +306,12 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
       final isLastSet = _currentSetIndex >= _allSets.length - 1;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isLastSet
-                ? 'Last set logged!'
-                : '${_allSets[_currentSetIndex].label} logged',
-          ),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-
       if (isLastSet) {
         provider.nextExercise();
-        final sessionDone = provider.currentExerciseIndex! >=
-            provider.sessionExercises.length;
+        final sessionDone = provider.currentExerciseIndex! >= provider.sessionExercises.length;
         if (sessionDone) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const CompletionScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const CompletionScreen()),
           );
         } else {
           Navigator.of(context).pop();
@@ -375,26 +327,20 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       _prefillFromContext();
 
       final restSeconds = _allSets[loggedSetIndex].isWarmup ? 60 : 90;
-
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) => RestTimer(
             restSeconds: restSeconds,
-            onComplete: () {
-              if (mounted) Navigator.of(context).pop();
-            },
+            onComplete: () { if (mounted) Navigator.of(context).pop(); },
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error logging set: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -408,6 +354,18 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     }
   }
 
+  void _adjustWeight(double delta) {
+    final newWeight = (_weight + delta).clamp(0.0, 999.9);
+    setState(() => _weight = newWeight);
+    _weightController.text = newWeight.toStringAsFixed(0);
+  }
+
+  void _adjustReps(int delta) {
+    final newReps = (_reps + delta).clamp(1, 50);
+    setState(() => _reps = newReps);
+    _repsController.text = newReps.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingContext) {
@@ -417,8 +375,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       );
     }
 
-    final currentCtx =
-        _currentSetIndex < _allSets.length ? _allSets[_currentSetIndex] : null;
+    final colorScheme = Theme.of(context).colorScheme;
+    final currentCtx = _currentSetIndex < _allSets.length ? _allSets[_currentSetIndex] : null;
+    final accentColor = currentCtx?.isWarmup == true ? colorScheme.secondary : colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
@@ -426,79 +385,83 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(
+              _exerciseName,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_exerciseName),
-                if (_currentOneRm != null && _currentOneRm! > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12.0),
-                    child: Text(
-                      '1RM: ${_currentOneRm!.toStringAsFixed(0)} lbs',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ),
+                if (_currentOneRm != null && _currentOneRm! > 0) ...[
+                  _StatChip(label: '1RM', value: '${_currentOneRm!.toStringAsFixed(0)} lbs'),
+                  const SizedBox(width: 8),
+                ],
                 if (_pr != null && _pr! > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12.0),
-                    child: Text(
-                      'PR: ${_pr!.toStringAsFixed(0)} lbs',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ),
+                  _StatChip(label: 'PR', value: '${_pr!.toStringAsFixed(0)} lbs', color: colorScheme.secondary),
               ],
             ),
-            if (currentCtx != null)
-              Text(
-                currentCtx.label,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
           ],
         ),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SetProgressRow(
-                sets: _allSets,
-                currentIndex: _currentSetIndex,
-              ),
-              const SizedBox(height: 16),
-              if (currentCtx != null) _SetContextCard(ctx: currentCtx),
-              const SizedBox(height: 24),
-              _buildWeightField(),
-              const SizedBox(height: 16),
-              _buildRepsField(),
-              const SizedBox(height: 16),
-              if (currentCtx?.isWarmup == false) _buildRPESelector(),
-              if (currentCtx?.isWarmup == false) const SizedBox(height: 16),
-              _buildNotesField(),
+              _SetTrack(sets: _allSets, currentIndex: _currentSetIndex, accentColor: accentColor),
+              const SizedBox(height: 28),
+              if (currentCtx != null) _CurrentSetBadge(ctx: currentCtx, accentColor: accentColor),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    minimumSize: const Size(double.infinity, 56),
-                  ),
-                  onPressed: _submitSet,
-                  child: Text(
-                    _currentSetIndex >= _allSets.length - 1
-                        ? 'Log & Finish Exercise'
-                        : 'Log Set',
-                  ),
+              _WeightStepper(
+                weight: _weight,
+                controller: _weightController,
+                onChanged: (v) => setState(() => _weight = double.tryParse(v) ?? 0.0),
+                onAdjust: _adjustWeight,
+                accentColor: accentColor,
+              ),
+              const SizedBox(height: 20),
+              _RepsStepper(
+                reps: _reps,
+                controller: _repsController,
+                onChanged: (v) => setState(() => _reps = int.tryParse(v) ?? 5),
+                onAdjust: _adjustReps,
+              ),
+              if (currentCtx?.isWarmup == false) ...[
+                const SizedBox(height: 20),
+                _RpeSelector(
+                  value: _rpe,
+                  onChanged: (v) => setState(() => _rpe = v),
+                  accentColor: accentColor,
                 ),
+              ],
+              const SizedBox(height: 20),
+              _NotesField(
+                controller: _notesController,
+                onChanged: (v) => setState(() => _notes = v.isEmpty ? null : v),
+              ),
+              const SizedBox(height: 32),
+              _SubmitButton(
+                label: _currentSetIndex >= _allSets.length - 1 ? 'Finish Exercise' : 'Log Set',
+                onTap: _submitSet,
+                accentColor: accentColor,
               ),
               if (currentCtx?.isWarmup == true) ...[
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
+                Center(
                   child: TextButton(
                     onPressed: _skipToWorking,
-                    child: const Text('Skip Warm-ups'),
+                    child: Text(
+                      'Skip Warm-ups',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: const Color(0xFF666666),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -508,254 +471,562 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       ),
     );
   }
-
-  Widget _buildWeightField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Weight (lbs)', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _weightController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: (v) => setState(() => _weight = double.tryParse(v) ?? 0.0),
-          decoration: InputDecoration(
-            hintText: '0',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRepsField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Reps', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _repsController,
-          keyboardType: TextInputType.number,
-          onChanged: (v) => setState(() => _reps = int.tryParse(v) ?? 5),
-          decoration: InputDecoration(
-            hintText: '5',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRPESelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('RPE (Rate of Perceived Exertion)',
-            style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Slider(
-                  value: _rpe.toDouble(),
-                  min: 1,
-                  max: 10,
-                  divisions: 9,
-                  onChanged: (v) => setState(() => _rpe = v.toInt()),
-                ),
-                Text('RPE $_rpe / 10',
-                    style: Theme.of(context).textTheme.titleMedium),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNotesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Notes (optional)', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _notesController,
-          onChanged: (v) => setState(() => _notes = v.isEmpty ? null : v),
-          maxLines: 2,
-          decoration: InputDecoration(
-            hintText: 'Felt strong, form good...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
-class _SetContextCard extends StatelessWidget {
-  final _SetContext ctx;
+// ─── Sub-widgets ──────────────────────────────────────────────────────────────
 
-  const _SetContextCard({required this.ctx});
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? color;
+
+  const _StatChip({required this.label, required this.value, this.color});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final cardColor = ctx.isWarmup
-        ? colorScheme.surfaceContainerHighest
-        : colorScheme.primaryContainer;
-
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              ctx.isWarmup ? Icons.whatshot_outlined : Icons.fitness_center,
-              size: 28,
-              color: ctx.isWarmup
-                  ? colorScheme.onSurfaceVariant
-                  : colorScheme.onPrimaryContainer,
+    final c = color ?? Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label ',
+            style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF909090)),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: c,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ctx.isWarmup ? 'Warm-up' : 'Working Set',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: ctx.isWarmup
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        ctx.weightLabel,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: ctx.isWarmup
-                                  ? colorScheme.onSurfaceVariant
-                                  : colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '× ${ctx.repsLabel}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: ctx.isWarmup
-                                  ? colorScheme.onSurfaceVariant
-                                  : colorScheme.onPrimaryContainer,
-                            ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (ctx.percentage != null) ...[
-                  Text(
-                    '${(ctx.percentage! * 100).toStringAsFixed(0)}%',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: ctx.isWarmup
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-                  Text(
-                    ctx.isWarmup ? 'of work wt' : 'of 1RM',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: ctx.isWarmup
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-                ],
-                if (ctx.rpeTarget != null)
-                  Text(
-                    'Goal: RPE ${ctx.rpeTarget}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: ctx.isWarmup
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onPrimaryContainer,
-                          fontWeight: ctx.percentage == null
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                  ),
-                if (!ctx.isWarmup && ctx.percentage == null && ctx.rpeTarget != null)
-                  Text(
-                    'adjust by feel',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SetProgressRow extends StatelessWidget {
+class _SetTrack extends StatelessWidget {
   final List<_SetContext> sets;
   final int currentIndex;
+  final Color accentColor;
 
-  const _SetProgressRow({required this.sets, required this.currentIndex});
+  const _SetTrack({
+    required this.sets,
+    required this.currentIndex,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: sets.asMap().entries.map((entry) {
         final i = entry.key;
         final s = entry.value;
         final isDone = i < currentIndex;
         final isCurrent = i == currentIndex;
-        final colorScheme = Theme.of(context).colorScheme;
 
-        Color bgColor;
+        Color color;
+        double height;
         if (isDone) {
-          bgColor = colorScheme.primary;
+          color = accentColor.withOpacity(0.5);
+          height = 4;
         } else if (isCurrent) {
-          bgColor = s.isWarmup
-              ? colorScheme.onSurfaceVariant
-              : colorScheme.primaryContainer;
+          color = accentColor;
+          height = 6;
         } else {
-          bgColor = colorScheme.surfaceContainerHighest;
+          color = colorScheme.surfaceContainerHigh;
+          height = 4;
         }
 
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(3),
-              ),
+            child: Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  height: height,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(3),
+                    boxShadow: isCurrent
+                        ? [BoxShadow(color: accentColor.withOpacity(0.5), blurRadius: 6)]
+                        : null,
+                  ),
+                ),
+                if (isCurrent) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    s.isWarmup ? 'W${s.displayNumber}' : 'S${s.displayNumber}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: accentColor,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _CurrentSetBadge extends StatelessWidget {
+  final _SetContext ctx;
+  final Color accentColor;
+
+  const _CurrentSetBadge({required this.ctx, required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.08),
+        border: Border.all(color: accentColor.withOpacity(0.25), width: 1.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                ctx.typeLabel,
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: accentColor,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                ctx.label,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (ctx.suggestedWeight > 0)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'TARGET',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: const Color(0xFF909090),
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${ctx.suggestedWeight.toStringAsFixed(0)} lbs × ${ctx.targetReps}',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: accentColor,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeightStepper extends StatelessWidget {
+  final double weight;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final void Function(double) onAdjust;
+  final Color accentColor;
+
+  const _WeightStepper({
+    required this.weight,
+    required this.controller,
+    required this.onChanged,
+    required this.onAdjust,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'WEIGHT',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF909090),
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _StepButton(label: '−5', onTap: () => onAdjust(-5)),
+            const SizedBox(width: 4),
+            _StepButton(label: '−1.25', onTap: () => onAdjust(-1.25), small: true),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Center(
+                child: IntrinsicWidth(
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: onChanged,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -1,
+                    ),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      hintText: '0',
+                      hintStyle: GoogleFonts.spaceGrotesk(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF444444),
+                      ),
+                      suffixText: 'lbs',
+                      suffixStyle: GoogleFonts.outfit(
+                        fontSize: 16,
+                        color: const Color(0xFF666666),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _StepButton(label: '+1.25', onTap: () => onAdjust(1.25), small: true),
+            const SizedBox(width: 4),
+            _StepButton(label: '+5', onTap: () => onAdjust(5)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RepsStepper extends StatelessWidget {
+  final int reps;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final void Function(int) onAdjust;
+
+  const _RepsStepper({
+    required this.reps,
+    required this.controller,
+    required this.onChanged,
+    required this.onAdjust,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'REPS',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF909090),
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _StepButton(label: '−1', onTap: () => onAdjust(-1)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Center(
+                child: IntrinsicWidth(
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    onChanged: onChanged,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -1,
+                    ),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      hintText: '5',
+                      hintStyle: GoogleFonts.spaceGrotesk(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF444444),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _StepButton(label: '+1', onTap: () => onAdjust(1)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool small;
+
+  const _StepButton({required this.label, required this.onTap, this.small = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: small ? 8 : 14,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: small ? 12 : 15,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFFB0B0B0),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RpeSelector extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+  final Color accentColor;
+
+  const _RpeSelector({
+    required this.value,
+    required this.onChanged,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'RPE',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF909090),
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [6, 7, 8, 9, 10].map((rpe) {
+            final isSelected = value == rpe;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: GestureDetector(
+                  onTap: () => onChanged(rpe),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isSelected ? accentColor : colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: isSelected
+                          ? [BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8)]
+                          : null,
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '$rpe',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected ? Colors.black : Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _NotesField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _NotesField({required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NOTES',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF909090),
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          maxLines: 2,
+          style: GoogleFonts.outfit(fontSize: 14, color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Felt strong, good depth...',
+            hintStyle: GoogleFonts.outfit(color: const Color(0xFF444444)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SubmitButton extends StatefulWidget {
+  final String label;
+  final VoidCallback onTap;
+  final Color accentColor;
+
+  const _SubmitButton({
+    required this.label,
+    required this.onTap,
+    required this.accentColor,
+  });
+
+  @override
+  State<_SubmitButton> createState() => _SubmitButtonState();
+}
+
+class _SubmitButtonState extends State<_SubmitButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => _controller.forward(),
+      onExit: (_) => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [widget.accentColor, widget.accentColor.withOpacity(0.85)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.accentColor.withOpacity(0.3 + _controller.value * 0.2),
+                  blurRadius: 20 + _controller.value * 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  widget.label,
+                  style: GoogleFonts.outfit(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.check_rounded, color: Colors.black, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
