@@ -3,6 +3,12 @@ import 'package:path/path.dart';
 import 'database_constants.dart';
 
 Database? _database;
+String? _testDatabasePath;
+
+void useInMemoryDatabaseForTesting() {
+  _testDatabasePath = inMemoryDatabasePath;
+  _database = null;
+}
 
 Future<Database> getDatabase() async {
   if (_database != null) return _database!;
@@ -11,8 +17,7 @@ Future<Database> getDatabase() async {
 }
 
 Future<Database> _initDatabase() async {
-  final dbPath = await getDatabasesPath();
-  final path = join(dbPath, databaseName);
+  final path = _testDatabasePath ?? join(await getDatabasesPath(), databaseName);
 
   return await openDatabase(
     path,

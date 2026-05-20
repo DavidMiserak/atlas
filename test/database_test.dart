@@ -12,6 +12,15 @@ void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    useInMemoryDatabaseForTesting();
+  });
+
+  setUp(() async {
+    await closeDatabase();
+  });
+
+  tearDown(() async {
+    await closeDatabase();
   });
 
   group('Database Schema Tests', () {
@@ -36,7 +45,6 @@ void main() {
       expect(tableNames.contains(tableSessionSets), true);
       expect(tableNames.contains(tableSettings), true);
 
-      await closeDatabase();
     });
 
     test('Settings table is initialized with defaults', () async {
@@ -60,7 +68,6 @@ void main() {
       expect(deloadFreq.isNotEmpty, true);
       expect(deloadFreq.first[colSettingsValue], '4');
 
-      await closeDatabase();
     });
   });
 
@@ -75,7 +82,6 @@ void main() {
       expect(programs.first[colProgramName], '4-Day Novice Bodybuilding');
       expect(programs.first[colProgramVersion], 'v1');
 
-      await closeDatabase();
     });
 
     test('Loading seed data twice does not create duplicates', () async {
@@ -91,7 +97,6 @@ void main() {
 
       expect(programs.length, 1);
 
-      await closeDatabase();
     });
   });
 
@@ -125,7 +130,6 @@ void main() {
       expect(squatSlot?.variants.isNotEmpty, true);
       expect(squatSlot?.setTemplates.isNotEmpty, true);
 
-      await closeDatabase();
     });
 
     test('getAllPrograms returns list of programs', () async {
@@ -137,7 +141,6 @@ void main() {
       expect(programs.isNotEmpty, true);
       expect(programs.length, greaterThanOrEqualTo(1));
 
-      await closeDatabase();
     });
   });
 
@@ -159,7 +162,6 @@ void main() {
       expect(retrieved, isNotNull);
       expect(retrieved?.workoutId, 1);
 
-      await closeDatabase();
     });
 
     test('getSessionsByWorkoutId returns sessions', () async {
@@ -181,7 +183,6 @@ void main() {
       final sessions = await repo.getSessionsByWorkoutId(1);
       expect(sessions.length, greaterThanOrEqualTo(2));
 
-      await closeDatabase();
     });
   });
 
@@ -191,12 +192,27 @@ void main() {
 
       final repo = OneRmRepository();
 
-      // The seed data creates a 1RM for back squat (variant_id 1)
-      final currentOneRm = await repo.getCurrentOneRm(1);
+      // Variant 1 is Back Squat (no 1RM seeded) — record one explicitly
+      await repo.recordNewOneRm(1, 310.0, DateTime.now());
 
+      final currentOneRm = await repo.getCurrentOneRm(1);
+      expect(currentOneRm, 310.0);
+    });
+
+    test('recordNewOneRm replaces previous current 1RM', () async {
+      await loadSeedData();
+
+      final repo = OneRmRepository();
+
+      await repo.recordNewOneRm(1, 285.0, DateTime.now().subtract(const Duration(days: 7)));
+      await repo.recordNewOneRm(1, 310.0, DateTime.now());
+
+      final currentOneRm = await repo.getCurrentOneRm(1);
       expect(currentOneRm, 310.0);
 
-      await closeDatabase();
+      final history = await repo.getOneRmHistory(1);
+      expect(history.length, 2);
+      expect(history.where((h) => h.isCurrent).length, 1);
     });
   });
 
@@ -208,7 +224,6 @@ void main() {
       final result = await db.rawQuery('PRAGMA foreign_keys');
       expect(result.isNotEmpty, true);
 
-      await closeDatabase();
     });
   });
 }
