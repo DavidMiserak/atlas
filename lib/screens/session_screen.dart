@@ -205,7 +205,7 @@ class _PremiumProgressBar extends StatelessWidget {
               ),
             ),
             Text(
-              '${(progress * 100).toStringAsFixed(0)}%',
+              '$current of $total',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
