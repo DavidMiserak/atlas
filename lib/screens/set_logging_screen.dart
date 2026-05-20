@@ -64,6 +64,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   bool _loadingContext = true;
   double? _estimatedOneRm; // Temporary 1RM estimate if variant has no history
   String _exerciseName = '';
+  Map<int, double> _loggedWeights = {}; // Track actual weights entered per set index
 
   double _weight = 0.0;
   int _reps = 5;
@@ -190,13 +191,23 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   void _prefillFromContext() {
     if (_allSets.isEmpty || _currentSetIndex >= _allSets.length) return;
     final ctx = _allSets[_currentSetIndex];
+
+    // For working sets, cascade weight from previous working set if available
+    double suggestedWeight = ctx.suggestedWeight;
+    if (!ctx.isWarmup && _currentSetIndex > 0) {
+      final prevCtx = _allSets[_currentSetIndex - 1];
+      if (!prevCtx.isWarmup && _loggedWeights.containsKey(_currentSetIndex - 1)) {
+        suggestedWeight = _loggedWeights[_currentSetIndex - 1]!;
+      }
+    }
+
     setState(() {
-      _weight = ctx.suggestedWeight;
+      _weight = suggestedWeight;
       _reps = ctx.targetReps;
       _rpe = ctx.rpeTarget ?? 7;
     });
-    _weightController.text = ctx.suggestedWeight > 0
-        ? ctx.suggestedWeight.toStringAsFixed(0)
+    _weightController.text = suggestedWeight > 0
+        ? suggestedWeight.toStringAsFixed(0)
         : '';
     _repsController.text = ctx.targetReps.toString();
   }
@@ -288,6 +299,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         notes: _notes,
         oneRmAtSessionTime: currentOneRm,
       );
+
+      // Track the logged weight for cascading to next sets
+      _loggedWeights[loggedSetIndex] = _weight;
 
       if (!mounted) return;
 
