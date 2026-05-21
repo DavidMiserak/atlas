@@ -76,6 +76,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   int _rpe = 7;
   String? _notes;
 
+  String? _weightError;
+  String? _repsError;
+
   final _weightController = TextEditingController();
   final _repsController = TextEditingController();
   final _notesController = TextEditingController();
@@ -262,6 +265,14 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   }
 
   Future<void> _submitSet() async {
+    final weightErr = _weight <= 0 ? 'Enter a weight greater than 0' : null;
+    final repsErr = _reps <= 0 ? 'Reps must be at least 1' : null;
+    if (weightErr != null || repsErr != null) {
+      setState(() { _weightError = weightErr; _repsError = repsErr; });
+      return;
+    }
+    setState(() { _weightError = null; _repsError = null; });
+
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
     final loggedSetIndex = _currentSetIndex;
@@ -356,13 +367,13 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
   void _adjustWeight(double delta) {
     final newWeight = (_weight + delta).clamp(0.0, 999.9);
-    setState(() => _weight = newWeight);
+    setState(() { _weight = newWeight; if (newWeight > 0) _weightError = null; });
     _weightController.text = newWeight.toStringAsFixed(0);
   }
 
   void _adjustReps(int delta) {
     final newReps = (_reps + delta).clamp(1, 50);
-    setState(() => _reps = newReps);
+    setState(() { _reps = newReps; _repsError = null; });
     _repsController.text = newReps.toString();
   }
 
@@ -420,16 +431,24 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
               _WeightStepper(
                 weight: _weight,
                 controller: _weightController,
-                onChanged: (v) => setState(() => _weight = double.tryParse(v) ?? 0.0),
+                onChanged: (v) {
+                  final parsed = double.tryParse(v) ?? 0.0;
+                  setState(() { _weight = parsed; if (parsed > 0) _weightError = null; });
+                },
                 onAdjust: _adjustWeight,
                 accentColor: accentColor,
+                errorText: _weightError,
               ),
               const SizedBox(height: 20),
               _RepsStepper(
                 reps: _reps,
                 controller: _repsController,
-                onChanged: (v) => setState(() => _reps = int.tryParse(v) ?? 5),
+                onChanged: (v) {
+                  final parsed = int.tryParse(v) ?? 0;
+                  setState(() { _reps = parsed; if (parsed > 0) _repsError = null; });
+                },
                 onAdjust: _adjustReps,
+                errorText: _repsError,
               ),
               if (currentCtx?.isWarmup == false) ...[
                 const SizedBox(height: 20),
@@ -661,6 +680,7 @@ class _WeightStepper extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final void Function(double) onAdjust;
   final Color accentColor;
+  final String? errorText;
 
   const _WeightStepper({
     required this.weight,
@@ -668,6 +688,7 @@ class _WeightStepper extends StatelessWidget {
     required this.onChanged,
     required this.onAdjust,
     required this.accentColor,
+    this.errorText,
   });
 
   @override
@@ -732,6 +753,13 @@ class _WeightStepper extends StatelessWidget {
             _StepButton(label: '+10', onTap: () => onAdjust(10)),
           ],
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            errorText!,
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.redAccent),
+          ),
+        ],
       ],
     );
   }
@@ -742,12 +770,14 @@ class _RepsStepper extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final void Function(int) onAdjust;
+  final String? errorText;
 
   const _RepsStepper({
     required this.reps,
     required this.controller,
     required this.onChanged,
     required this.onAdjust,
+    this.errorText,
   });
 
   @override
@@ -803,6 +833,13 @@ class _RepsStepper extends StatelessWidget {
             _StepButton(label: '+1', onTap: () => onAdjust(1)),
           ],
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            errorText!,
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.redAccent),
+          ),
+        ],
       ],
     );
   }
