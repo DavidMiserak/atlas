@@ -245,6 +245,53 @@ void main() {
       expect(setsMap[seIds[1]]?.first.weightLifted, 130.0);
     });
 
+    test('9. Variant swap mid-exercise — sets stay linked to session_exercise, not variant', () async {
+      await loadSeedData();
+      final db = await getDatabase();
+      final ids = await firstSlot();
+      final slotId = ids['slotId']!;
+
+      // Get two variants for the same slot
+      final variantRows = await db.query(tableExerciseVariants,
+          where: '$colVariantSlotId = ?', whereArgs: [slotId]);
+      expect(variantRows.length, greaterThanOrEqualTo(2),
+          reason: 'seed data should have at least 2 variants per slot');
+      final variantA = variantRows[0][colVariantId] as int;
+      final variantB = variantRows[1][colVariantId] as int;
+
+      final sessionId = await createSession();
+      final seId = await createSessionExercise(sessionId, slotId, variantA);
+
+      // Log 1 warmup with variant A active
+      await logSet(seId, 1, isWarmup: true, weight: 95.0);
+
+      // Simulate variant swap: update chosen_variant_id on the session_exercise
+      await db.update(
+        tableSessionExercises,
+        {colSessionExerciseChosenVariantId: variantB},
+        where: '$colSessionExerciseId = ?',
+        whereArgs: [seId],
+      );
+
+      // Log 2 working sets with variant B active
+      await logSet(seId, 2, weight: 200.0);
+      await logSet(seId, 3, weight: 200.0);
+
+      // All 3 sets are still linked to the same session_exercise
+      final sets = await SessionRepository().getSessionSets(seId);
+      expect(sets.length, 3);
+      expect(sets.where((s) => s.isWarmup).length, 1);
+      expect(sets.where((s) => !s.isWarmup).length, 2);
+
+      // No duplicate session_exercise records created
+      final seRows = await db.query(tableSessionExercises,
+          where: '$colSessionExerciseSessionId = ?', whereArgs: [sessionId]);
+      expect(seRows.length, 1);
+
+      // chosen_variant_id updated to variant B
+      expect(seRows.first[colSessionExerciseChosenVariantId], variantB);
+    });
+
     test('8. Sets ordered by set_number ASC within each exercise', () async {
       await loadSeedData();
       final ids = await firstSlot();

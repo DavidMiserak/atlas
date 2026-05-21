@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../data/repositories/one_rm_repository.dart';
 import 'widgets/weight_stepper.dart';
 
 class OneRmHistoryDetailScreen extends StatefulWidget {
   final int? variantId;
+  final String? variantName;
 
-  const OneRmHistoryDetailScreen({super.key, required this.variantId});
+  const OneRmHistoryDetailScreen({
+    super.key,
+    required this.variantId,
+    this.variantName,
+  });
 
   @override
   State<OneRmHistoryDetailScreen> createState() => _OneRmHistoryDetailScreenState();
@@ -38,15 +44,24 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          '1RM HISTORY',
-          style: GoogleFonts.outfit(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 3.5,
-            color: const Color(0xFF555555),
-          ),
-        ),
+        title: widget.variantName != null
+            ? Text(
+                widget.variantName!,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                '1RM HISTORY',
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 3.5,
+                  color: const Color(0xFF555555),
+                ),
+              ),
       ),
       body: widget.variantId == null
           ? _buildEmptyState(context)
@@ -138,7 +153,7 @@ class _HistoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = record.date;
-    final dateStr = '${date.month}/${date.day}/${date.year}';
+    final dateStr = DateFormat('MMM d, yyyy').format(date);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -258,13 +273,20 @@ class _UpdateOneRmModalState extends State<_UpdateOneRmModal> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Update 1RM',
+            _currentOneRm == null ? 'Set 1RM' : 'Update 1RM',
             style: GoogleFonts.spaceGrotesk(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
+          if (_currentOneRm != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Current: ${_currentOneRm!.toStringAsFixed(0)} lbs',
+              style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF666666)),
+            ),
+          ],
           const SizedBox(height: 24),
           WeightStepper(
             weight: _weight,

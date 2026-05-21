@@ -391,7 +391,23 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final currentCtx = _currentSetIndex < _allSets.length ? _allSets[_currentSetIndex] : null;
     final accentColor = currentCtx?.isWarmup == true ? colorScheme.secondary : colorScheme.primary;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final logged = _currentSetIndex;
+        final total = _allSets.length;
+        if (logged > 0 && logged < total) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$logged of $total sets logged'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,7 +505,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           ),
         ),
       ),
-    );
+    ), // Scaffold
+    ); // PopScope
   }
 }
 

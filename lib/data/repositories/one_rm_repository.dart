@@ -60,6 +60,34 @@ class OneRmRepository {
     return OneRmHistory.fromMap(results.first);
   }
 
+  /// Returns weight AND most-recent date for each variant in one query.
+  Future<Map<int, ({double? weight, DateTime? date})>> getCurrentOneRmDataForVariants(
+      List<int> variantIds) async {
+    if (variantIds.isEmpty) return {};
+    final db = await getDatabase();
+    final placeholders = variantIds.map((_) => '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT $col1rmHistoryVariantId, $col1rmHistoryWeight, $col1rmHistoryDate '
+      'FROM $tableVariantOneRmHistory '
+      'WHERE $col1rmHistoryVariantId IN ($placeholders) AND $col1rmHistoryIsCurrent = 1',
+      variantIds,
+    );
+    final result = <int, ({double? weight, DateTime? date})>{};
+    for (final variantId in variantIds) {
+      result[variantId] = (weight: null, date: null);
+    }
+    for (final row in rows) {
+      final variantId = row[col1rmHistoryVariantId] as int;
+      final w = row[col1rmHistoryWeight];
+      final d = row[col1rmHistoryDate] as String?;
+      result[variantId] = (
+        weight: w == null ? null : (w as num).toDouble(),
+        date: d == null ? null : DateTime.tryParse(d),
+      );
+    }
+    return result;
+  }
+
   Future<Map<int, double?>> getCurrentOneRmsForVariants(
       List<int> variantIds) async {
     if (variantIds.isEmpty) return {};

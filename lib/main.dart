@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
@@ -35,6 +36,7 @@ void main() async {
     developer.log('main: Error during initialization: $e');
   }
 
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const MyApp());
 }
 
@@ -48,6 +50,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Atlas',
         theme: AppTheme.darkTheme,
+        themeMode: ThemeMode.dark,
         home: const WorkoutSelectionScreen(),
       ),
     );

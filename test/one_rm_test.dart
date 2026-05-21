@@ -240,4 +240,42 @@ void main() {
       expect(current, testWeight);
     });
   });
+
+  group('Phase 5 edge cases', () {
+    test('Multiple 1RM updates in one day — only last is current', () async {
+      final oneRmRepo = OneRmRepository();
+      await loadSeedData();
+      final slot = await firstSlot();
+      final variantId = slot['variantId']!;
+      final today = DateTime.now();
+
+      await oneRmRepo.recordNewOneRm(variantId, 225.0, today);
+      await oneRmRepo.recordNewOneRm(variantId, 230.0, today);
+      await oneRmRepo.recordNewOneRm(variantId, 235.0, today);
+
+      final current = await oneRmRepo.getCurrentOneRm(variantId);
+      expect(current, 235.0);
+
+      // Only one record should be is_current=1
+      final history = await oneRmRepo.getOneRmHistory(variantId);
+      final currentRecords = history.where((r) => r.isCurrent).toList();
+      expect(currentRecords.length, 1);
+      expect(currentRecords.first.weight, 235.0);
+    });
+
+    test('Round-number weights survive DB round-trip without CastError', () async {
+      final oneRmRepo = OneRmRepository();
+      await loadSeedData();
+      final slot = await firstSlot();
+      final variantId = slot['variantId']!;
+
+      // Store a round number — SQLite may return int instead of double
+      await oneRmRepo.recordNewOneRm(variantId, 225.0, DateTime.now());
+      // These should not throw CastError
+      final current = await oneRmRepo.getCurrentOneRm(variantId);
+      expect(current, 225.0);
+      final history = await oneRmRepo.getOneRmHistory(variantId);
+      expect(history.first.weight, 225.0);
+    });
+  });
 }
