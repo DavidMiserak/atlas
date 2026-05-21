@@ -67,6 +67,49 @@ class ProgramRepository {
     return ExerciseVariant.fromMap(variantMaps.first);
   }
 
+  Future<Map<int, ExerciseSlot>> getSlotsByIds(List<int> ids) async {
+    if (ids.isEmpty) return {};
+    final db = await getDatabase();
+    final placeholders = ids.map((_) => '?').join(',');
+    final rows = await db.query(
+      tableExerciseSlots,
+      where: '$colSlotId IN ($placeholders)',
+      whereArgs: ids,
+    );
+    return {for (final row in rows) row[colSlotId] as int: ExerciseSlot.fromMap(row)};
+  }
+
+  Future<Map<int, ExerciseVariant>> getVariantsByIds(List<int> ids) async {
+    if (ids.isEmpty) return {};
+    final db = await getDatabase();
+    final placeholders = ids.map((_) => '?').join(',');
+    final rows = await db.query(
+      tableExerciseVariants,
+      where: '$colVariantId IN ($placeholders)',
+      whereArgs: ids,
+    );
+    return {for (final row in rows) row[colVariantId] as int: ExerciseVariant.fromMap(row)};
+  }
+
+  Future<Map<int, List<SetTemplate>>> getSetTemplatesForSlots(
+      List<int> slotIds) async {
+    if (slotIds.isEmpty) return {};
+    final db = await getDatabase();
+    final placeholders = slotIds.map((_) => '?').join(',');
+    final rows = await db.query(
+      tableSetTemplates,
+      where: '$colSetTemplateSlotId IN ($placeholders)',
+      whereArgs: slotIds,
+      orderBy: '$colSetTemplateSetNumber ASC',
+    );
+    final result = <int, List<SetTemplate>>{};
+    for (final row in rows) {
+      final slotId = row[colSetTemplateSlotId] as int;
+      result.putIfAbsent(slotId, () => []).add(SetTemplate.fromMap(row));
+    }
+    return result;
+  }
+
   Future<List<SetTemplate>> getSetTemplatesForSlot(int slotId) async {
     return _getSetTemplatesForSlot(slotId);
   }

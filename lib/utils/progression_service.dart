@@ -37,20 +37,32 @@ class ProgressionService {
     if (session == null) return [];
     if (session.isDeload) return [];
 
-    final results = <ProgressionResult>[];
     final exercises = await sessionRepo.getSessionExercises(sessionId);
+    if (exercises.isEmpty) return [];
+
+    // Batch-fetch all data needed for the loop — 4 queries regardless of N exercises.
+    final seIds = exercises.map((e) => e.id).whereType<int>().toSet().toList();
+    final slotIds = exercises.map((e) => e.slotId).toSet().toList();
+    final variantIds = exercises.map((e) => e.chosenVariantId).toSet().toList();
+
+    final setsMap = await sessionRepo.getSessionSetsForExercises(seIds);
+    final slotsMap = await programRepo.getSlotsByIds(slotIds);
+    final variantsMap = await programRepo.getVariantsByIds(variantIds);
+    final templatesMap = await programRepo.getSetTemplatesForSlots(slotIds);
+
+    final results = <ProgressionResult>[];
 
     for (final se in exercises) {
       final seId = se.id;
       if (seId == null) continue;
 
-      final slot = await programRepo.getSlotById(se.slotId);
+      final slot = slotsMap[se.slotId];
       if (slot == null) continue;
 
-      final variant = await programRepo.getVariantById(se.chosenVariantId);
+      final variant = variantsMap[se.chosenVariantId];
       if (variant == null) continue;
 
-      final allTemplates = await programRepo.getSetTemplatesForSlot(se.slotId);
+      final allTemplates = templatesMap[se.slotId] ?? [];
       final workingTemplates =
           allTemplates.where((t) => t.setType == 'working').toList();
       if (workingTemplates.isEmpty) continue;
@@ -60,7 +72,7 @@ class ProgressionService {
       if (firstTemplate.repsTargetMin == null) continue;
 
       // SQL orders by set_number ASC already; filter warmups client-side.
-      final allSets = await sessionRepo.getSessionSets(seId);
+      final allSets = setsMap[seId] ?? [];
       final workingSets = allSets.where((s) => !s.isWarmup).toList();
       if (workingSets.isEmpty) continue;
 

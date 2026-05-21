@@ -61,6 +61,25 @@ class SessionRepository {
     return await db.insert(tableSessionSets, set.toMap());
   }
 
+  Future<Map<int, List<SessionSet>>> getSessionSetsForExercises(
+      List<int> seIds) async {
+    if (seIds.isEmpty) return {};
+    final db = await getDatabase();
+    final placeholders = seIds.map((_) => '?').join(',');
+    final rows = await db.query(
+      tableSessionSets,
+      where: '$colSessionSetSessionExerciseId IN ($placeholders)',
+      whereArgs: seIds,
+      orderBy: '$colSessionSetNumber ASC',
+    );
+    final result = <int, List<SessionSet>>{};
+    for (final row in rows) {
+      final seId = row[colSessionSetSessionExerciseId] as int;
+      result.putIfAbsent(seId, () => []).add(SessionSet.fromMap(row));
+    }
+    return result;
+  }
+
   Future<List<SessionSet>> getSessionSets(int sessionExerciseId) async {
     final db = await getDatabase();
     final setMaps = await db.query(
