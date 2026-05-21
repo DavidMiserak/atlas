@@ -1,4 +1,4 @@
-package com.example.atlas
+package com.miserak.atlas
 
 import io.flutter.embedding.android.FlutterActivity
 
