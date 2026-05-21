@@ -37,6 +37,9 @@ class ProgressionService {
     if (session == null) return [];
     if (session.isDeload) return [];
 
+    final now = DateTime.now();
+    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+
     final exercises = await sessionRepo.getSessionExercises(sessionId);
     if (exercises.isEmpty) return [];
 
@@ -92,6 +95,12 @@ class ProgressionService {
       if (percentage == null || percentage <= 0) continue;
 
       final newOneRm = (lastWeight + increment) / percentage;
+
+      // 7-day cooldown: skip progression if we've bumped this variant recently.
+      final history = await oneRmRepo.getOneRmHistory(se.chosenVariantId);
+      if (history.isNotEmpty && history.first.date.isAfter(sevenDaysAgo)) {
+        continue;
+      }
 
       await oneRmRepo.recordNewOneRm(
         se.chosenVariantId,

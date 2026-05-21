@@ -61,9 +61,20 @@ class OneRmRepository {
 
   Future<Map<int, double?>> getCurrentOneRmsForVariants(
       List<int> variantIds) async {
+    if (variantIds.isEmpty) return {};
+    final db = await getDatabase();
+    final placeholders = variantIds.map((_) => '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT $col1rmHistoryVariantId, $col1rmHistoryWeight FROM $tableVariantOneRmHistory WHERE $col1rmHistoryVariantId IN ($placeholders) AND $col1rmHistoryIsCurrent = 1',
+      variantIds,
+    );
     final result = <int, double?>{};
     for (final variantId in variantIds) {
-      result[variantId] = await getCurrentOneRm(variantId);
+      result[variantId] = null;
+    }
+    for (final row in rows) {
+      final variantId = row[col1rmHistoryVariantId] as int;
+      result[variantId] = row[col1rmHistoryWeight] as double?;
     }
     return result;
   }

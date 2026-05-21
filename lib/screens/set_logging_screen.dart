@@ -7,6 +7,7 @@ import '../data/repositories/one_rm_repository.dart';
 import '../utils/weight_calculator.dart';
 import 'completion_screen.dart';
 import 'widgets/rest_timer.dart';
+import 'widgets/weight_stepper.dart';
 
 class _SetContext {
   final bool isWarmup;
@@ -428,7 +429,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
               const SizedBox(height: 28),
               if (currentCtx != null) _CurrentSetBadge(ctx: currentCtx, accentColor: accentColor),
               const SizedBox(height: 32),
-              _WeightStepper(
+              WeightStepper(
                 weight: _weight,
                 controller: _weightController,
                 onChanged: (v) {
@@ -674,97 +675,6 @@ class _CurrentSetBadge extends StatelessWidget {
   }
 }
 
-class _WeightStepper extends StatelessWidget {
-  final double weight;
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final void Function(double) onAdjust;
-  final Color accentColor;
-  final String? errorText;
-
-  const _WeightStepper({
-    required this.weight,
-    required this.controller,
-    required this.onChanged,
-    required this.onAdjust,
-    required this.accentColor,
-    this.errorText,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'WEIGHT',
-          style: GoogleFonts.outfit(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF909090),
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _StepButton(label: '−10', onTap: () => onAdjust(-10)),
-            const SizedBox(width: 4),
-            _StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Center(
-                child: IntrinsicWidth(
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: onChanged,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: -1,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      hintText: '0',
-                      hintStyle: GoogleFonts.spaceGrotesk(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF444444),
-                      ),
-                      suffixText: 'lbs',
-                      suffixStyle: GoogleFonts.outfit(
-                        fontSize: 16,
-                        color: const Color(0xFF666666),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            _StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
-            const SizedBox(width: 4),
-            _StepButton(label: '+10', onTap: () => onAdjust(10)),
-          ],
-        ),
-        if (errorText != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            errorText!,
-            style: GoogleFonts.outfit(fontSize: 12, color: Colors.redAccent),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _RepsStepper extends StatelessWidget {
   final int reps;
   final TextEditingController controller;
@@ -848,9 +758,8 @@ class _RepsStepper extends StatelessWidget {
 class _StepButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  final bool small;
 
-  const _StepButton({required this.label, required this.onTap, this.small = false});
+  const _StepButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -858,10 +767,7 @@ class _StepButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: small ? 8 : 14,
-          vertical: 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(8),
@@ -869,7 +775,7 @@ class _StepButton extends StatelessWidget {
         child: Text(
           label,
           style: GoogleFonts.outfit(
-            fontSize: small ? 12 : 15,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             color: const Color(0xFFB0B0B0),
           ),

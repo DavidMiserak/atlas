@@ -6,6 +6,7 @@ import '../data/models/program.dart';
 import 'session_screen.dart';
 import 'warmup_screen.dart';
 import 'session_review_screen.dart';
+import 'one_rm_history_list_screen.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
   const WorkoutSelectionScreen({super.key});
@@ -16,6 +17,7 @@ class WorkoutSelectionScreen extends StatefulWidget {
 
 class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   late Future<Program?> _programFuture;
+  int _selectedTab = 0;
 
   @override
   void initState() {
@@ -38,109 +40,118 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
           ),
         ),
         elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SessionReviewScreen(),
-                    ),
-                  );
-                },
-                child: Text(
-                  'History',
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.primary,
-                  ),
-                ),
-              ),
-            ),
+      ),
+      body: IndexedStack(
+        index: _selectedTab,
+        children: [
+          _buildWorkoutsTab(colorScheme),
+          const SessionReviewScreen(),
+          const OneRmHistoryListScreen(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedTab,
+        onTap: (index) {
+          setState(() => _selectedTab = index);
+        },
+        backgroundColor: const Color(0xFF0D0D0D),
+        selectedItemColor: const Color(0xFF00D9FF),
+        unselectedItemColor: const Color(0xFF666666),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Workouts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.trending_up),
+            label: '1RM',
           ),
         ],
       ),
-      body: FutureBuilder(
-        future: _programFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
+  Widget _buildWorkoutsTab(ColorScheme colorScheme) {
+    return FutureBuilder(
+      future: _programFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(
-              child: Text('No program found - database may not be initialized'),
-            );
-          }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
 
-          final program = snapshot.data!;
-          final workouts = program.workouts;
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Center(
+            child: Text('No program found - database may not be initialized'),
+          );
+        }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: workouts.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _WarmupCard(
-                    accentColor: colorScheme.primary,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WarmupScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              }
+        final program = snapshot.data!;
+        final workouts = program.workouts;
 
-              final workout = workouts[index - 1];
-              final colors = [
-                colorScheme.primary,
-                colorScheme.secondary,
-              ];
-              final accentColor = colors[(index - 1) % colors.length];
-
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: workouts.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: _WorkoutCard(
-                  name: workout.name,
-                  exerciseCount: workout.exerciseSlots
-                      .where((s) => s.variants.isNotEmpty)
-                      .length,
-                  accentColor: accentColor,
-                  onPressed: () async {
-                    final nav = Navigator.of(context);
-                    await context
-                        .read<SessionProvider>()
-                        .startSession(workout.id!);
-                    if (mounted) {
-                      nav.push(
-                        MaterialPageRoute(
-                          builder: (context) => const SessionScreen(),
-                        ),
-                      );
-                    }
+                child: _WarmupCard(
+                  accentColor: colorScheme.primary,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WarmupScreen(),
+                      ),
+                    );
                   },
                 ),
               );
-            },
-          );
-        },
-      ),
+            }
+
+            final workout = workouts[index - 1];
+            final colors = [
+              colorScheme.primary,
+              colorScheme.secondary,
+            ];
+            final accentColor = colors[(index - 1) % colors.length];
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _WorkoutCard(
+                name: workout.name,
+                exerciseCount: workout.exerciseSlots
+                    .where((s) => s.variants.isNotEmpty)
+                    .length,
+                accentColor: accentColor,
+                onPressed: () async {
+                  final nav = Navigator.of(context);
+                  await context
+                      .read<SessionProvider>()
+                      .startSession(workout.id!);
+                  if (mounted) {
+                    nav.push(
+                      MaterialPageRoute(
+                        builder: (context) => const SessionScreen(),
+                      ),
+                    );
+                  }
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
