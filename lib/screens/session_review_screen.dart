@@ -15,10 +15,7 @@ class SessionReviewScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D0D0D),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           'TRAINING LOG',
           style: GoogleFonts.outfit(
@@ -255,12 +252,22 @@ class _SessionRowState extends State<_SessionRow>
                         ),
                         if (widget.session.newPrs.isNotEmpty) ...[
                           const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 5,
-                            children: widget.session.newPrs
-                                .map((pr) => _PrPill(pr: pr))
-                                .toList(),
+                          Row(
+                            children: [
+                              if (widget.session.newPrs.where((p) => !p.is1rm).isNotEmpty)
+                                _PrCountPill(
+                                  label: 'New PRs',
+                                  count: widget.session.newPrs.where((p) => !p.is1rm).length,
+                                ),
+                              if (widget.session.newPrs.where((p) => !p.is1rm).isNotEmpty &&
+                                  widget.session.newPrs.where((p) => p.is1rm).isNotEmpty)
+                                const SizedBox(width: 6),
+                              if (widget.session.newPrs.where((p) => p.is1rm).isNotEmpty)
+                                _PrCountPill(
+                                  label: 'New 1RMs',
+                                  count: widget.session.newPrs.where((p) => p.is1rm).length,
+                                ),
+                            ],
                           ),
                         ],
                       ],
@@ -338,14 +345,13 @@ class _StatDivider extends StatelessWidget {
   }
 }
 
-class _PrPill extends StatelessWidget {
-  final PrRecord pr;
-  const _PrPill({required this.pr});
+class _PrCountPill extends StatelessWidget {
+  final String label;
+  final int count;
+  const _PrCountPill({required this.label, required this.count});
 
   @override
   Widget build(BuildContext context) {
-    final label = pr.is1rm ? 'New 1RM' : 'New PR';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -353,7 +359,7 @@ class _PrPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
-        label,
+        '$label: $count',
         style: GoogleFonts.outfit(
           fontSize: 10,
           fontWeight: FontWeight.w700,
