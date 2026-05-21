@@ -27,6 +27,7 @@ class _CompletionScreenState extends State<CompletionScreen>
   List<ProgressionResult> _progressions = const [];
   bool _done = false;
   String? _error;
+  final _notesController = TextEditingController();
 
   late AnimationController _controller;
   late Animation<Offset> _headlineSlide;
@@ -153,7 +154,14 @@ class _CompletionScreenState extends State<CompletionScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _notesController.dispose();
     super.dispose();
+  }
+
+  void _saveNotes(String value) {
+    final id = _completedSessionId;
+    if (id == null) return;
+    SessionRepository().updateSessionNotes(id, value.trim());
   }
 
   String _formatVolume(double v) {
@@ -321,6 +329,15 @@ class _CompletionScreenState extends State<CompletionScreen>
                     ),
                   ),
                 ],
+
+                const SizedBox(height: 32),
+                FadeTransition(
+                  opacity: _ctaFade,
+                  child: _NotesField(
+                    controller: _notesController,
+                    onChanged: _saveNotes,
+                  ),
+                ),
 
                 const Spacer(),
 
@@ -637,6 +654,45 @@ class _SecondaryButtonState extends State<_SecondaryButton>
           },
         ),
       ),
+    );
+  }
+}
+
+class _NotesField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _NotesField({required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      minLines: 1,
+      maxLines: 4,
+      style: GoogleFonts.outfit(
+        fontSize: 14,
+        color: Colors.white,
+      ),
+      decoration: InputDecoration(
+        hintText: 'Session notes...',
+        hintStyle: GoogleFonts.outfit(
+          fontSize: 14,
+          color: const Color(0xFF444444),
+        ),
+        enabledBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF252525)),
+        ),
+        focusedBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF444444)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        isDense: true,
+      ),
+      cursorColor: Colors.white,
+      keyboardType: TextInputType.multiline,
+      textCapitalization: TextCapitalization.sentences,
     );
   }
 }
