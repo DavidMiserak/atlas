@@ -37,8 +37,8 @@ class ProgressionService {
     if (session == null) return [];
     if (session.isDeload) return [];
 
-    final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    final sessionDate = session.dateCompleted;
+    final sevenDaysAgo = sessionDate.subtract(const Duration(days: 7));
 
     final exercises = await sessionRepo.getSessionExercises(sessionId);
     if (exercises.isEmpty) return [];

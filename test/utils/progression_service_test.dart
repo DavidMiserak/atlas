@@ -26,12 +26,12 @@ void main() {
 
   // Helpers
 
-  Future<int> insertSession({bool isDeload = false}) async {
+  Future<int> insertSession({bool isDeload = false, DateTime? date}) async {
     final repo = SessionRepository();
     // workoutId 1 exists after loadSeedData (Day 1: Lower Strength)
     return repo.createSession(Session(
       workoutId: 1,
-      dateCompleted: DateTime.now(),
+      dateCompleted: date ?? DateTime.now(),
       isDeload: isDeload,
     ));
   }
@@ -221,7 +221,9 @@ void main() {
       final variantId = info['variantId'] as int;
       final repsMin = info['repsTargetMin'] as int;
 
-      final sessionId = await insertSession();
+      final sessionId = await insertSession(
+        date: DateTime.now().add(const Duration(days: 8)),
+      );
       final seId = await insertSessionExercise(sessionId, slotId, variantId);
       for (var i = 1; i <= 3; i++) {
         await insertWorkingSet(seId,
@@ -246,7 +248,9 @@ void main() {
       final variantId = info['variantId'] as int;
       final repsMin = info['repsTargetMin'] as int;
 
-      final sessionId = await insertSession();
+      final sessionId = await insertSession(
+        date: DateTime.now().add(const Duration(days: 8)),
+      );
       final seId = await insertSessionExercise(sessionId, slotId, variantId);
       for (var i = 1; i <= 2; i++) {
         await insertWorkingSet(seId,

@@ -2,11 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:atlas/data/database/app_database.dart';
 import 'package:atlas/data/database/database_constants.dart';
-import 'package:atlas/data/models/session.dart';
 import 'package:atlas/data/repositories/one_rm_repository.dart';
-import 'package:atlas/data/repositories/session_repository.dart';
-import 'package:atlas/data/repositories/program_repository.dart';
-import 'package:atlas/utils/progression_service.dart';
 import 'package:atlas/data/seed/seed_data.dart';
 
 void main() {
@@ -25,44 +21,6 @@ void main() {
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-
-  Future<int> createSession({bool isDeload = false}) async {
-    return SessionRepository().createSession(Session(
-      workoutId: 1,
-      dateCompleted: DateTime.now(),
-      isDeload: isDeload,
-    ));
-  }
-
-  Future<int> createSessionExercise(
-      int sessionId, int slotId, int variantId) async {
-    final db = await getDatabase();
-    return db.insert(tableSessionExercises, {
-      colSessionExerciseSessionId: sessionId,
-      colSessionExerciseSlotId: slotId,
-      colSessionExerciseChosenVariantId: variantId,
-    });
-  }
-
-  Future<void> logSet(
-    int seId,
-    int setNumber, {
-    int reps = 5,
-    double weight = 200.0,
-    bool isWarmup = false,
-    double? oneRmAtSessionTime,
-    int? rpeActual,
-  }) async {
-    await SessionRepository().logSet(SessionSet(
-      sessionExerciseId: seId,
-      setNumber: setNumber,
-      repsCompleted: reps,
-      weightLifted: weight,
-      isWarmup: isWarmup,
-      oneRmAtSessionTime: oneRmAtSessionTime,
-      rpeActual: rpeActual,
-    ));
-  }
 
   Future<Map<String, int>> firstSlot() async {
     final db = await getDatabase();
