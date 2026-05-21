@@ -31,8 +31,9 @@ class ProgressionService {
     int sessionId,
     SessionRepository sessionRepo,
     OneRmRepository oneRmRepo,
-    ProgramRepository programRepo,
-  ) async {
+    ProgramRepository programRepo, {
+    OneRmFormula formula = OneRmFormula.rpeRts,
+  }) async {
     final session = await sessionRepo.getSessionById(sessionId);
     if (session == null) return [];
     if (session.isDeload) return [];
@@ -90,11 +91,25 @@ class ProgressionService {
 
       final increment = _determineIncrement(slot.name, firstTemplate);
 
-      final percentage =
-          firstTemplate.percentage1rm ?? rpeToPercent[firstTemplate.rpeTarget];
-      if (percentage == null || percentage <= 0) continue;
-
-      final newOneRm = (lastWeight + increment) / percentage;
+      final double newOneRm;
+      if (formula == OneRmFormula.rpeRts) {
+        final percentage =
+            firstTemplate.percentage1rm ?? rpeToPercent[firstTemplate.rpeTarget];
+        if (percentage == null || percentage <= 0) continue;
+        newOneRm = (lastWeight + increment) / percentage;
+      } else {
+        // Rep-based formula: use reps from the last working set.
+        // Null repsCompleted = hard skip (no data to compute from).
+        final lastSet = workingSets.last;
+        final reps = lastSet.repsCompleted;
+        if (reps == null) continue;
+        final computed = calculateOneRmFromLiftWithFormula(
+          lastWeight, lastSet.rpeActual ?? 8, reps,
+          formula: formula,
+        );
+        if (computed <= 0) continue;
+        newOneRm = computed;
+      }
 
       // 7-day cooldown: skip progression if we've bumped this variant recently.
       final history = await oneRmRepo.getOneRmHistory(se.chosenVariantId);

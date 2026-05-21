@@ -129,23 +129,23 @@ class OneRmHistory {
 
   Map<String, dynamic> toMap() {
     return {
-      'history_id': id,
-      'variant_id': variantId,
-      'weight': weight,
-      'date': date.toIso8601String(),
-      'notes': notes,
-      'is_current': isCurrent ? 1 : 0,
+      col1rmHistoryId: id,
+      col1rmHistoryVariantId: variantId,
+      col1rmHistoryWeight: weight,
+      col1rmHistoryDate: date.toIso8601String(),
+      col1rmHistoryNotes: notes,
+      col1rmHistoryIsCurrent: isCurrent ? 1 : 0,
     };
   }
 
   static OneRmHistory fromMap(Map<String, dynamic> map) {
     return OneRmHistory(
-      id: map['history_id'] as int?,
-      variantId: map['variant_id'] as int,
-      weight: (map['weight'] as num).toDouble(),
-      date: DateTime.parse(map['date'] as String),
-      notes: map['notes'] as String?,
-      isCurrent: (map['is_current'] as int?) == 1,
+      id: map[col1rmHistoryId] as int?,
+      variantId: map[col1rmHistoryVariantId] as int,
+      weight: (map[col1rmHistoryWeight] as num).toDouble(),
+      date: DateTime.parse(map[col1rmHistoryDate] as String),
+      notes: map[col1rmHistoryNotes] as String?,
+      isCurrent: (map[col1rmHistoryIsCurrent] as int?) == 1,
     );
   }
 }

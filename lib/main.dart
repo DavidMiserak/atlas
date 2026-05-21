@@ -23,6 +23,19 @@ void main() async {
   }
 
   try {
+    // Recover from any restore that was interrupted by an app kill.
+    final orphan = await checkOrphanedRestoreFile();
+    if (orphan != null) {
+      developer.log('main: orphaned restore staging file detected — completing restore');
+      try {
+        await completeOrphanedRestore();
+        developer.log('main: orphaned restore completed successfully');
+      } catch (e) {
+        developer.log('main: orphaned restore failed, discarding staging file: $e');
+        await discardOrphanedRestore();
+      }
+    }
+
     // Initialize database
     developer.log('main: Initializing database');
     await getDatabase();

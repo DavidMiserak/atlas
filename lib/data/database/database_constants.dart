@@ -1,4 +1,4 @@
-const int databaseVersion = 3;
+const int databaseVersion = 4;
 const String databaseName = 'workout_logger.db';
 
 const String tablePrograms = 'programs';
@@ -82,6 +82,7 @@ const String colSettingsValue = 'value';
 
 const String settingSchemaVersion = 'schema_version';
 const String settingDeloadFrequencyWeeks = 'deload_frequency_weeks';
+const String settingOneRmFormula = 'one_rm_formula';
 
 const String colWarmupItemId = 'warmup_item_id';
 const String colWarmupItemName = 'name';

@@ -7,9 +7,11 @@ import 'session_screen.dart';
 import 'warmup_screen.dart';
 import 'session_review_screen.dart';
 import 'one_rm_history_list_screen.dart';
+import 'settings_screen.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
-  const WorkoutSelectionScreen({super.key});
+  final bool reinitializing;
+  const WorkoutSelectionScreen({super.key, this.reinitializing = false});
 
   @override
   State<WorkoutSelectionScreen> createState() => _WorkoutSelectionScreenState();
@@ -29,6 +31,12 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    if (widget.reinitializing) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -40,6 +48,17 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
           ),
         ),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: IndexedStack(
         index: _selectedTab,

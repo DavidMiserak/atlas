@@ -1,3 +1,33 @@
+import 'dart:math';
+
+enum OneRmFormula {
+  rpeRts,
+  epley,
+  brzycki,
+  lombardi;
+
+  String toStorageKey() => switch (this) {
+        rpeRts => 'rpe_rts',
+        epley => 'epley',
+        brzycki => 'brzycki',
+        lombardi => 'lombardi',
+      };
+
+  static OneRmFormula fromStorageKey(String key) => switch (key) {
+        'epley' => epley,
+        'brzycki' => brzycki,
+        'lombardi' => lombardi,
+        _ => rpeRts,
+      };
+
+  String get displayName => switch (this) {
+        rpeRts => 'RPE / Rate of Perceived Exertion (default)',
+        epley => 'Epley (rep-based)',
+        brzycki => 'Brzycki (rep-based, 1–10 reps)',
+        lombardi => 'Lombardi (rep-based)',
+      };
+}
+
 /// Calculates a percentage of a base weight, rounded to nearest 5 lbs
 ///
 /// Example: calculatePercentageWeight(310, 0.825) = 255.75 → 255 lbs
@@ -61,4 +91,37 @@ bool isValidWeight(double weight) {
 /// Validates user input for RPE (must be 1-10)
 bool isValidRpe(int rpe) {
   return rpe >= 1 && rpe <= 10;
+}
+
+/// Estimates 1RM using the selected formula.
+///
+/// For rep-based formulas (Epley, Brzycki, Lombardi), [repsCompleted] is
+/// required. If null, returns 0.0 (caller should treat as hard skip).
+/// Guards: reps <= 0 returns [weightLifted]; Brzycki clamped to <= 20 reps.
+double calculateOneRmFromLiftWithFormula(
+  double weightLifted,
+  int rpe,
+  int? repsCompleted, {
+  OneRmFormula formula = OneRmFormula.rpeRts,
+}) {
+  if (formula == OneRmFormula.rpeRts) {
+    return calculateOneRmFromLift(weightLifted, rpe);
+  }
+  // Rep-based formulas require repsCompleted.
+  if (repsCompleted == null) return 0.0;
+  if (repsCompleted <= 0) return weightLifted;
+
+  return switch (formula) {
+    OneRmFormula.rpeRts => calculateOneRmFromLift(weightLifted, rpe),
+    OneRmFormula.epley => weightLifted * (1 + repsCompleted / 30),
+    OneRmFormula.brzycki => () {
+        // Formula only reliable for 1–10 reps; clamp at 20 to avoid
+        // near-singularity (reps=36 would give 36× weight as 1RM).
+        if (repsCompleted > 20) {
+          return weightLifted * (1 + repsCompleted / 30); // Epley fallback
+        }
+        return weightLifted * 36.0 / (37 - repsCompleted);
+      }(),
+    OneRmFormula.lombardi => weightLifted * pow(repsCompleted.toDouble(), 0.1),
+  };
 }

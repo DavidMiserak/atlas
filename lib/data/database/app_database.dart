@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'database_constants.dart';
 import '../seed/seed_data.dart';
+
+const String _stagingSuffix = '.restore_staging';
 
 Database? _database;
 String? _testDatabasePath;
@@ -59,6 +62,25 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
       ['3', settingSchemaVersion],
     );
+  }
+  if (oldVersion < 4) {
+    await db.transaction((txn) async {
+      final existing = await txn.query(
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingOneRmFormula],
+      );
+      if (existing.isEmpty) {
+        await txn.insert(tableSettings, {
+          colSettingsKey: settingOneRmFormula,
+          colSettingsValue: 'rpe_rts',
+        });
+      }
+      await txn.rawUpdate(
+        'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+        ['4', settingSchemaVersion],
+      );
+    });
   }
 }
 
@@ -204,6 +226,40 @@ Future<void> _initializeSettings(Database db) async {
     colSettingsKey: settingDeloadFrequencyWeeks,
     colSettingsValue: '4',
   });
+  await db.insert(tableSettings, {
+    colSettingsKey: settingOneRmFormula,
+    colSettingsValue: 'rpe_rts',
+  });
+}
+
+/// Returns the path where a restore staging file would be written.
+Future<String> getStagingPath() async {
+  final dbPath = await getDatabasesPath();
+  return join(dbPath, '$databaseName$_stagingSuffix');
+}
+
+/// Checks for an orphaned staging file left by a killed restore operation.
+/// Returns the staging path if found, null otherwise.
+Future<String?> checkOrphanedRestoreFile() async {
+  final stagingPath = await getStagingPath();
+  if (await File(stagingPath).exists()) return stagingPath;
+  return null;
+}
+
+/// Completes an orphaned restore by renaming the staging file to the DB file.
+Future<void> completeOrphanedRestore() async {
+  final staging = await getStagingPath();
+  final dbPath = join(await getDatabasesPath(), databaseName);
+  await closeDatabase();
+  await File(staging).rename(dbPath);
+  await getDatabase();
+}
+
+/// Discards an orphaned staging file without affecting the current DB.
+Future<void> discardOrphanedRestore() async {
+  final staging = await getStagingPath();
+  final f = File(staging);
+  if (await f.exists()) await f.delete();
 }
 
 Future<void> closeDatabase() async {

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../data/repositories/program_repository.dart';
 import '../data/repositories/session_repository.dart';
+import '../data/repositories/settings_repository.dart';
 import '../providers/session_provider.dart';
 import '../utils/progression_service.dart';
 import 'workout_selection_screen.dart';
@@ -119,11 +120,13 @@ class _CompletionScreenState extends State<CompletionScreen>
 
       List<ProgressionResult> progressions = const [];
       if (sessionId != null) {
+        final formula = await SettingsRepository().getOneRmFormula();
         progressions = await ProgressionService().evaluateAndApplyProgression(
           sessionId,
           SessionRepository(),
           OneRmRepository(),
           ProgramRepository(),
+          formula: formula,
         );
       }
 

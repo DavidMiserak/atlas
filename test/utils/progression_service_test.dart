@@ -8,6 +8,7 @@ import 'package:atlas/data/models/session.dart';
 import 'package:atlas/data/repositories/session_repository.dart';
 import 'package:atlas/data/seed/seed_data.dart';
 import 'package:atlas/utils/progression_service.dart';
+import 'package:atlas/utils/weight_calculator.dart';
 
 void main() {
   setUpAll(() {
@@ -457,6 +458,73 @@ void main() {
       // Cooldown expired: progression fires
       expect(results.length, 1);
       expect(results.first.slotName, 'Squat Variant');
+    });
+
+    test('14. Epley formula: qualifying sets compute 1RM via reps, progression fires',
+        () async {
+      await loadSeedData();
+      final info = await slotInfo('Horizontal Push');
+      final slotId = info['slotId'] as int;
+      final variantId = info['variantId'] as int;
+      final repsMin = info['repsTargetMin'] as int;
+
+      final sessionId = await insertSession(
+        date: DateTime.now().add(const Duration(days: 8)),
+      );
+      final seId = await insertSessionExercise(sessionId, slotId, variantId);
+      for (var i = 1; i <= 3; i++) {
+        await insertWorkingSet(seId,
+            setNumber: i, repsCompleted: repsMin, weightLifted: 200.0);
+      }
+
+      final results = await service.evaluateAndApplyProgression(
+        sessionId,
+        SessionRepository(),
+        OneRmRepository(),
+        ProgramRepository(),
+        formula: OneRmFormula.epley,
+      );
+
+      expect(results.length, 1);
+      expect(results.first.previousWeight, 200.0);
+      expect(results.first.newSuggestedWeight, 205.0); // 5 lb increment
+
+      // 1RM should have been written as Epley estimate
+      final newOneRm = await OneRmRepository().getCurrentOneRm(variantId);
+      expect(newOneRm, isNotNull);
+      expect(newOneRm!, greaterThan(200.0));
+    });
+
+    test('15. Rep-based formula with null repsCompleted → hard skip, no progression',
+        () async {
+      await loadSeedData();
+      final info = await slotInfo('Horizontal Push');
+      final slotId = info['slotId'] as int;
+      final variantId = info['variantId'] as int;
+      final repsMin = info['repsTargetMin'] as int;
+
+      final sessionId = await insertSession(
+        date: DateTime.now().add(const Duration(days: 16)),
+      );
+      final seId = await insertSessionExercise(sessionId, slotId, variantId);
+      // First sets have reps, last has null (incomplete)
+      for (var i = 1; i <= 2; i++) {
+        await insertWorkingSet(seId,
+            setNumber: i, repsCompleted: repsMin, weightLifted: 200.0);
+      }
+      await insertWorkingSet(seId,
+          setNumber: 3, repsCompleted: null, weightLifted: 200.0);
+
+      final results = await service.evaluateAndApplyProgression(
+        sessionId,
+        SessionRepository(),
+        OneRmRepository(),
+        ProgramRepository(),
+        formula: OneRmFormula.epley,
+      );
+
+      // allCompleted check fails → no progression regardless of formula
+      expect(results, isEmpty);
     });
 
     test('11. RPE target outside rpeToPercent range → exercise skipped',
