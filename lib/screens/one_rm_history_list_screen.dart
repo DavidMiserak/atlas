@@ -6,6 +6,10 @@ import '../data/repositories/program_repository.dart';
 import 'one_rm_history_detail_screen.dart';
 
 typedef _VariantInfo = ({String name, double? weight, DateTime? lastUpdated});
+typedef _SlotGroup = ({
+  String slotName,
+  List<({int variantId, _VariantInfo info})> variants,
+});
 
 class OneRmHistoryListScreen extends StatefulWidget {
   const OneRmHistoryListScreen({super.key});
@@ -15,46 +19,65 @@ class OneRmHistoryListScreen extends StatefulWidget {
 }
 
 class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
-  late Future<Map<int, _VariantInfo>> _future;
+  late Future<List<_SlotGroup>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _loadVariants();
+    _future = _loadGroups();
   }
 
-  Future<Map<int, _VariantInfo>> _loadVariants() async {
+  Future<List<_SlotGroup>> _loadGroups() async {
     final programRepo = ProgramRepository();
     final oneRmRepo = OneRmRepository();
 
     final programs = await programRepo.getAllPrograms();
-    if (programs.isEmpty) return {};
+    if (programs.isEmpty) return [];
     final program = await programRepo.getProgramById(programs.first.id!);
-    if (program == null) return {};
+    if (program == null) return [];
 
-    final variantNames = <int, String>{};
+    // Deduplicate slots by name; collect unique variant IDs per slot name.
+    final slotOrder = <String>[];
+    final slotVariants = <String, Map<int, String>>{};
+
     for (final workout in program.workouts) {
       for (final slot in workout.exerciseSlots) {
+        if (!slotVariants.containsKey(slot.name)) {
+          slotVariants[slot.name] = {};
+          slotOrder.add(slot.name);
+        }
         for (final variant in slot.variants) {
           if (variant.id != null) {
-            variantNames[variant.id!] = variant.name;
+            slotVariants[slot.name]![variant.id!] = variant.name;
           }
         }
       }
     }
-    if (variantNames.isEmpty) return {};
 
+    if (slotVariants.isEmpty) return [];
+
+    final allVariantIds =
+        slotVariants.values.expand((m) => m.keys).toList();
     final oneRmData =
-        await oneRmRepo.getCurrentOneRmDataForVariants(variantNames.keys.toList());
+        await oneRmRepo.getCurrentOneRmDataForVariants(allVariantIds);
 
-    return {
-      for (final entry in variantNames.entries)
-        entry.key: (
-          name: entry.value,
-          weight: oneRmData[entry.key]?.weight,
-          lastUpdated: oneRmData[entry.key]?.date,
+    return [
+      for (final slotName in slotOrder)
+        (
+          slotName: slotName,
+          variants: [
+            for (final e in slotVariants[slotName]!.entries)
+              (
+                variantId: e.key,
+                info: (
+                  name: e.value,
+                  weight: oneRmData[e.key]?.weight,
+                  lastUpdated: oneRmData[e.key]?.date,
+                ),
+              ),
+          ],
         ),
-    };
+    ];
   }
 
   @override
@@ -75,7 +98,7 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
           ),
         ),
       ),
-      body: FutureBuilder<Map<int, _VariantInfo>>(
+      body: FutureBuilder<List<_SlotGroup>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -100,8 +123,8 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
             );
           }
 
-          final variants = snapshot.data ?? {};
-          if (variants.isEmpty) {
+          final groups = snapshot.data ?? [];
+          if (groups.isEmpty) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -128,35 +151,59 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
             );
           }
 
-          final keys = variants.keys.toList();
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: keys.length,
-            separatorBuilder: (_, _) =>
-                const Divider(color: Color(0xFF222222), height: 1),
-            itemBuilder: (context, index) {
-              final variantId = keys[index];
-              final info = variants[variantId]!;
-              return _VariantRow(
-                variantId: variantId,
-                info: info,
+          // Flatten groups into a linear list of header + row widgets.
+          final items = <Widget>[];
+          for (final group in groups) {
+            items.add(_SlotHeader(name: group.slotName));
+            for (final v in group.variants) {
+              items.add(_VariantRow(
+                variantId: v.variantId,
+                info: v.info,
                 onTap: () async {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (c) => OneRmHistoryDetailScreen(
-                        variantId: variantId,
-                        variantName: info.name,
+                        variantId: v.variantId,
+                        variantName: v.info.name,
                       ),
                     ),
                   );
-                  final next = _loadVariants();
+                  final next = _loadGroups();
                   setState(() => _future = next);
                 },
-              );
-            },
+              ));
+              items.add(const Divider(color: Color(0xFF1A1A1A), height: 1));
+            }
+            items.add(const SizedBox(height: 8));
+          }
+
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: items,
           );
         },
+      ),
+    );
+  }
+}
+
+class _SlotHeader extends StatelessWidget {
+  final String name;
+  const _SlotHeader({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Text(
+        name.toUpperCase(),
+        style: GoogleFonts.outfit(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 2.5,
+          color: const Color(0xFF555555),
+        ),
       ),
     );
   }
@@ -190,7 +237,7 @@ class _VariantRow extends StatelessWidget {
       splashColor: const Color(0xFF00D9FF).withValues(alpha: 0.08),
       highlightColor: Colors.transparent,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -206,7 +253,7 @@ class _VariantRow extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     _formatDate(info.lastUpdated),
                     style: GoogleFonts.outfit(
@@ -228,7 +275,7 @@ class _VariantRow extends StatelessWidget {
                     color: const Color(0xFF00D9FF),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 const Icon(Icons.arrow_forward,
                     size: 16, color: Color(0xFF666666)),
               ],
