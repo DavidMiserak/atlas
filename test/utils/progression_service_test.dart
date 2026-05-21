@@ -385,5 +385,44 @@ void main() {
 
       expect(results, isEmpty);
     });
+
+    test('11. RPE target outside rpeToPercent range → exercise skipped',
+        () async {
+      await loadSeedData();
+      final db = await getDatabase();
+
+      // Insert a slot with rpe_target = 5, which is not in {6,7,8,9,10}
+      final slotId = await db.insert(tableExerciseSlots, {
+        colSlotWorkoutId: 1,
+        colSlotName: 'Odd RPE Slot',
+        colSlotOrder: 98,
+      });
+      final variantId = await db.insert(tableExerciseVariants, {
+        colVariantSlotId: slotId,
+        colVariantName: 'Odd RPE Exercise',
+      });
+      await db.insert(tableSetTemplates, {
+        colSetTemplateSlotId: slotId,
+        colSetTemplateSetNumber: 1,
+        colSetTemplateSetType: 'working',
+        colSetTemplateRepsMin: 8,
+        colSetTemplateRpeTarget: 5, // outside {6,7,8,9,10}
+        colSetTemplateRestSeconds: 90,
+      });
+
+      final sessionId = await insertSession();
+      final seId = await insertSessionExercise(sessionId, slotId, variantId);
+      await insertWorkingSet(seId,
+          setNumber: 1, repsCompleted: 8, weightLifted: 100.0);
+
+      final results = await service.evaluateAndApplyProgression(
+        sessionId,
+        SessionRepository(),
+        OneRmRepository(),
+        ProgramRepository(),
+      );
+
+      expect(results, isEmpty);
+    });
   });
 }

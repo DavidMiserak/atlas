@@ -652,7 +652,7 @@ class _ProgressionCallout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayed = progressions.take(4).toList();
+    final displayed = progressions.take(6).toList();
     final overflow = progressions.length - displayed.length;
 
     return Column(
@@ -719,7 +719,7 @@ class _ProgressionRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            progression.slotName,
+            progression.variantName,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.outfit(
               fontSize: 14,
