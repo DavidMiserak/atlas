@@ -10,7 +10,8 @@ class OneRmRepository {
       whereArgs: [variantId],
     );
     if (results.isEmpty) return null;
-    return results.first[col1rmHistoryWeight] as double?;
+    final raw = results.first[col1rmHistoryWeight];
+    return raw == null ? null : (raw as num).toDouble();
   }
 
   Future<List<OneRmHistory>> getOneRmHistory(int variantId) async {
@@ -74,7 +75,8 @@ class OneRmRepository {
     }
     for (final row in rows) {
       final variantId = row[col1rmHistoryVariantId] as int;
-      result[variantId] = row[col1rmHistoryWeight] as double?;
+      final w = row[col1rmHistoryWeight];
+      result[variantId] = w == null ? null : (w as num).toDouble();
     }
     return result;
   }
@@ -112,7 +114,7 @@ class OneRmHistory {
     return OneRmHistory(
       id: map['history_id'] as int?,
       variantId: map['variant_id'] as int,
-      weight: map['weight'] as double,
+      weight: (map['weight'] as num).toDouble(),
       date: DateTime.parse(map['date'] as String),
       notes: map['notes'] as String?,
       isCurrent: (map['is_current'] as int?) == 1,

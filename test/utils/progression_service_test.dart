@@ -390,6 +390,75 @@ void main() {
       expect(results, isEmpty);
     });
 
+    test('12. 7-day cooldown: session within 7 days of last 1RM → no progression',
+        () async {
+      await loadSeedData();
+      final info = await slotInfo('Squat Variant');
+      final slotId = info['slotId'] as int;
+      final variantId = info['variantId'] as int;
+      final repsMin = info['repsTargetMin'] as int;
+
+      final sessionDate = DateTime(2026, 6, 10);
+      final recentBumpDate = sessionDate.subtract(const Duration(days: 3));
+
+      // Pre-record a 1RM 3 days before the session (within cooldown window)
+      await OneRmRepository().recordNewOneRm(variantId, 310.0, recentBumpDate);
+
+      final sessionId = await insertSession(date: sessionDate);
+      final seId = await insertSessionExercise(sessionId, slotId, variantId);
+      await insertWorkingSet(seId,
+          setNumber: 1, repsCompleted: repsMin, weightLifted: 195.0);
+      await insertWorkingSet(seId,
+          setNumber: 2, repsCompleted: repsMin, weightLifted: 195.0);
+      await insertWorkingSet(seId,
+          setNumber: 3, repsCompleted: repsMin, weightLifted: 195.0);
+
+      final results = await service.evaluateAndApplyProgression(
+        sessionId,
+        SessionRepository(),
+        OneRmRepository(),
+        ProgramRepository(),
+      );
+
+      // Cooldown active: no new progression despite qualifying sets
+      expect(results, isEmpty);
+    });
+
+    test('13. 7-day cooldown: session 8+ days after last 1RM → progression fires',
+        () async {
+      await loadSeedData();
+      final info = await slotInfo('Squat Variant');
+      final slotId = info['slotId'] as int;
+      final variantId = info['variantId'] as int;
+      final repsMin = info['repsTargetMin'] as int;
+
+      final sessionDate = DateTime(2026, 6, 10);
+      final oldBumpDate = sessionDate.subtract(const Duration(days: 8));
+
+      // Pre-record a 1RM 8 days before the session (cooldown expired)
+      await OneRmRepository().recordNewOneRm(variantId, 310.0, oldBumpDate);
+
+      final sessionId = await insertSession(date: sessionDate);
+      final seId = await insertSessionExercise(sessionId, slotId, variantId);
+      await insertWorkingSet(seId,
+          setNumber: 1, repsCompleted: repsMin, weightLifted: 195.0);
+      await insertWorkingSet(seId,
+          setNumber: 2, repsCompleted: repsMin, weightLifted: 195.0);
+      await insertWorkingSet(seId,
+          setNumber: 3, repsCompleted: repsMin, weightLifted: 195.0);
+
+      final results = await service.evaluateAndApplyProgression(
+        sessionId,
+        SessionRepository(),
+        OneRmRepository(),
+        ProgramRepository(),
+      );
+
+      // Cooldown expired: progression fires
+      expect(results.length, 1);
+      expect(results.first.slotName, 'Squat Variant');
+    });
+
     test('11. RPE target outside rpeToPercent range → exercise skipped',
         () async {
       await loadSeedData();

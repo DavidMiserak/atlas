@@ -14,10 +14,7 @@ class OneRmHistoryListScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D0D0D),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           '1RM HISTORY',
           style: GoogleFonts.outfit(
@@ -56,31 +53,27 @@ class OneRmHistoryListScreen extends StatelessWidget {
           final variants = snapshot.data ?? {};
           if (variants.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'No 1RM recorded yet',
-                    style: GoogleFonts.outfit(fontSize: 16, color: Colors.white),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Complete a session to auto-track, or tap ＋ to add manually',
-                    style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF888888)),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (c) => const OneRmHistoryDetailScreen(variantId: null),
-                      ),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'No exercises found',
+                      style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
                     ),
-                    icon: const Icon(Icons.add, size: 20),
-                    label: const Text('Add 1RM'),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      'Your program data may not have loaded. Try restarting the app.',
+                      style: GoogleFonts.outfit(
+                          fontSize: 14, color: const Color(0xFF888888)),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             );
           }

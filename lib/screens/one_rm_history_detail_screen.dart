@@ -270,7 +270,7 @@ class _UpdateOneRmModalState extends State<_UpdateOneRmModal> {
             weight: _weight,
             controller: _weightController,
             onChanged: (v) {
-              final parsed = double.tryParse(v) ?? 0.0;
+              final parsed = (double.tryParse(v) ?? 0.0).clamp(0.0, 999.9);
               setState(() {
                 _weight = parsed;
                 if (parsed > 0) _weightError = null;
