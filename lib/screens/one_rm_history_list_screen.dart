@@ -150,8 +150,8 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
                       ),
                     ),
                   );
-                  // Refresh after returning from detail (user may have updated 1RM)
-                  setState(() => _future = _loadVariants());
+                  final next = _loadVariants();
+                  setState(() => _future = next);
                 },
               );
             },
