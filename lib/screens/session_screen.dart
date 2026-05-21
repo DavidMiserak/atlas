@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
 import 'set_logging_screen.dart';
 import 'widgets/exercise_details.dart';
@@ -33,10 +34,14 @@ class _SessionScreenState extends State<SessionScreen> {
     final workout = program.workouts
         .firstWhere((w) => w.id == workoutId, orElse: () => program.workouts[0]);
 
+    final sessionRepo = SessionRepository();
     for (final slot in workout.exerciseSlots) {
       if (slot.variants.isNotEmpty) {
-        // Add first variant by default
-        await _sessionProvider.addSessionExercise(slot.id!, slot.variants[0].id!);
+        final lastUsedId = await sessionRepo.getLastUsedVariantId(slot.id!);
+        final variantId = slot.variants.any((v) => v.id == lastUsedId)
+            ? lastUsedId!
+            : slot.variants[0].id!;
+        await _sessionProvider.addSessionExercise(slot.id!, variantId);
       }
     }
   }

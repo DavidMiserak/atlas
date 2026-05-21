@@ -56,6 +56,20 @@ class SessionRepository {
     return exerciseMaps.map((map) => SessionExercise.fromMap(map)).toList();
   }
 
+  Future<int?> getLastUsedVariantId(int slotId) async {
+    final db = await getDatabase();
+    final rows = await db.rawQuery('''
+      SELECT se.$colSessionExerciseChosenVariantId
+      FROM $tableSessionExercises se
+      JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
+      WHERE se.$colSessionExerciseSlotId = ?
+      ORDER BY s.$colSessionDateCompleted DESC
+      LIMIT 1
+    ''', [slotId]);
+    if (rows.isEmpty) return null;
+    return rows.first[colSessionExerciseChosenVariantId] as int?;
+  }
+
   Future<int> logSet(SessionSet set) async {
     final db = await getDatabase();
     return await db.insert(tableSessionSets, set.toMap());
