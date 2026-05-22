@@ -37,7 +37,7 @@ class WeightStepper extends StatelessWidget {
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < 360;
+            final stackSides = constraints.maxWidth < 380;
             final input = Center(
               child: IntrinsicWidth(
                 child: TextField(
@@ -71,39 +71,27 @@ class WeightStepper extends StatelessWidget {
                 ),
               ),
             );
-            final controls = Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                StepButton(label: '−10', onTap: () => onAdjust(-10)),
-                StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
-                StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
-                StepButton(label: '+10', onTap: () => onAdjust(10)),
-              ],
-            );
-
-            if (compact) {
-              return Column(
-                children: [
-                  controls,
-                  const SizedBox(height: 8),
-                  input,
-                ],
-              );
-            }
 
             return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                StepButton(label: '−10', onTap: () => onAdjust(-10)),
-                const SizedBox(width: 4),
-                StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
-                const SizedBox(width: 12),
+                _WeightAdjustSide(
+                  vertical: stackSides,
+                  children: [
+                    StepButton(label: '−10', onTap: () => onAdjust(-10)),
+                    StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
+                  ],
+                ),
+                SizedBox(width: stackSides ? 8 : 12),
                 Expanded(child: input),
-                const SizedBox(width: 12),
-                StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
-                const SizedBox(width: 4),
-                StepButton(label: '+10', onTap: () => onAdjust(10)),
+                SizedBox(width: stackSides ? 8 : 12),
+                _WeightAdjustSide(
+                  vertical: stackSides,
+                  children: [
+                    StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
+                    StepButton(label: '+10', onTap: () => onAdjust(10)),
+                  ],
+                ),
               ],
             );
           },
@@ -114,6 +102,37 @@ class WeightStepper extends StatelessWidget {
             errorText!,
             style: GoogleFonts.outfit(fontSize: 12, color: Colors.redAccent),
           ),
+        ],
+      ],
+    );
+  }
+}
+
+class _WeightAdjustSide extends StatelessWidget {
+  final bool vertical;
+  final List<Widget> children;
+
+  const _WeightAdjustSide({required this.vertical, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    if (vertical) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(height: 4),
+            children[i],
+          ],
+        ],
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: 4),
+          children[i],
         ],
       ],
     );
