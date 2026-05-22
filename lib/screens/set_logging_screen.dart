@@ -101,6 +101,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   double? _currentOneRm;
   double? _pr;
   String _exerciseName = '';
+  String _slotName = 'Variant';
   final Map<int, double> _loggedWeights = {};
 
   double _weight = 0.0;
@@ -134,7 +135,13 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final oneRmRepo = OneRmRepository();
 
     final variant = await provider.getVariantDetails(widget.chosenVariantId);
-    if (mounted) setState(() => _exerciseName = variant?.name ?? 'Exercise');
+    final slotName = provider.getSlotForExercise(widget.slotId)?.name ?? 'Variant';
+    if (mounted) {
+      setState(() {
+        _exerciseName = variant?.name ?? 'Exercise';
+        _slotName = slotName;
+      });
+    }
 
     var oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
     final pr = await provider.getHighestWeightForVariant(widget.chosenVariantId);
@@ -453,6 +460,16 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
+              _slotName.toUpperCase(),
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF909090),
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
               _exerciseName,
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 22,
@@ -460,6 +477,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                 letterSpacing: -0.5,
               ),
             ),
+            const SizedBox(height: 4),
             Row(
               children: [
                 if (_currentOneRm != null && _currentOneRm! > 0) ...[

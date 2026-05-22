@@ -284,6 +284,7 @@ class _ExerciseHero extends StatelessWidget {
         final variant = snapshot.data![0];
         final oneRm = snapshot.data![1] as double?;
         if (variant == null) return const SizedBox();
+        final slotName = provider.getSlotForExercise(sessionExercise.slotId)?.name ?? 'Variant';
 
         return Container(
           padding: const EdgeInsets.all(24),
@@ -313,6 +314,16 @@ class _ExerciseHero extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
+                        Text(
+                          slotName.toUpperCase(),
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFB8B8B8),
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                         Text(
                           (variant as dynamic).name as String,
                           style: GoogleFonts.spaceGrotesk(
