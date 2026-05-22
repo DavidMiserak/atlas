@@ -10,6 +10,7 @@ import 'package:atlas/data/seed/seed_data.dart';
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     useInMemoryDatabaseForTesting();
@@ -193,7 +194,7 @@ void main() {
 
       final repo = OneRmRepository();
 
-      // Variant 1 is Back Squat (no 1RM seeded) — record one explicitly
+      // Variant 1 is Back Squat (initial 1RM = 135 from seed) — record a new one
       await repo.recordNewOneRm(1, 310.0, DateTime.now());
 
       final currentOneRm = await repo.getCurrentOneRm(1);
@@ -212,7 +213,7 @@ void main() {
       expect(currentOneRm, 310.0);
 
       final history = await repo.getOneRmHistory(1);
-      expect(history.length, 2);
+      expect(history.length, 3); // seed(135) + 285 + 310
       expect(history.where((h) => h.isCurrent).length, 1);
     });
   });

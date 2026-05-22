@@ -1,0 +1,356 @@
+{
+  "programs": [
+    {
+      "name": "4-Day Novice Bodybuilding",
+      "version": "v1",
+      "description": "A structured 4-day split for strength and hypertrophy",
+      "workouts": [
+        {
+          "name": "Day 1: Lower Strength",
+          "day_number": 1,
+          "order_in_program": 1,
+          "notes": "Strength focus on lower body",
+          "exercise_slots": [
+            {
+              "name": "Squat Variant",
+              "order": 1,
+              "category": "Compound Lower",
+              "set_template": {
+                "type": "percentage",
+                "reps": 5,
+                "percentage_1rm": 0.825,
+                "sets": 3,
+                "rest_seconds": 180
+              },
+              "variants": [
+                { "name": "Back Squat",  "description": "Barbell back squat",  "initial_one_rm": 135 },
+                { "name": "Front Squat", "description": "Barbell front squat", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Deadlift Variant",
+              "order": 2,
+              "category": "Compound Lower",
+              "set_template": {
+                "type": "percentage",
+                "reps": 5,
+                "percentage_1rm": 0.825,
+                "sets": 3,
+                "rest_seconds": 180
+              },
+              "variants": [
+                { "name": "Conventional Deadlift", "description": "Conventional deadlift", "initial_one_rm": 135 },
+                { "name": "Sumo Deadlift",         "description": "Sumo deadlift",          "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Single Leg Variant",
+              "order": 3,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 8,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 120
+              },
+              "variants": [
+                { "name": "Bulgarian Split Squat", "description": "Single leg strength", "initial_one_rm": 50 },
+                { "name": "Walking Lunges",        "description": "Walking lunges",       "initial_one_rm": 50 }
+              ]
+            },
+            {
+              "name": "Standing Calf Raise",
+              "order": 4,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 8,
+                "rpe_target": 8,
+                "sets": 4,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Barbell Calf Raise", "description": "Standing barbell calf raise", "initial_one_rm": 135 },
+                { "name": "Calf Raise Machine", "description": "Calf raise machine",          "initial_one_rm": 135 }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Day 2: Upper Strength",
+          "day_number": 2,
+          "order_in_program": 2,
+          "notes": "Strength focus on upper body",
+          "exercise_slots": [
+            {
+              "name": "Horizontal Push",
+              "order": 1,
+              "category": "Compound Upper",
+              "set_template": {
+                "type": "percentage",
+                "reps": 5,
+                "percentage_1rm": 0.825,
+                "sets": 3,
+                "rest_seconds": 180
+              },
+              "variants": [
+                { "name": "Barbell Bench Press",  "description": "Flat barbell bench",    "initial_one_rm": 135 },
+                { "name": "Dumbbell Bench Press", "description": "Dumbbell bench press",  "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Horizontal Pull",
+              "order": 2,
+              "category": "Compound Upper",
+              "set_template": {
+                "type": "rpe",
+                "reps": 5,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 150
+              },
+              "variants": [
+                { "name": "Barbell Row",   "description": "Barbell bent-over row", "initial_one_rm": 45 },
+                { "name": "Dumbbell Row",  "description": "Dumbbell row",           "initial_one_rm": 25 }
+              ]
+            },
+            {
+              "name": "Vertical Push",
+              "order": 3,
+              "category": "Compound Upper",
+              "set_template": {
+                "type": "percentage",
+                "reps": 8,
+                "percentage_1rm": 0.725,
+                "sets": 2,
+                "rest_seconds": 150
+              },
+              "variants": [
+                { "name": "Overhead Press",          "description": "Standing overhead press",  "initial_one_rm": 95 },
+                { "name": "Dumbbell Shoulder Press", "description": "Dumbbell shoulder press",  "initial_one_rm": 95 }
+              ]
+            },
+            {
+              "name": "Vertical Pull",
+              "order": 4,
+              "category": "Compound Upper",
+              "set_template": {
+                "type": "rpe",
+                "reps": 8,
+                "rpe_target": 8,
+                "sets": 2,
+                "rest_seconds": 120
+              },
+              "variants": [
+                { "name": "Pull-ups",  "description": "Bodyweight pull-ups", "initial_one_rm": 160 },
+                { "name": "Chin-ups",  "description": "Bodyweight chin-ups", "initial_one_rm": 160 }
+              ]
+            },
+            {
+              "name": "Chest Flys",
+              "order": 5,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 15,
+                "rpe_target": 8,
+                "sets": 2,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Dumbbell Flys", "description": "Incline dumbbell flys", "initial_one_rm": 25  },
+                { "name": "Cable Flys",    "description": "Cable machine flys",    "initial_one_rm": 135 }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Day 3: Lower Volume",
+          "day_number": 3,
+          "order_in_program": 3,
+          "notes": "Volume focus on lower body",
+          "exercise_slots": [
+            {
+              "name": "Hip Hinge Variant",
+              "order": 1,
+              "category": "Compound Lower",
+              "set_template": {
+                "type": "rpe",
+                "reps": 8,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 150
+              },
+              "variants": [
+                { "name": "Romanian Deadlift", "description": "Romanian deadlift",    "initial_one_rm": 135 },
+                { "name": "Good Morning",      "description": "Good morning exercise", "initial_one_rm": 25  }
+              ]
+            },
+            {
+              "name": "Leg Press Variant",
+              "order": 2,
+              "category": "Compound Lower",
+              "set_template": {
+                "type": "rpe",
+                "reps": 8,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 150
+              },
+              "variants": [
+                { "name": "Leg Press Machine", "description": "Leg press machine", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Leg Extension",
+              "order": 3,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 12,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Leg Extension Machine", "description": "Leg extension machine", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Leg Curl",
+              "order": 4,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 12,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Seated Leg Curl", "description": "Seated leg curl machine", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Seated Calf Raise",
+              "order": 5,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 15,
+                "rpe_target": 8,
+                "sets": 4,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Seated Calf Raise Machine", "description": "Seated calf raise machine", "initial_one_rm": 135 }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Day 4: Upper Volume",
+          "day_number": 4,
+          "order_in_program": 4,
+          "notes": "Volume focus on upper body",
+          "exercise_slots": [
+            {
+              "name": "Horizontal Push",
+              "order": 1,
+              "category": "Compound Upper",
+              "set_template": {
+                "type": "percentage",
+                "reps": 10,
+                "percentage_1rm": 0.675,
+                "sets": 3,
+                "rest_seconds": 150
+              },
+              "variants": [
+                { "name": "Barbell Bench Press", "description": "Flat barbell bench", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Horizontal Pull",
+              "order": 2,
+              "category": "Compound Upper",
+              "set_template": {
+                "type": "rpe",
+                "reps": 10,
+                "rpe_target": 8,
+                "sets": 3,
+                "rest_seconds": 120
+              },
+              "variants": [
+                { "name": "Barbell Row", "description": "Barbell bent-over row", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Incline Push",
+              "order": 3,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 12,
+                "rpe_target": 8,
+                "sets": 2,
+                "rest_seconds": 120
+              },
+              "variants": [
+                { "name": "Incline Barbell Press",  "description": "Incline barbell press",  "initial_one_rm": 135 },
+                { "name": "Incline Dumbbell Press", "description": "Incline dumbbell press", "initial_one_rm": 25  }
+              ]
+            },
+            {
+              "name": "Vertical Pull",
+              "order": 4,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 12,
+                "rpe_target": 8,
+                "sets": 2,
+                "rest_seconds": 120
+              },
+              "variants": [
+                { "name": "Lat Pulldown", "description": "Lat pulldown machine", "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Triceps Isolation",
+              "order": 5,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 12,
+                "rpe_target": 8,
+                "sets": 2,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Tricep Dips",           "description": "Bodyweight or assisted dips", "initial_one_rm": 135 },
+                { "name": "Cable Tricep Pushdown",  "description": "Cable tricep pushdown",       "initial_one_rm": 135 }
+              ]
+            },
+            {
+              "name": "Biceps Isolation",
+              "order": 6,
+              "category": "Accessory",
+              "set_template": {
+                "type": "rpe",
+                "reps": 12,
+                "rpe_target": 8,
+                "sets": 2,
+                "rest_seconds": 90
+              },
+              "variants": [
+                { "name": "Barbell Curls",  "description": "Standing barbell curls", "initial_one_rm": 135 },
+                { "name": "Dumbbell Curls", "description": "Dumbbell curls",          "initial_one_rm": 135 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

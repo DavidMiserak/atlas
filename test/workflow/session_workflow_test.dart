@@ -8,6 +8,7 @@ import 'package:atlas/data/seed/seed_data.dart';
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     useInMemoryDatabaseForTesting();

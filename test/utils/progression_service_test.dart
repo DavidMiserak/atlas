@@ -12,6 +12,7 @@ import 'package:atlas/utils/weight_calculator.dart';
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     useInMemoryDatabaseForTesting();
