@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,13 +7,29 @@ import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 import 'session_detail_screen.dart';
 
-class SessionReviewScreen extends StatelessWidget {
+class SessionReviewScreen extends StatefulWidget {
   const SessionReviewScreen({super.key});
+
+  @override
+  State<SessionReviewScreen> createState() => _SessionReviewScreenState();
+}
+
+class _SessionReviewScreenState extends State<SessionReviewScreen> {
+  String _searchQuery = '';
+  bool _hasNotesOnly = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D0D0D),
         elevation: 0,
@@ -27,18 +44,195 @@ class SessionReviewScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: _SessionList(),
+      body: Column(
+        children: [
+          _SearchHeader(
+            controller: _searchController,
+            searchQuery: _searchQuery,
+            hasNotesOnly: _hasNotesOnly,
+            onQueryChanged: (q) => setState(() => _searchQuery = q),
+            onToggleHasNotes: () =>
+                setState(() => _hasNotesOnly = !_hasNotesOnly),
+          ),
+          Expanded(
+            child: _SessionList(
+              searchQuery: _searchQuery,
+              hasNotesOnly: _hasNotesOnly,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _SessionList extends StatelessWidget {
+class _SearchHeader extends StatelessWidget {
+  final TextEditingController controller;
+  final String searchQuery;
+  final bool hasNotesOnly;
+  final ValueChanged<String> onQueryChanged;
+  final VoidCallback onToggleHasNotes;
+
+  const _SearchHeader({
+    required this.controller,
+    required this.searchQuery,
+    required this.hasNotesOnly,
+    required this.onQueryChanged,
+    required this.onToggleHasNotes,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<SessionProvider>(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        Responsive.screenPadding(context).left,
+        0,
+        Responsive.screenPadding(context).right,
+        12,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onQueryChanged,
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Search notes...',
+                hintStyle: GoogleFonts.outfit(
+                  color: const Color(0xFF444444),
+                ),
+                filled: true,
+                fillColor: const Color(0xFF1A1A1A),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(3),
+                  borderSide: const BorderSide(color: Color(0xFF2E2E2E)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(3),
+                  borderSide: const BorderSide(color: Color(0xFF2E2E2E)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(3),
+                  borderSide: const BorderSide(color: Color(0xFF00D9FF)),
+                ),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.clear,
+                          color: Color(0xFF555555),
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          controller.clear();
+                          onQueryChanged('');
+                        },
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onToggleHasNotes,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: hasNotesOnly
+                      ? const Color(0xFF00D9FF)
+                      : const Color(0xFFB8B8B8).withValues(alpha: 0.25),
+                ),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                'Has Notes',
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.8,
+                  color: hasNotesOnly
+                      ? const Color(0xFF00D9FF)
+                      : const Color(0xFFB8B8B8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionList extends StatefulWidget {
+  final String searchQuery;
+  final bool hasNotesOnly;
+
+  const _SessionList({
+    required this.searchQuery,
+    required this.hasNotesOnly,
+  });
+
+  @override
+  State<_SessionList> createState() => _SessionListState();
+}
+
+class _SessionListState extends State<_SessionList> {
+  late Future<List<SessionSummary>> _summariesFuture;
+  Set<int> _matchingIds = {};
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _summariesFuture = Provider.of<SessionProvider>(context, listen: false)
+        .getAllSessionSummaries();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SessionList old) {
+    super.didUpdateWidget(old);
+    if (old.searchQuery != widget.searchQuery) {
+      _debounce?.cancel();
+      if (widget.searchQuery.isEmpty) {
+        setState(() => _matchingIds = {});
+      } else {
+        _debounce = Timer(const Duration(milliseconds: 300), () async {
+          final provider =
+              Provider.of<SessionProvider>(context, listen: false);
+          final ids = await provider.searchSessionIds(widget.searchQuery);
+          if (mounted) setState(() => _matchingIds = ids);
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final provider = Provider.of<SessionProvider>(context, listen: false);
+    setState(() {
+      _summariesFuture = provider.getAllSessionSummaries();
+      _matchingIds = {};
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filterActive =
+        widget.searchQuery.isNotEmpty || widget.hasNotesOnly;
 
     return FutureBuilder<List<SessionSummary>>(
-      future: provider.getAllSessionSummaries(),
+      future: _summariesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -66,9 +260,9 @@ class _SessionList extends StatelessWidget {
           );
         }
 
-        final sessions = snapshot.data ?? [];
+        final allSessions = snapshot.data ?? [];
 
-        if (sessions.isEmpty) {
+        if (allSessions.isEmpty) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -95,34 +289,72 @@ class _SessionList extends StatelessWidget {
           );
         }
 
-        return ListView.separated(
-          padding: EdgeInsets.fromLTRB(
-            Responsive.screenPadding(context).left,
-            8,
-            Responsive.screenPadding(context).right,
-            Responsive.space(context, 48, max: 56),
-          ),
-          itemCount: sessions.length,
-          separatorBuilder: (context, index) => Container(
-            height: 1,
-            color: const Color(0xFF141414),
-          ),
-          itemBuilder: (context, index) {
-            return _SessionRow(
-              session: sessions[index],
-              index: index,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SessionDetailScreen(
-                    sessionId: sessions[index].sessionId,
-                    workoutName: sessions[index].workoutName,
-                    dateCompleted: sessions[index].dateCompleted,
-                  ),
-                ),
+        final filtered = widget.hasNotesOnly
+            ? allSessions
+                .where((s) => s.hasSessionNote || s.hasSetNote)
+                .toList()
+            : allSessions;
+
+        final displayed = widget.searchQuery.isEmpty
+            ? filtered
+            : filtered
+                .where((s) => _matchingIds.contains(s.sessionId))
+                .toList();
+
+        if (displayed.isEmpty) {
+          return Center(
+            child: Text(
+              widget.searchQuery.isNotEmpty
+                  ? "No notes matching '${widget.searchQuery}'"
+                  : 'No sessions with notes yet',
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: const Color(0xFF383838),
               ),
-            );
-          },
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          color: const Color(0xFF00D9FF),
+          backgroundColor: const Color(0xFF1A1A1A),
+          onRefresh: _refresh,
+          child: ListView.separated(
+            padding: EdgeInsets.fromLTRB(
+              Responsive.screenPadding(context).left,
+              8,
+              Responsive.screenPadding(context).right,
+              Responsive.space(context, 48, max: 56) +
+                  MediaQuery.of(context).viewInsets.bottom,
+            ),
+            itemCount: displayed.length,
+            separatorBuilder: (context, index) => Container(
+              height: 1,
+              color: const Color(0xFF141414),
+            ),
+            itemBuilder: (context, index) {
+              final session = displayed[index];
+              return _SessionRow(
+                session: session,
+                index: index,
+                filterActive: filterActive,
+                searchQuery: widget.searchQuery,
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SessionDetailScreen(
+                        sessionId: session.sessionId,
+                        workoutName: session.workoutName,
+                        dateCompleted: session.dateCompleted,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -132,11 +364,15 @@ class _SessionList extends StatelessWidget {
 class _SessionRow extends StatefulWidget {
   final SessionSummary session;
   final int index;
+  final bool filterActive;
+  final String searchQuery;
   final VoidCallback onTap;
 
   const _SessionRow({
     required this.session,
     required this.index,
+    required this.filterActive,
+    required this.searchQuery,
     required this.onTap,
   });
 
@@ -179,6 +415,32 @@ class _SessionRowState extends State<_SessionRow>
     return '$day ${date.day.toString().padLeft(2, '0')} $month';
   }
 
+  List<TextSpan> _highlightSnippet(String snippet, String query) {
+    final lower = snippet.toLowerCase();
+    final q = query.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+    while (true) {
+      final idx = lower.indexOf(q, start);
+      if (idx == -1) {
+        spans.add(TextSpan(text: snippet.substring(start)));
+        break;
+      }
+      if (idx > start) {
+        spans.add(TextSpan(text: snippet.substring(start, idx)));
+      }
+      spans.add(TextSpan(
+        text: snippet.substring(idx, idx + query.length),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF00D9FF),
+        ),
+      ));
+      start = idx + query.length;
+    }
+    return spans;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -197,18 +459,20 @@ class _SessionRowState extends State<_SessionRow>
                 children: [
                   SizedBox(
                     width: 28,
-                    child: Text(
-                      (widget.index + 1).toString().padLeft(2, '0'),
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
-                        color: Color.lerp(
-                          const Color(0xFF2A2A2A),
-                          const Color(0xFF00D9FF),
-                          _hover.value,
-                        ),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: widget.filterActive
+                        ? const SizedBox(width: 28)
+                        : Text(
+                            (widget.index + 1).toString().padLeft(2, '0'),
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 11,
+                              color: Color.lerp(
+                                const Color(0xFF2A2A2A),
+                                const Color(0xFF00D9FF),
+                                _hover.value,
+                              ),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 20),
                   Expanded(
@@ -236,6 +500,24 @@ class _SessionRowState extends State<_SessionRow>
                             letterSpacing: 0.5,
                           ),
                         ),
+                        if (widget.searchQuery.isNotEmpty &&
+                            widget.session.noteSnippet != null) ...[
+                          const SizedBox(height: 5),
+                          RichText(
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            text: TextSpan(
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                color: const Color(0xFF777777),
+                              ),
+                              children: _highlightSnippet(
+                                widget.session.noteSnippet!,
+                                widget.searchQuery,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
@@ -251,7 +533,9 @@ class _SessionRowState extends State<_SessionRow>
                             ),
                             if (widget.session.totalVolume > 0)
                               _MiniStat(
-                                value: _formatVolume(widget.session.totalVolume),
+                                value: _formatVolume(
+                                  widget.session.totalVolume,
+                                ),
                                 label: 'LBS',
                                 accent: true,
                               ),

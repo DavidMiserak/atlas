@@ -81,7 +81,7 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
     );
     final transitionSeconds = (_exerciseCount * 90) + (_plannedSetCount * 35);
     final totalSeconds = totalRestSeconds + transitionSeconds;
-    return (totalSeconds / 60).ceil().clamp(1, 180);
+    return ((totalSeconds / 900).ceil() * 15).clamp(15, 195);
   }
 
   Future<void> _startWorkout() async {

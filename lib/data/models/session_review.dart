@@ -22,6 +22,7 @@ class SessionSummary {
   final List<PrRecord> newPrs;
   final bool hasSessionNote;
   final bool hasSetNote;
+  final String? noteSnippet;
 
   SessionSummary({
     required this.sessionId,
@@ -33,6 +34,7 @@ class SessionSummary {
     this.newPrs = const [],
     this.hasSessionNote = false,
     this.hasSetNote = false,
+    this.noteSnippet,
   });
 
   SessionSummary.fromMap(Map<String, dynamic> map)
@@ -44,7 +46,10 @@ class SessionSummary {
         totalVolume = (map['total_volume'] as num).toDouble(),
         newPrs = const [],
         hasSessionNote = (map['has_session_note'] as int? ?? 0) != 0,
-        hasSetNote = (map['has_set_note'] as int? ?? 0) != 0;
+        hasSetNote = (map['has_set_note'] as int? ?? 0) != 0,
+        noteSnippet = (map['note_snippet'] as String?)?.isNotEmpty == true
+            ? map['note_snippet'] as String
+            : null;
 }
 
 class SessionDetailExercise {

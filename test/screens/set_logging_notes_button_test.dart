@@ -89,7 +89,7 @@ class _FakeSessionProvider extends SessionProvider {
 }
 
 void main() {
-  Widget _buildHarness(SessionProvider provider) {
+  Widget buildHarness(SessionProvider provider) {
     return ChangeNotifierProvider<SessionProvider>.value(
       value: provider,
       child: const MaterialApp(
@@ -105,7 +105,7 @@ void main() {
   testWidgets('shows notes button and opens notes sheet', (tester) async {
     final provider = _FakeSessionProvider();
 
-    await tester.pumpWidget(_buildHarness(provider));
+    await tester.pumpWidget(buildHarness(provider));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -125,7 +125,7 @@ void main() {
   testWidgets('notes entered in sheet are submitted with set log', (tester) async {
     final provider = _FakeSessionProvider();
 
-    await tester.pumpWidget(_buildHarness(provider));
+    await tester.pumpWidget(buildHarness(provider));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(

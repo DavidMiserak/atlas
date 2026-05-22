@@ -281,6 +281,9 @@ class SessionProvider extends ChangeNotifier {
     return await sessionRepo.getAllSessionSummaries();
   }
 
+  Future<Set<int>> searchSessionIds(String query) =>
+      sessionRepo.searchSessionIds(query);
+
   Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {
     return await sessionRepo.getSessionDetail(sessionId);
   }

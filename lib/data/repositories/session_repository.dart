@@ -178,7 +178,19 @@ class SessionRepository {
         COUNT(ss.$colSessionSetId) AS total_sets,
         COALESCE(SUM(ss.$colSessionSetWeightLifted * ss.$colSessionSetRepsCompleted), 0) AS total_volume,
         MAX(CASE WHEN TRIM(COALESCE(s.$colSessionNotes, '')) != '' THEN 1 ELSE 0 END) AS has_session_note,
-        MAX(CASE WHEN TRIM(COALESCE(ss.$colSessionSetNotes, '')) != '' THEN 1 ELSE 0 END) AS has_set_note
+        MAX(CASE WHEN TRIM(COALESCE(ss.$colSessionSetNotes, '')) != '' THEN 1 ELSE 0 END) AS has_set_note,
+        SUBSTR(
+          COALESCE(
+            NULLIF(TRIM(COALESCE(s.$colSessionNotes, '')), ''),
+            (SELECT TRIM(ss2.$colSessionSetNotes)
+             FROM $tableSessionSets ss2
+             JOIN $tableSessionExercises se2
+               ON se2.$colSessionExerciseId = ss2.$colSessionSetSessionExerciseId
+             WHERE se2.$colSessionExerciseSessionId = s.$colSessionId
+               AND TRIM(COALESCE(ss2.$colSessionSetNotes, '')) != ''
+             LIMIT 1)
+          ), 1, 80
+        ) AS note_snippet
       FROM $tableSessions s
       JOIN $tableWorkouts w ON s.$colSessionWorkoutId = w.$colWorkoutId
       LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
@@ -202,8 +214,32 @@ class SessionRepository {
         newPrs: prs,
         hasSessionNote: s.hasSessionNote,
         hasSetNote: s.hasSetNote,
+        noteSnippet: s.noteSnippet,
       );
     }).toList();
+  }
+
+  Future<Set<int>> searchSessionIds(String query) async {
+    if (query.trim().isEmpty) return {};
+    final db = await getDatabase();
+    final escaped = query
+        .trim()
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', '\\%')
+        .replaceAll('_', '\\_');
+    final pattern = '%$escaped%';
+    final rows = await db.rawQuery('''
+      SELECT DISTINCT s.$colSessionId
+      FROM $tableSessions s
+      LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
+      LEFT JOIN $tableSessionSets ss ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
+      WHERE s.$colSessionDateCompleted IS NOT NULL
+        AND (
+          TRIM(COALESCE(s.$colSessionNotes, '')) LIKE ? ESCAPE '\\'
+          OR TRIM(COALESCE(ss.$colSessionSetNotes, '')) LIKE ? ESCAPE '\\'
+        )
+    ''', [pattern, pattern]);
+    return rows.map((r) => r[colSessionId] as int).toSet();
   }
 
   Future<Map<int, List<PrRecord>>> _fetchNewPrs(dynamic db) async {
