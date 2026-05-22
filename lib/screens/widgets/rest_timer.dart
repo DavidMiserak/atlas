@@ -65,7 +65,7 @@ class _RestTimerState extends State<RestTimer> {
   Widget build(BuildContext context) {
     final isActive = _timer?.isActive ?? false;
     final totalSeconds = widget.restSeconds <= 0 ? 1 : widget.restSeconds;
-    final progress = 1 - (_secondsRemaining / totalSeconds);
+    final progress = _secondsRemaining / totalSeconds;
 
     return Dialog(
       child: Padding(

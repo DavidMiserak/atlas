@@ -48,6 +48,31 @@ void main() {
       expect(skipButton.onPressed, isNotNull);
     });
 
+    testWidgets('countdown ring starts full and drains', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RestTimer(
+              restSeconds: 120,
+              onComplete: _noop,
+            ),
+          ),
+        ),
+      );
+
+      var indicator = tester.widget<CircularProgressIndicator>(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(indicator.value, 1.0);
+
+      await tester.pump(const Duration(seconds: 1));
+
+      indicator = tester.widget<CircularProgressIndicator>(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(indicator.value, closeTo(119 / 120, 0.001));
+    });
+
     testWidgets('auto-completes at target rest time', (tester) async {
       var completed = 0;
       await tester.pumpWidget(
