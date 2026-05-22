@@ -135,6 +135,7 @@ class _WarmupRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final percentages = [50, 70, 90];
+    final reps = [8, 4, 2];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -145,6 +146,7 @@ class _WarmupRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: weights.asMap().entries.map((entry) {
+          final index = entry.key;
           final pct = percentages[entry.key];
           final w = entry.value;
           return Expanded(
@@ -178,7 +180,7 @@ class _WarmupRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'lbs × 5',
+                    'lbs × ${reps[index]}',
                     style: GoogleFonts.outfit(
                       fontSize: 11,
                       color: const Color(0xFF909090),
