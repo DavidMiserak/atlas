@@ -10,8 +10,7 @@ import 'one_rm_history_list_screen.dart';
 import 'settings_screen.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
-  final bool reinitializing;
-  const WorkoutSelectionScreen({super.key, this.reinitializing = false});
+  const WorkoutSelectionScreen({super.key});
 
   @override
   State<WorkoutSelectionScreen> createState() => _WorkoutSelectionScreenState();
@@ -31,12 +30,6 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    if (widget.reinitializing) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(

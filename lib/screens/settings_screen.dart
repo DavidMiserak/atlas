@@ -188,7 +188,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
         pageBuilder: (_, _, _) =>
-            const WorkoutSelectionScreen(reinitializing: true),
+            const WorkoutSelectionScreen(),
         transitionDuration: const Duration(milliseconds: 400),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),

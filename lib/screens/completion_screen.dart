@@ -295,28 +295,33 @@ class _CompletionScreenState extends State<CompletionScreen>
                   position: _statsSlide,
                   child: FadeTransition(
                     opacity: _statsFade,
-                    child: Row(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _RawStat(
-                          value: '$_totalSets',
-                          label: 'SETS',
-                          color: Colors.white,
-                        ),
-                        _VerticalRule(),
-                        _RawStat(
-                          value: '$_exerciseCount',
-                          label: 'EXERCISES',
-                          color: Colors.white,
-                        ),
                         if (_totalVolume > 0) ...[
-                          _VerticalRule(),
                           _RawStat(
                             value: _formatVolume(_totalVolume),
                             label: 'LBS MOVED',
                             color: colorScheme.primary,
                           ),
+                          const SizedBox(height: 28),
                         ],
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _RawStat(
+                              value: '$_totalSets',
+                              label: 'SETS',
+                              color: Colors.white,
+                            ),
+                            _VerticalRule(),
+                            _RawStat(
+                              value: '$_exerciseCount',
+                              label: 'EXERCISES',
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
