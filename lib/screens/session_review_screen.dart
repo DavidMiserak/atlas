@@ -257,23 +257,36 @@ class _SessionRowState extends State<_SessionRow>
                               ),
                           ],
                         ),
-                        if (widget.session.newPrs.isNotEmpty) ...[
+                        if (widget.session.newPrs.isNotEmpty ||
+                            widget.session.hasSessionNote ||
+                            widget.session.hasSetNote) ...[
                           const SizedBox(height: 10),
-                          Row(
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
                             children: [
-                              if (widget.session.newPrs.where((p) => !p.is1rm).isNotEmpty)
+                              if (widget.session.newPrs
+                                  .where((p) => !p.is1rm)
+                                  .isNotEmpty)
                                 _PrCountPill(
                                   label: 'New PRs',
-                                  count: widget.session.newPrs.where((p) => !p.is1rm).length,
+                                  count: widget.session.newPrs
+                                      .where((p) => !p.is1rm)
+                                      .length,
                                 ),
-                              if (widget.session.newPrs.where((p) => !p.is1rm).isNotEmpty &&
-                                  widget.session.newPrs.where((p) => p.is1rm).isNotEmpty)
-                                const SizedBox(width: 6),
-                              if (widget.session.newPrs.where((p) => p.is1rm).isNotEmpty)
+                              if (widget.session.newPrs
+                                  .where((p) => p.is1rm)
+                                  .isNotEmpty)
                                 _PrCountPill(
                                   label: 'New 1RMs',
-                                  count: widget.session.newPrs.where((p) => p.is1rm).length,
+                                  count: widget.session.newPrs
+                                      .where((p) => p.is1rm)
+                                      .length,
                                 ),
+                              if (widget.session.hasSessionNote)
+                                const _LabelPill(label: 'Session Note'),
+                              if (widget.session.hasSetNote)
+                                const _LabelPill(label: 'Set Note'),
                             ],
                           ),
                         ],
@@ -356,6 +369,31 @@ class _PrCountPill extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
           color: const Color(0xFF00D9FF),
+        ),
+      ),
+    );
+  }
+}
+
+class _LabelPill extends StatelessWidget {
+  final String label;
+  const _LabelPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFB8B8B8).withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.outfit(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: const Color(0xFFB8B8B8),
         ),
       ),
     );

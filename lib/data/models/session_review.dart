@@ -20,6 +20,8 @@ class SessionSummary {
   final int totalSetsLogged;
   final double totalVolume;
   final List<PrRecord> newPrs;
+  final bool hasSessionNote;
+  final bool hasSetNote;
 
   SessionSummary({
     required this.sessionId,
@@ -29,6 +31,8 @@ class SessionSummary {
     required this.totalSetsLogged,
     required this.totalVolume,
     this.newPrs = const [],
+    this.hasSessionNote = false,
+    this.hasSetNote = false,
   });
 
   SessionSummary.fromMap(Map<String, dynamic> map)
@@ -38,7 +42,9 @@ class SessionSummary {
         exerciseCount = map['exercise_count'],
         totalSetsLogged = map['total_sets'],
         totalVolume = (map['total_volume'] as num).toDouble(),
-        newPrs = const [];
+        newPrs = const [],
+        hasSessionNote = (map['has_session_note'] as int? ?? 0) != 0,
+        hasSetNote = (map['has_set_note'] as int? ?? 0) != 0;
 }
 
 class SessionDetailExercise {
@@ -74,6 +80,7 @@ class SessionDetailSet {
   final double? actualWeight;
   final int? actualRpe;
   final double? oneRmAtSessionTime;
+  final String? notes;
 
   SessionDetailSet({
     required this.setNumber,
@@ -86,6 +93,7 @@ class SessionDetailSet {
     this.actualWeight,
     this.actualRpe,
     this.oneRmAtSessionTime,
+    this.notes,
   });
 
   SessionDetailSet.fromMap(Map<String, dynamic> map)
@@ -101,7 +109,8 @@ class SessionDetailSet {
         actualReps = map['reps_completed'],
         actualWeight = map['weight_lifted'],
         actualRpe = map['rpe_actual'],
-        oneRmAtSessionTime = (map['one_rm_at_session_time'] as num?)?.toDouble();
+        oneRmAtSessionTime = (map['one_rm_at_session_time'] as num?)?.toDouble(),
+        notes = map['notes'] as String?;
 
   static double? _computeTargetWeight(
     double? percentage1rm,

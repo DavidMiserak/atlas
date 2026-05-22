@@ -176,7 +176,9 @@ class SessionRepository {
         s.$colSessionDateCompleted,
         COUNT(DISTINCT se.$colSessionExerciseId) AS exercise_count,
         COUNT(ss.$colSessionSetId) AS total_sets,
-        COALESCE(SUM(ss.$colSessionSetWeightLifted * ss.$colSessionSetRepsCompleted), 0) AS total_volume
+        COALESCE(SUM(ss.$colSessionSetWeightLifted * ss.$colSessionSetRepsCompleted), 0) AS total_volume,
+        MAX(CASE WHEN TRIM(COALESCE(s.$colSessionNotes, '')) != '' THEN 1 ELSE 0 END) AS has_session_note,
+        MAX(CASE WHEN TRIM(COALESCE(ss.$colSessionSetNotes, '')) != '' THEN 1 ELSE 0 END) AS has_set_note
       FROM $tableSessions s
       JOIN $tableWorkouts w ON s.$colSessionWorkoutId = w.$colWorkoutId
       LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
@@ -198,6 +200,8 @@ class SessionRepository {
         totalSetsLogged: s.totalSetsLogged,
         totalVolume: s.totalVolume,
         newPrs: prs,
+        hasSessionNote: s.hasSessionNote,
+        hasSetNote: s.hasSetNote,
       );
     }).toList();
   }
@@ -352,7 +356,8 @@ class SessionRepository {
           ss.$colSessionSetRepsCompleted,
           ss.$colSessionSetWeightLifted,
           ss.$colSessionSetOneRmAtTime,
-          ss.$colSessionSetRpeActual
+          ss.$colSessionSetRpeActual,
+          ss.$colSessionSetNotes AS notes
         FROM $tableSessionSets ss
         LEFT JOIN $tableSetTemplates st ON st.$colSetTemplateSlotId = ?
           AND st.$colSetTemplateSetNumber = ss.$colSessionSetNumber

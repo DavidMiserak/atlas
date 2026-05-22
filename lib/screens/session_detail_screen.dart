@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../data/models/session.dart';
 import '../data/models/session_review.dart';
+import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
+
+bool _hasNoteText(String? notes) =>
+    notes != null && notes.trim().isNotEmpty;
 
 class SessionDetailScreen extends StatelessWidget {
   final int sessionId;
@@ -110,8 +115,14 @@ class _ExerciseList extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = Provider.of<SessionProvider>(context);
 
-    return FutureBuilder<List<SessionDetailExercise>>(
-      future: provider.getSessionDetail(sessionId),
+    return FutureBuilder<({List<SessionDetailExercise> exercises, Session? session})>(
+      future: Future.wait([
+        provider.getSessionDetail(sessionId),
+        SessionRepository().getSessionById(sessionId),
+      ]).then((results) => (
+            exercises: results[0] as List<SessionDetailExercise>,
+            session: results[1] as Session?,
+          )),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -135,7 +146,9 @@ class _ExerciseList extends StatelessWidget {
           );
         }
 
-        final exercises = snapshot.data ?? [];
+        final data = snapshot.data;
+        final exercises = data?.exercises ?? [];
+        final sessionNotes = data?.session?.notes;
 
         if (exercises.isEmpty) {
           return Center(
@@ -146,20 +159,63 @@ class _ExerciseList extends StatelessWidget {
           );
         }
 
-        return ListView.separated(
+        final horizontalPadding = Responsive.screenPadding(context).left;
+        final bottomPadding = Responsive.space(context, 48, max: 56);
+
+        return ListView(
           padding: EdgeInsets.fromLTRB(
-            Responsive.screenPadding(context).left,
+            horizontalPadding,
             0,
             Responsive.screenPadding(context).right,
-            Responsive.space(context, 48, max: 56),
+            bottomPadding,
           ),
-          itemCount: exercises.length,
-          separatorBuilder: (context, index) =>
-              Container(height: 1, color: const Color(0xFF141414)),
-          itemBuilder: (context, index) =>
-              _ExerciseBlock(exercise: exercises[index], index: index),
+          children: [
+            if (_hasNoteText(sessionNotes))
+              _SessionNoteSection(notes: sessionNotes!.trim()),
+            for (var i = 0; i < exercises.length; i++) ...[
+              if (i > 0 || _hasNoteText(sessionNotes))
+                Container(height: 1, color: const Color(0xFF141414)),
+              _ExerciseBlock(exercise: exercises[i], index: i),
+            ],
+          ],
         );
       },
+    );
+  }
+}
+
+class _SessionNoteSection extends StatelessWidget {
+  final String notes;
+
+  const _SessionNoteSection({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 20, 0, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'SESSION NOTE',
+            style: GoogleFonts.outfit(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+              color: const Color(0xFF404040),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            notes,
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              height: 1.5,
+              color: const Color(0xFFB8B8B8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -284,6 +340,22 @@ class _ExerciseBlock extends StatelessWidget {
                 ],
               ),
             ),
+            if (warmUpSets.any((s) => _hasNoteText(s.notes))) ...[
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(left: 26),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: warmUpSets
+                      .where((s) => _hasNoteText(s.notes))
+                      .map((s) => _SetNoteLine(
+                            setNumber: s.setNumber,
+                            notes: s.notes!.trim(),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
           ],
 
           // ── Working / back-off sets ──────────────────────
@@ -391,6 +463,18 @@ class _WorkingSetRow extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (_hasNoteText(set.notes))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        set.notes!.trim(),
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: const Color(0xFF5A5A5A),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -445,6 +529,43 @@ class _WorkingSetRow extends StatelessWidget {
   }
 }
 
+
+class _SetNoteLine extends StatelessWidget {
+  final int setNumber;
+  final String notes;
+
+  const _SetNoteLine({required this.setNumber, required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            setNumber.toString().padLeft(2, '0'),
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              color: const Color(0xFF343434),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              notes,
+              style: GoogleFonts.outfit(
+                fontSize: 12,
+                height: 1.4,
+                color: const Color(0xFF5A5A5A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ─── PR pill ──────────────────────────────────────────────────────────────────
 

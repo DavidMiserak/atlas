@@ -50,6 +50,7 @@ void main() {
     bool isWarmup = false,
     double? oneRmAtSessionTime,
     int? rpeActual,
+    String? notes,
   }) async {
     await SessionRepository().logSet(SessionSet(
       sessionExerciseId: seId,
@@ -59,6 +60,7 @@ void main() {
       isWarmup: isWarmup,
       oneRmAtSessionTime: oneRmAtSessionTime,
       rpeActual: rpeActual,
+      notes: notes,
     ));
   }
 
@@ -131,6 +133,33 @@ void main() {
         whereArgs: [sessionId],
       );
       expect(row.first[colSessionNotes], 'Felt strong. Good depth on squats.');
+    });
+
+    test('2b. Note flags on summary and set notes on detail', () async {
+      await loadSeedData();
+      final repo = SessionRepository();
+      final ids = await firstSlot();
+      final sessionId = await createSession();
+      final seId = await createSessionExercise(
+        sessionId,
+        ids['slotId']!,
+        ids['variantId']!,
+      );
+
+      await logSet(seId, 1, notes: 'knee ok');
+      await repo.updateSessionNotes(sessionId, 'Strong session overall.');
+
+      final summaries = await repo.getAllSessionSummaries();
+      final summary = summaries.firstWhere((s) => s.sessionId == sessionId);
+      expect(summary.hasSessionNote, isTrue);
+      expect(summary.hasSetNote, isTrue);
+
+      final detail = await repo.getSessionDetail(sessionId);
+      final allSets = detail.expand((e) => e.sets).toList();
+      expect(
+        allSets.any((s) => s.notes == 'knee ok'),
+        isTrue,
+      );
     });
 
     test('3. one_rm_at_session_time is stored with each set', () async {
