@@ -129,7 +129,6 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _WarmupCard(
-                  accentColor: colorScheme.primary,
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -179,7 +178,94 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   }
 }
 
-class _WorkoutCard extends StatefulWidget {
+// Shared animated shell for both card types.
+class _CardShell extends StatefulWidget {
+  final Color accentColor;
+  final VoidCallback onPressed;
+  final Widget child;
+
+  const _CardShell({
+    required this.accentColor,
+    required this.onPressed,
+    required this.child,
+  });
+
+  @override
+  State<_CardShell> createState() => _CardShellState();
+}
+
+class _CardShellState extends State<_CardShell>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _hoverController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoverController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hoverController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return MouseRegion(
+      onEnter: (_) => _hoverController.forward(),
+      onExit: (_) => _hoverController.reverse(),
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedBuilder(
+          animation: _hoverController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: 1 + (_hoverController.value * 0.02),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colorScheme.surfaceContainer,
+                      colorScheme.surfaceContainer.withValues(alpha: 0.5),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: widget.accentColor.withValues(
+                      alpha: 0.2 + (_hoverController.value * 0.3),
+                    ),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.accentColor.withValues(
+                        alpha: _hoverController.value * 0.2,
+                      ),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(28),
+                child: widget.child,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutCard extends StatelessWidget {
   final String name;
   final int exerciseCount;
   final Color accentColor;
@@ -193,287 +279,166 @@ class _WorkoutCard extends StatefulWidget {
   });
 
   @override
-  State<_WorkoutCard> createState() => _WorkoutCardState();
-}
-
-class _WorkoutCardState extends State<_WorkoutCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _hoverController;
-
-  @override
-  void initState() {
-    super.initState();
-    _hoverController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _hoverController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return MouseRegion(
-      onEnter: (_) => _hoverController.forward(),
-      onExit: (_) => _hoverController.reverse(),
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: AnimatedBuilder(
-          animation: _hoverController,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: 1 + (_hoverController.value * 0.02),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainer.withValues(alpha: 0.5),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: widget.accentColor.withValues(
-                      alpha: 0.2 + (_hoverController.value * 0.3),
-                    ),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.accentColor.withValues(
-                        alpha: _hoverController.value * 0.2,
-                      ),
-                      blurRadius: 20,
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(28),
+    return _CardShell(
+      accentColor: accentColor,
+      onPressed: onPressed,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.name,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -1,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '${widget.exerciseCount} exercises',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFFB0B0B0),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: widget.accentColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: widget.accentColor.withValues(alpha: 0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.arrow_forward,
-                            color: widget.accentColor,
-                            size: 24,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      name,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1,
+                        color: Colors.white,
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: 0.0,
-                        minHeight: 3,
-                        backgroundColor: colorScheme.surfaceContainerHigh,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          widget.accentColor,
-                        ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$exerciseCount exercises',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFB0B0B0),
                       ),
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        ),
+              const SizedBox(width: 16),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(Icons.arrow_forward, color: accentColor, size: 24),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: 0.0,
+              minHeight: 3,
+              backgroundColor: colorScheme.surfaceContainerHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _WarmupCard extends StatefulWidget {
-  final Color accentColor;
+class _WarmupCard extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const _WarmupCard({
-    required this.accentColor,
-    required this.onPressed,
-  });
-
-  @override
-  State<_WarmupCard> createState() => _WarmupCardState();
-}
-
-class _WarmupCardState extends State<_WarmupCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _hoverController;
-
-  @override
-  void initState() {
-    super.initState();
-    _hoverController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _hoverController.dispose();
-    super.dispose();
-  }
+  const _WarmupCard({required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    const accentColor = Colors.deepOrange;
 
-    return MouseRegion(
-      onEnter: (_) => _hoverController.forward(),
-      onExit: (_) => _hoverController.reverse(),
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: AnimatedBuilder(
-          animation: _hoverController,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: 1 + (_hoverController.value * 0.02),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainer.withValues(alpha: 0.5),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: widget.accentColor.withValues(
-                      alpha: 0.2 + (_hoverController.value * 0.3),
-                    ),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.accentColor.withValues(
-                        alpha: _hoverController.value * 0.2,
-                      ),
-                      blurRadius: 20,
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(28),
+    return _CardShell(
+      accentColor: accentColor,
+      onPressed: onPressed,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Dynamic Warm-Up',
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -1,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '5-10 minutes',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFFB0B0B0),
-                                ),
-                              ),
-                            ],
-                          ),
+                    Text(
+                      'Dynamic Warm-Up',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.3),
+                          width: 1,
                         ),
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: widget.accentColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: widget.accentColor.withValues(alpha: 0.3),
-                              width: 1.5,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.timer_outlined,
+                            color: accentColor,
+                            size: 13,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '5–10 minutes',
+                            style: TextStyle(
+                              color: Colors.deepOrange[300],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          child: Icon(
-                            Icons.arrow_forward,
-                            color: widget.accentColor,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: 0.0,
-                        minHeight: 3,
-                        backgroundColor: colorScheme.surfaceContainerHigh,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          widget.accentColor,
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        ),
+              const SizedBox(width: 16),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward,
+                  color: accentColor,
+                  size: 24,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
