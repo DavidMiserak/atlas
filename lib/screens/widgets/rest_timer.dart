@@ -69,7 +69,7 @@ class _RestTimerState extends State<RestTimer> {
 
     return Dialog(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -86,32 +86,37 @@ class _RestTimerState extends State<RestTimer> {
               ),
             ],
             const SizedBox(height: 32),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 8,
-                  ),
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final circleSize = constraints.maxWidth.clamp(140.0, 200.0);
+                return Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      _formatTime(_secondsRemaining),
-                      style: Theme.of(context).textTheme.displaySmall,
+                    SizedBox(
+                      width: circleSize,
+                      height: circleSize,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 8,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'of ${_formatTime(totalSeconds)}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _formatTime(_secondsRemaining),
+                          style: Theme.of(context).textTheme.displaySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'of ${_formatTime(totalSeconds)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
             const SizedBox(height: 32),
             Row(

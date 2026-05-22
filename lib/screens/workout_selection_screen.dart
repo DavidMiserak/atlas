@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import '../data/models/program.dart';
+import '../theme/responsive.dart';
 import 'session_screen.dart';
 import 'warmup_screen.dart';
 import 'session_review_screen.dart';
@@ -36,7 +37,7 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         title: Text(
           'Atlas',
           style: GoogleFonts.spaceGrotesk(
-            fontSize: 32,
+            fontSize: Responsive.font(context, base: 30, min: 24, max: 34),
             fontWeight: FontWeight.w700,
             letterSpacing: -1,
           ),
@@ -291,8 +292,15 @@ class _WorkoutCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.spaceGrotesk(
-                        fontSize: 28,
+                        fontSize: Responsive.font(
+                          context,
+                          base: 26,
+                          min: 21,
+                          max: 30,
+                        ),
                         fontWeight: FontWeight.w700,
                         letterSpacing: -1,
                         color: Colors.white,
@@ -302,7 +310,7 @@ class _WorkoutCard extends StatelessWidget {
                     Text(
                       '$exerciseCount exercises',
                       style: GoogleFonts.outfit(
-                        fontSize: 14,
+                        fontSize: Responsive.font(context, base: 14, min: 12, max: 15),
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFFB0B0B0),
                       ),
@@ -367,8 +375,15 @@ class _WarmupCard extends StatelessWidget {
                   children: [
                     Text(
                       'Dynamic Warm-Up',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.spaceGrotesk(
-                        fontSize: 28,
+                        fontSize: Responsive.font(
+                          context,
+                          base: 26,
+                          min: 21,
+                          max: 30,
+                        ),
                         fontWeight: FontWeight.w700,
                         letterSpacing: -1,
                         color: Colors.white,

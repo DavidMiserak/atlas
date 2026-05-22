@@ -420,6 +420,8 @@ class _ActionTile extends StatelessWidget {
           : Icon(icon, color: enabled ? color : const Color(0xFF444444)),
       title: Text(
         title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: GoogleFonts.outfit(
           fontSize: 15,
           fontWeight: FontWeight.w500,
@@ -428,6 +430,8 @@ class _ActionTile extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
         style: GoogleFonts.outfit(
           fontSize: 12,
           color: const Color(0xFF888888),

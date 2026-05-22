@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/models/session_review.dart';
 import '../providers/session_provider.dart';
+import '../theme/responsive.dart';
 import 'session_detail_screen.dart';
 
 class SessionReviewScreen extends StatelessWidget {
@@ -19,7 +20,7 @@ class SessionReviewScreen extends StatelessWidget {
         title: Text(
           'TRAINING LOG',
           style: GoogleFonts.outfit(
-            fontSize: 11,
+            fontSize: Responsive.font(context, base: 11, min: 10, max: 12),
             fontWeight: FontWeight.w600,
             letterSpacing: 3.5,
             color: const Color(0xFF555555),
@@ -95,7 +96,12 @@ class _SessionList extends StatelessWidget {
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(28, 8, 28, 48),
+          padding: EdgeInsets.fromLTRB(
+            Responsive.screenPadding(context).left,
+            8,
+            Responsive.screenPadding(context).right,
+            Responsive.space(context, 48, max: 56),
+          ),
           itemCount: sessions.length,
           separatorBuilder: (context, index) => Container(
             height: 1,
@@ -211,6 +217,8 @@ class _SessionRowState extends State<_SessionRow>
                       children: [
                         Text(
                           widget.session.workoutName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -229,25 +237,24 @@ class _SessionRowState extends State<_SessionRow>
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
                           children: [
                             _MiniStat(
                               value: '${widget.session.totalSetsLogged}',
                               label: 'SETS',
                             ),
-                            _StatDivider(),
                             _MiniStat(
                               value: '${widget.session.exerciseCount}',
                               label: 'EXERCISES',
                             ),
-                            if (widget.session.totalVolume > 0) ...[
-                              _StatDivider(),
+                            if (widget.session.totalVolume > 0)
                               _MiniStat(
                                 value: _formatVolume(widget.session.totalVolume),
                                 label: 'LBS',
                                 accent: true,
                               ),
-                            ],
                           ],
                         ),
                         if (widget.session.newPrs.isNotEmpty) ...[
@@ -325,22 +332,6 @@ class _MiniStat extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Text(
-        '·',
-        style: GoogleFonts.jetBrainsMono(
-          fontSize: 10,
-          color: const Color(0xFF252525),
-        ),
-      ),
     );
   }
 }

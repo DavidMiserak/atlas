@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../data/repositories/program_repository.dart';
+import '../theme/responsive.dart';
 import 'one_rm_history_detail_screen.dart';
 
 typedef _VariantInfo = ({String name, double? weight, DateTime? lastUpdated});
@@ -91,7 +92,7 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
         title: Text(
           '1RM HISTORY',
           style: GoogleFonts.outfit(
-            fontSize: 11,
+            fontSize: Responsive.font(context, base: 11, min: 10, max: 12),
             fontWeight: FontWeight.w600,
             letterSpacing: 3.5,
             color: const Color(0xFF555555),
@@ -179,7 +180,7 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
           }
 
           return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.symmetric(vertical: Responsive.space(context, 8, max: 10)),
             children: items,
           );
         },
@@ -247,6 +248,8 @@ class _VariantRow extends StatelessWidget {
                 children: [
                   Text(
                     info.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -269,8 +272,10 @@ class _VariantRow extends StatelessWidget {
                   info.weight != null
                       ? '${info.weight!.toStringAsFixed(0)} lbs'
                       : '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.spaceGrotesk(
-                    fontSize: 20,
+                    fontSize: Responsive.font(context, base: 20, min: 16, max: 21),
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF00D9FF),
                   ),

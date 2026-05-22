@@ -6,6 +6,7 @@ import '../data/repositories/program_repository.dart';
 import '../data/repositories/session_repository.dart';
 import '../data/repositories/settings_repository.dart';
 import '../providers/session_provider.dart';
+import '../theme/responsive.dart';
 import '../utils/progression_service.dart';
 import 'workout_selection_screen.dart';
 import 'session_detail_screen.dart';
@@ -196,7 +197,12 @@ class _CompletionScreenState extends State<CompletionScreen>
         backgroundColor: const Color(0xFF0D0D0D),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+            padding: EdgeInsets.fromLTRB(
+              Responsive.screenPadding(context).left,
+              Responsive.space(context, 32, max: 40),
+              Responsive.screenPadding(context).right,
+              Responsive.space(context, 28, max: 36),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -214,7 +220,12 @@ class _CompletionScreenState extends State<CompletionScreen>
                               Text(
                                 'WORKOUT COMPLETE',
                                 style: GoogleFonts.outfit(
-                                  fontSize: 11,
+                                  fontSize: Responsive.font(
+                                    context,
+                                    base: 11,
+                                    min: 9,
+                                    max: 12,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                   color: const Color(0xFF555555),
                                   letterSpacing: 2.5,
@@ -233,7 +244,12 @@ class _CompletionScreenState extends State<CompletionScreen>
                             child: Text(
                               'DONE.',
                               style: GoogleFonts.barlowCondensed(
-                                fontSize: 120,
+                                fontSize: Responsive.font(
+                                  context,
+                                  base: 96,
+                                  min: 64,
+                                  max: 120,
+                                ),
                                 fontWeight: FontWeight.w900,
                                 color: Colors.white,
                                 letterSpacing: -3,
@@ -251,8 +267,15 @@ class _CompletionScreenState extends State<CompletionScreen>
                               opacity: _nameFade,
                               child: Text(
                                 _workoutName!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.outfit(
-                                  fontSize: 21,
+                                  fontSize: Responsive.font(
+                                    context,
+                                    base: 21,
+                                    min: 16,
+                                    max: 24,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                   color: colorScheme.secondary,
                                 ),
@@ -486,8 +509,15 @@ class _RawStat extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.jetBrainsMono(
-            fontSize: 52,
+            fontSize: Responsive.font(
+              context,
+              base: 44,
+              min: 28,
+              max: 52,
+            ),
             fontWeight: FontWeight.w700,
             color: color,
             letterSpacing: -2,
@@ -564,7 +594,12 @@ class _NewSessionButtonState extends State<_NewSessionButton>
                   Text(
                     'Start New Session',
                     style: GoogleFonts.outfit(
-                      fontSize: 17,
+                      fontSize: Responsive.font(
+                        context,
+                        base: 17,
+                        min: 15,
+                        max: 18,
+                      ),
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF0D0D0D),
                       letterSpacing: 0.3,
@@ -650,7 +685,12 @@ class _SecondaryButtonState extends State<_SecondaryButton>
                   Text(
                     widget.label,
                     style: GoogleFonts.outfit(
-                      fontSize: 17,
+                      fontSize: Responsive.font(
+                        context,
+                        base: 17,
+                        min: 15,
+                        max: 18,
+                      ),
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                       letterSpacing: 0.3,
@@ -793,6 +833,7 @@ class _ProgressionRow extends StatelessWidget {
         Expanded(
           child: Text(
             progression.variantName,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.outfit(
               fontSize: 14,
@@ -802,11 +843,12 @@ class _ProgressionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        SizedBox(
-          width: 68,
+        Flexible(
           child: Text(
             weightStr,
             textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -815,16 +857,13 @@ class _ProgressionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        SizedBox(
-          width: 44,
-          child: Text(
-            '(+$inc)',
-            textAlign: TextAlign.right,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: accentColor,
-            ),
+        Text(
+          '(+$inc)',
+          textAlign: TextAlign.right,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: accentColor,
           ),
         ),
       ],

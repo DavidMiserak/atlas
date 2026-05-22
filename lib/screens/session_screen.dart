@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
+import '../theme/responsive.dart';
 import 'set_logging_screen.dart';
 import 'widgets/exercise_details.dart';
 import 'widgets/variant_selector.dart';
@@ -91,7 +92,7 @@ class _SessionScreenState extends State<SessionScreen> {
           title: Text(
             'Session',
             style: GoogleFonts.spaceGrotesk(
-              fontSize: 28,
+              fontSize: Responsive.font(context, base: 28, min: 22, max: 30),
               fontWeight: FontWeight.w700,
               letterSpacing: -1,
             ),
@@ -139,14 +140,14 @@ class _SessionScreenState extends State<SessionScreen> {
                           total: provider.sessionExercises.length,
                           accentColor: accentColor,
                         ),
-                        const SizedBox(height: 40),
+                        SizedBox(height: Responsive.space(context, 28, max: 40)),
                         _ExerciseHero(
                           sessionExercise: sessionExercise,
                           accentColor: accentColor,
                         ),
-                        const SizedBox(height: 36),
+                        SizedBox(height: Responsive.space(context, 24, max: 36)),
                         ExerciseDetails(sessionExercise: sessionExercise),
-                        const SizedBox(height: 32),
+                        SizedBox(height: Responsive.space(context, 20, max: 32)),
                         Row(
                           children: [
                             Expanded(
@@ -159,14 +160,14 @@ class _SessionScreenState extends State<SessionScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 40),
+                        SizedBox(height: Responsive.space(context, 24, max: 40)),
                         _LogSetsCTA(
                           sessionExerciseId: sessionExercise.id!,
                           slotId: sessionExercise.slotId,
                           chosenVariantId: sessionExercise.chosenVariantId,
                           accentColor: accentColor,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: Responsive.space(context, 14, max: 20)),
                       ],
                     ),
                   ),
@@ -206,7 +207,7 @@ class _PremiumProgressBar extends StatelessWidget {
             Text(
               'Workout Progress',
               style: GoogleFonts.outfit(
-                fontSize: 12,
+                fontSize: Responsive.font(context, base: 12, min: 10, max: 13),
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF909090),
                 letterSpacing: 1,
@@ -215,7 +216,7 @@ class _PremiumProgressBar extends StatelessWidget {
             Text(
               '$current of $total',
               style: GoogleFonts.spaceGrotesk(
-                fontSize: 12,
+                fontSize: Responsive.font(context, base: 12, min: 10, max: 13),
                 fontWeight: FontWeight.w600,
                 color: accentColor,
                 letterSpacing: 0.5,
@@ -232,27 +233,22 @@ class _PremiumProgressBar extends StatelessWidget {
               color: colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * progress * 0.92,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          accentColor,
-                          accentColor.withValues(alpha: 0.7),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+            child: FractionallySizedBox(
+              widthFactor: progress.clamp(0, 1),
+              alignment: Alignment.centerLeft,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      accentColor,
+                      accentColor.withValues(alpha: 0.7),
+                    ],
                   ),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -286,6 +282,7 @@ class _ExerciseHero extends StatelessWidget {
         if (variant == null) return const SizedBox();
         final slotName = provider.getSlotForExercise(sessionExercise.slotId)?.name ?? 'Variant';
 
+        final compact = context.isCompact;
         return Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -296,80 +293,137 @@ class _ExerciseHero extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'NOW',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: accentColor,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          slotName.toUpperCase(),
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFB8B8B8),
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          (variant as dynamic).name as String,
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -1.5,
-                            color: Colors.white,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (oneRm != null) ...[
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '1RM',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF909090),
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${oneRm.toStringAsFixed(0)} lbs',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: accentColor,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              if (compact) ...[
+                _HeroPrimary(
+                  slotName: slotName,
+                  variantName: (variant as dynamic).name as String,
+                  accentColor: accentColor,
+                ),
+                if (oneRm != null) ...[
+                  const SizedBox(height: 14),
+                  _HeroOneRm(oneRm: oneRm, accentColor: accentColor),
                 ],
-              ),
+              ] else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _HeroPrimary(
+                        slotName: slotName,
+                        variantName: (variant as dynamic).name as String,
+                        accentColor: accentColor,
+                      ),
+                    ),
+                    if (oneRm != null) ...[
+                      const SizedBox(width: 16),
+                      _HeroOneRm(oneRm: oneRm, accentColor: accentColor),
+                    ],
+                  ],
+                ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _HeroPrimary extends StatelessWidget {
+  final String slotName;
+  final String variantName;
+  final Color accentColor;
+
+  const _HeroPrimary({
+    required this.slotName,
+    required this.variantName,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NOW',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: accentColor,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          slotName.toUpperCase(),
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFFB8B8B8),
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          variantName,
+          maxLines: context.isCompact ? 3 : 2,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: Responsive.font(
+              context,
+              base: 30,
+              min: 22,
+              max: 34,
+            ),
+            fontWeight: FontWeight.w700,
+            letterSpacing: -1.5,
+            color: Colors.white,
+            height: 1.1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroOneRm extends StatelessWidget {
+  final double oneRm;
+  final Color accentColor;
+
+  const _HeroOneRm({required this.oneRm, required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          context.isCompact ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
+        Text(
+          '1RM',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF909090),
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${oneRm.toStringAsFixed(0)} lbs',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: Responsive.font(
+              context,
+              base: 24,
+              min: 18,
+              max: 28,
+            ),
+            fontWeight: FontWeight.w700,
+            color: accentColor,
+            letterSpacing: -1,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -461,7 +515,7 @@ class _LogSetsCTAState extends State<_LogSetsCTA>
                     Text(
                       'Log Sets',
                       style: GoogleFonts.outfit(
-                        fontSize: 18,
+                        fontSize: Responsive.font(context, base: 18, min: 16, max: 19),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: 0.5,

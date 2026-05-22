@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../data/repositories/one_rm_repository.dart';
+import '../theme/responsive.dart';
 import 'widgets/weight_stepper.dart';
 
 class OneRmHistoryDetailScreen extends StatefulWidget {
@@ -47,8 +48,10 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
         title: widget.variantName != null
             ? Text(
                 widget.variantName!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.spaceGrotesk(
-                  fontSize: 18,
+                  fontSize: Responsive.font(context, base: 18, min: 15, max: 20),
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
@@ -56,7 +59,7 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
             : Text(
                 '1RM HISTORY',
                 style: GoogleFonts.outfit(
-                  fontSize: 11,
+                  fontSize: Responsive.font(context, base: 11, min: 10, max: 12),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 3.5,
                   color: const Color(0xFF555555),
@@ -168,8 +171,9 @@ class _HistoryRow extends StatelessWidget {
           ),
           Text(
             '${record.weight.toStringAsFixed(0)} lbs',
+            maxLines: 1,
             style: GoogleFonts.spaceGrotesk(
-              fontSize: 18,
+              fontSize: Responsive.font(context, base: 18, min: 15, max: 20),
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -278,7 +282,7 @@ class _UpdateOneRmModalState extends State<_UpdateOneRmModal> {
           Text(
             _currentOneRm == null ? 'Set 1RM' : 'Update 1RM',
             style: GoogleFonts.spaceGrotesk(
-              fontSize: 20,
+              fontSize: Responsive.font(context, base: 20, min: 17, max: 22),
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),

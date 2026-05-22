@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/models/session_review.dart';
 import '../providers/session_provider.dart';
+import '../theme/responsive.dart';
 
 class SessionDetailScreen extends StatelessWidget {
   final int sessionId;
@@ -80,8 +81,10 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             workoutName.toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.barlowCondensed(
-              fontSize: 48,
+              fontSize: Responsive.font(context, base: 42, min: 30, max: 48),
               fontWeight: FontWeight.w900,
               color: Colors.white,
               letterSpacing: -1,
@@ -144,7 +147,12 @@ class _ExerciseList extends StatelessWidget {
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(28, 0, 28, 48),
+          padding: EdgeInsets.fromLTRB(
+            Responsive.screenPadding(context).left,
+            0,
+            Responsive.screenPadding(context).right,
+            Responsive.space(context, 48, max: 56),
+          ),
           itemCount: exercises.length,
           separatorBuilder: (context, index) =>
               Container(height: 1, color: const Color(0xFF141414)),
@@ -212,8 +220,10 @@ class _ExerciseBlock extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       exercise.variantName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.spaceGrotesk(
-                        fontSize: 20,
+                    fontSize: Responsive.font(context, base: 20, min: 17, max: 21),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: -0.5,
@@ -245,8 +255,10 @@ class _ExerciseBlock extends StatelessWidget {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.only(left: 26),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     'WARM-UP',
@@ -257,19 +269,16 @@ class _ExerciseBlock extends StatelessWidget {
                       color: const Color(0xFF282828),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      warmUpSets.map((s) {
-                        if (s.actualReps != null && s.actualWeight != null) {
-                          return '${s.actualWeight!.toStringAsFixed(0)}×${s.actualReps}';
-                        }
-                        return '—';
-                      }).join('   ·   '),
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
-                        color: const Color(0xFF2E2E2E),
-                      ),
+                  Text(
+                    warmUpSets.map((s) {
+                      if (s.actualReps != null && s.actualWeight != null) {
+                        return '${s.actualWeight!.toStringAsFixed(0)}×${s.actualReps}';
+                      }
+                      return '—';
+                    }).join('   ·   '),
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      color: const Color(0xFF2E2E2E),
                     ),
                   ),
                 ],
@@ -470,6 +479,7 @@ class _PrPill extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             '$prev → $val',
+            maxLines: 1,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 10,
               fontWeight: FontWeight.w600,

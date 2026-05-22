@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/session_provider.dart';
 import '../../data/models/session.dart';
 import '../../data/models/workout.dart';
+import '../../theme/responsive.dart';
 import '../../utils/weight_calculator.dart';
 
 class ExerciseDetails extends StatelessWidget {
@@ -161,7 +162,7 @@ class _WarmupRow extends StatelessWidget {
                   Text(
                     w.toStringAsFixed(0),
                     style: GoogleFonts.spaceGrotesk(
-                      fontSize: 22,
+                      fontSize: Responsive.font(context, base: 22, min: 18, max: 24),
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                       letterSpacing: -0.5,
@@ -232,21 +233,22 @@ class _WorkingSetRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 Text(
                   '$reps reps',
                   style: GoogleFonts.outfit(
-                    fontSize: 15,
+                    fontSize: Responsive.font(context, base: 15, min: 13, max: 16),
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(width: 8),
                 Text(
                   percentageLabel,
                   style: GoogleFonts.outfit(
-                    fontSize: 13,
+                    fontSize: Responsive.font(context, base: 13, min: 12, max: 14),
                     color: const Color(0xFF909090),
                   ),
                 ),
@@ -255,8 +257,10 @@ class _WorkingSetRow extends StatelessWidget {
           ),
           Text(
             '${weight.toStringAsFixed(0)} lbs',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.spaceGrotesk(
-              fontSize: 18,
+              fontSize: Responsive.font(context, base: 18, min: 15, max: 20),
               fontWeight: FontWeight.w700,
               color: Colors.white,
               letterSpacing: -0.5,

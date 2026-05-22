@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../providers/session_provider.dart';
+import '../theme/responsive.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../utils/weight_calculator.dart';
 import 'completion_screen.dart';
@@ -436,6 +437,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final currentCtx = _currentSetIndex < _allSets.length ? _allSets[_currentSetIndex] : null;
     final accentColor = currentCtx?.isWarmup == true ? colorScheme.secondary : colorScheme.primary;
+    final showOneRmChip = _currentOneRm != null && _currentOneRm! > 0;
+    final showPrChip = _pr != null && _pr! > 0;
+    final hasHeaderChips = showOneRmChip || showPrChip;
 
     return PopScope(
       canPop: false,
@@ -455,6 +459,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       },
       child: Scaffold(
       appBar: AppBar(
+        toolbarHeight: context.isCompact ? 74 : 80,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -471,39 +476,69 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
             const SizedBox(height: 2),
             Text(
               _exerciseName,
+              maxLines: context.isCompact ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.spaceGrotesk(
-                fontSize: 22,
+                fontSize: Responsive.font(context, base: 22, min: 18, max: 24),
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                if (_currentOneRm != null && _currentOneRm! > 0) ...[
-                  _StatChip(label: '1RM', value: '${_currentOneRm!.toStringAsFixed(0)} lbs'),
-                  const SizedBox(width: 8),
-                ],
-                if (_pr != null && _pr! > 0)
-                  _StatChip(label: 'PR', value: '${_pr!.toStringAsFixed(0)} lbs', color: colorScheme.secondary),
-              ],
-            ),
           ],
         ),
+        bottom: hasHeaderChips
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(36),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.fromLTRB(
+                      Responsive.screenPadding(context).left,
+                      0,
+                      Responsive.screenPadding(context).right,
+                      8,
+                    ),
+                    child: Row(
+                      children: [
+                        if (showOneRmChip)
+                          _StatChip(
+                            label: '1RM',
+                            value: '${_currentOneRm!.toStringAsFixed(0)} lbs',
+                          ),
+                        if (showOneRmChip && showPrChip)
+                          const SizedBox(width: 8),
+                        if (showPrChip)
+                          _StatChip(
+                            label: 'PR',
+                            value: '${_pr!.toStringAsFixed(0)} lbs',
+                            color: colorScheme.secondary,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : null,
         elevation: 0,
       ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          padding: EdgeInsets.fromLTRB(
+            Responsive.screenPadding(context).left,
+            Responsive.space(context, 8, max: 12),
+            Responsive.screenPadding(context).right,
+            Responsive.space(context, 32, max: 40),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _SetTrack(sets: _allSets, currentIndex: _currentSetIndex, accentColor: accentColor),
-              const SizedBox(height: 28),
+              SizedBox(height: Responsive.space(context, 20, max: 28)),
               if (currentCtx != null) _CurrentSetBadge(ctx: currentCtx, accentColor: accentColor),
-              const SizedBox(height: 32),
+              SizedBox(height: Responsive.space(context, 20, max: 32)),
               WeightStepper(
                 weight: _weight,
                 controller: _weightController,
@@ -515,7 +550,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                 accentColor: accentColor,
                 errorText: _weightError,
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: Responsive.space(context, 14, max: 20)),
               _RepsStepper(
                 reps: _reps,
                 controller: _repsController,
@@ -534,12 +569,12 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                   accentColor: accentColor,
                 ),
               ],
-              const SizedBox(height: 20),
+              SizedBox(height: Responsive.space(context, 14, max: 20)),
               _NotesField(
                 controller: _notesController,
                 onChanged: (v) => setState(() => _notes = v.isEmpty ? null : v),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: Responsive.space(context, 20, max: 32)),
               _SubmitButton(
                 label: _currentSetIndex >= _allSets.length - 1 ? 'Finish Exercise' : 'Log Set',
                 onTap: _submitSet,
@@ -664,7 +699,7 @@ class _SetTrack extends StatelessWidget {
                   Text(
                     s.isWarmup ? 'W${s.displayNumber}' : 'S${s.displayNumber}',
                     style: GoogleFonts.outfit(
-                      fontSize: 10,
+                    fontSize: Responsive.font(context, base: 10, min: 9, max: 11),
                       fontWeight: FontWeight.w600,
                       color: accentColor,
                     ),
@@ -695,15 +730,16 @@ class _CurrentSetBadge extends StatelessWidget {
         border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          final leading = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 ctx.typeLabel,
                 style: GoogleFonts.outfit(
-                  fontSize: 11,
+                  fontSize: Responsive.font(context, base: 11, min: 10, max: 12),
                   fontWeight: FontWeight.w600,
                   color: accentColor,
                   letterSpacing: 1.2,
@@ -712,41 +748,62 @@ class _CurrentSetBadge extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 ctx.label,
+                maxLines: compact ? 3 : 2,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.spaceGrotesk(
-                  fontSize: 18,
+                  fontSize: Responsive.font(context, base: 18, min: 15, max: 20),
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                   letterSpacing: -0.5,
                 ),
               ),
             ],
-          ),
-          const Spacer(),
-          if (ctx.suggestedWeight > 0)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+          );
+          final target = ctx.suggestedWeight > 0
+              ? Column(
+                  crossAxisAlignment:
+                      compact ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'TARGET',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: const Color(0xFF909090),
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${ctx.suggestedWeight.toStringAsFixed(0)} lbs × ${ctx.targetReps}',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: Responsive.font(context, base: 16, min: 14, max: 17),
+                        fontWeight: FontWeight.w700,
+                        color: accentColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink();
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'TARGET',
-                  style: GoogleFonts.outfit(
-                    fontSize: 10,
-                    color: const Color(0xFF909090),
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${ctx.suggestedWeight.toStringAsFixed(0)} lbs × ${ctx.targetReps}',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: accentColor,
-                    letterSpacing: -0.5,
-                  ),
-                ),
+                leading,
+                if (ctx.suggestedWeight > 0) ...[
+                  const SizedBox(height: 10),
+                  target,
+                ],
               ],
-            ),
-        ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: leading),
+              if (ctx.suggestedWeight > 0) target,
+            ],
+          );
+        },
       ),
     );
   }
@@ -782,43 +839,63 @@ class _RepsStepper extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            _StepButton(label: '−1', onTap: () => onAdjust(-1)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Center(
-                child: IntrinsicWidth(
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.number,
-                    onChanged: onChanged,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 40,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 340;
+            final input = Center(
+              child: IntrinsicWidth(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  onChanged: onChanged,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: Responsive.font(context, base: 40, min: 30, max: 42),
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -1,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    hintText: '5',
+                    hintStyle: GoogleFonts.spaceGrotesk(
+                      fontSize: Responsive.font(context, base: 40, min: 30, max: 42),
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: -1,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      hintText: '5',
-                      hintStyle: GoogleFonts.spaceGrotesk(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF444444),
-                      ),
+                      color: const Color(0xFF444444),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            _StepButton(label: '+1', onTap: () => onAdjust(1)),
-          ],
+            );
+            if (compact) {
+              return Column(
+                children: [
+                  input,
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _StepButton(label: '−1', onTap: () => onAdjust(-1)),
+                      const SizedBox(width: 12),
+                      _StepButton(label: '+1', onTap: () => onAdjust(1)),
+                    ],
+                  ),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                _StepButton(label: '−1', onTap: () => onAdjust(-1)),
+                const SizedBox(width: 12),
+                Expanded(child: input),
+                const SizedBox(width: 12),
+                _StepButton(label: '+1', onTap: () => onAdjust(1)),
+              ],
+            );
+          },
         ),
         if (errorText != null) ...[
           const SizedBox(height: 6),

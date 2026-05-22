@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/responsive.dart';
 
 class WeightStepper extends StatelessWidget {
   final double weight;
@@ -27,59 +28,85 @@ class WeightStepper extends StatelessWidget {
         Text(
           'WEIGHT',
           style: GoogleFonts.outfit(
-            fontSize: 11,
+            fontSize: Responsive.font(context, base: 11, min: 10, max: 12),
             fontWeight: FontWeight.w600,
             color: const Color(0xFF909090),
             letterSpacing: 1.5,
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            StepButton(label: '−10', onTap: () => onAdjust(-10)),
-            const SizedBox(width: 4),
-            StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Center(
-                child: IntrinsicWidth(
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: onChanged,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 40,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 360;
+            final input = Center(
+              child: IntrinsicWidth(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: onChanged,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: Responsive.font(context, base: 40, min: 30, max: 44),
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -1,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    hintText: '0',
+                    hintStyle: GoogleFonts.spaceGrotesk(
+                      fontSize: Responsive.font(context, base: 40, min: 30, max: 44),
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: -1,
+                      color: const Color(0xFF444444),
                     ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      hintText: '0',
-                      hintStyle: GoogleFonts.spaceGrotesk(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF444444),
-                      ),
-                      suffixText: 'lbs',
-                      suffixStyle: GoogleFonts.outfit(
-                        fontSize: 16,
-                        color: const Color(0xFF666666),
-                      ),
+                    suffixText: 'lbs',
+                    suffixStyle: GoogleFonts.outfit(
+                      fontSize: Responsive.font(context, base: 16, min: 13, max: 17),
+                      color: const Color(0xFF666666),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
-            const SizedBox(width: 4),
-            StepButton(label: '+10', onTap: () => onAdjust(10)),
-          ],
+            );
+            final controls = Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                StepButton(label: '−10', onTap: () => onAdjust(-10)),
+                StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
+                StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
+                StepButton(label: '+10', onTap: () => onAdjust(10)),
+              ],
+            );
+
+            if (compact) {
+              return Column(
+                children: [
+                  controls,
+                  const SizedBox(height: 8),
+                  input,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                StepButton(label: '−10', onTap: () => onAdjust(-10)),
+                const SizedBox(width: 4),
+                StepButton(label: '−5', onTap: () => onAdjust(-5), small: true),
+                const SizedBox(width: 12),
+                Expanded(child: input),
+                const SizedBox(width: 12),
+                StepButton(label: '+5', onTap: () => onAdjust(5), small: true),
+                const SizedBox(width: 4),
+                StepButton(label: '+10', onTap: () => onAdjust(10)),
+              ],
+            );
+          },
         ),
         if (errorText != null) ...[
           const SizedBox(height: 6),
