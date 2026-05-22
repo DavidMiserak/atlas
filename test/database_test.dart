@@ -59,7 +59,7 @@ void main() {
       );
 
       expect(schemaVersion.isNotEmpty, true);
-      expect(schemaVersion.first[colSettingsValue], '4');
+      expect(schemaVersion.first[colSettingsValue], '5');
 
       final deloadFreq = await db.query(
         tableSettings,
