@@ -34,7 +34,10 @@ class _SetContext {
   });
 
   String get label {
-    if (isWarmup && percentage != null && workingSetWeight != null && workingSetWeight! > 0) {
+    if (isWarmup &&
+        percentage != null &&
+        workingSetWeight != null &&
+        workingSetWeight! > 0) {
       final percentStr = (percentage! * 100).toStringAsFixed(0);
       final workStr = workingSetWeight!.toStringAsFixed(0);
       return 'Warm-up $displayNumber: $percentStr% of $workStr lbs';
@@ -44,9 +47,8 @@ class _SetContext {
 
   String get typeLabel => isWarmup ? 'WARM-UP' : 'WORKING SET';
 
-  String get weightLabel => suggestedWeight > 0
-      ? suggestedWeight.toStringAsFixed(0)
-      : '—';
+  String get weightLabel =>
+      suggestedWeight > 0 ? suggestedWeight.toStringAsFixed(0) : '—';
 
   String get repsLabel => '$targetReps reps';
 }
@@ -68,8 +70,16 @@ class WarmupSetConfig {
 
 List<WarmupSetConfig> buildWarmupSetConfigs(int workingSetRestSeconds) {
   return [
-    const WarmupSetConfig(reps: 8, targetRestSeconds: 120, rangeLabel: '1:00-2:00'),
-    const WarmupSetConfig(reps: 4, targetRestSeconds: 180, rangeLabel: '2:00-3:00'),
+    const WarmupSetConfig(
+      reps: 8,
+      targetRestSeconds: 120,
+      rangeLabel: '1:00-2:00',
+    ),
+    const WarmupSetConfig(
+      reps: 4,
+      targetRestSeconds: 180,
+      rangeLabel: '2:00-3:00',
+    ),
     WarmupSetConfig(
       reps: 2,
       targetRestSeconds: workingSetRestSeconds,
@@ -134,9 +144,10 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   Future<void> _loadSetContext() async {
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
+    final slot = provider.getSlotForExercise(widget.slotId);
 
     final variant = await provider.getVariantDetails(widget.chosenVariantId);
-    final slotName = provider.getSlotForExercise(widget.slotId)?.name ?? 'Variant';
+    final slotName = slot?.name ?? 'Variant';
     if (mounted) {
       setState(() {
         _exerciseName = variant?.name ?? 'Exercise';
@@ -145,17 +156,23 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     }
 
     var oneRm = await provider.getVariantOneRm(widget.chosenVariantId);
-    final pr = await provider.getHighestWeightForVariant(widget.chosenVariantId);
+    final pr = await provider.getHighestWeightForVariant(
+      widget.chosenVariantId,
+    );
     final templates = await provider.getSlotSetTemplates(widget.slotId);
     final sets = <_SetContext>[];
 
     if ((oneRm == null || oneRm <= 0) && templates.isNotEmpty) {
-      final sessionEstimate = provider.getEstimatedOneRm(widget.sessionExerciseId);
+      final sessionEstimate = provider.getEstimatedOneRm(
+        widget.sessionExerciseId,
+      );
       if (sessionEstimate != null && sessionEstimate > 0) {
         oneRm = sessionEstimate;
         _estimatedOneRm = sessionEstimate;
       } else if (mounted) {
-        final estimate = await _promptFor1RmEstimate(variant?.name ?? 'Exercise');
+        final estimate = await _promptFor1RmEstimate(
+          variant?.name ?? 'Exercise',
+        );
         if (estimate != null && estimate > 0) {
           oneRm = estimate;
           _estimatedOneRm = estimate;
@@ -175,48 +192,56 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       final workingWeight = firstTemplate.percentage1rm != null
           ? calculatePercentageWeight(oneRm, firstTemplate.percentage1rm!)
           : estimateWorkingWeightFromRpe(oneRm, firstTemplate.rpeTarget ?? 8);
-      final warmupWeights = calculateWarmupProgression(workingWeight);
-      final warmupPercentages = [0.50, 0.70, 0.90];
-      final warmupConfigs = buildWarmupSetConfigs(firstTemplate.restSeconds);
-      for (var i = 0; i < warmupWeights.length; i++) {
-        final warmupConfig = warmupConfigs[i];
-        sets.add(_SetContext(
-          isWarmup: true,
-          displayNumber: i + 1,
-          suggestedWeight: warmupWeights[i],
-          targetReps: warmupConfig.reps,
-          restSeconds: warmupConfig.targetRestSeconds,
-          restGuidanceText: warmupConfig.guidanceText,
-          percentage: warmupPercentages[i],
-          workingSetWeight: workingWeight,
-        ));
+      if (slot?.isMainLift == true) {
+        final warmupWeights = calculateWarmupProgression(workingWeight);
+        final warmupPercentages = [0.50, 0.70, 0.90];
+        final warmupConfigs = buildWarmupSetConfigs(firstTemplate.restSeconds);
+        for (var i = 0; i < warmupWeights.length; i++) {
+          final warmupConfig = warmupConfigs[i];
+          sets.add(
+            _SetContext(
+              isWarmup: true,
+              displayNumber: i + 1,
+              suggestedWeight: warmupWeights[i],
+              targetReps: warmupConfig.reps,
+              restSeconds: warmupConfig.targetRestSeconds,
+              restGuidanceText: warmupConfig.guidanceText,
+              percentage: warmupPercentages[i],
+              workingSetWeight: workingWeight,
+            ),
+          );
+        }
       }
       for (var i = 0; i < templates.length; i++) {
         final t = templates[i];
         final weight = t.percentage1rm != null
             ? calculatePercentageWeight(oneRm, t.percentage1rm!)
             : estimateWorkingWeightFromRpe(oneRm, t.rpeTarget ?? 8);
-        sets.add(_SetContext(
-          isWarmup: false,
-          displayNumber: i + 1,
-          suggestedWeight: weight,
-          targetReps: t.repsTargetMin ?? 5,
-          restSeconds: t.restSeconds,
-          percentage: t.percentage1rm,
-          rpeTarget: t.rpeTarget,
-        ));
+        sets.add(
+          _SetContext(
+            isWarmup: false,
+            displayNumber: i + 1,
+            suggestedWeight: weight,
+            targetReps: t.repsTargetMin ?? 5,
+            restSeconds: t.restSeconds,
+            percentage: t.percentage1rm,
+            rpeTarget: t.rpeTarget,
+          ),
+        );
       }
     } else {
       for (var i = 0; i < (templates.isNotEmpty ? templates.length : 3); i++) {
         final t = templates.isNotEmpty ? templates[i] : null;
-        sets.add(_SetContext(
-          isWarmup: false,
-          displayNumber: i + 1,
-          suggestedWeight: 0.0,
-          targetReps: t?.repsTargetMin ?? 5,
-          restSeconds: t?.restSeconds ?? 90,
-          rpeTarget: t?.rpeTarget,
-        ));
+        sets.add(
+          _SetContext(
+            isWarmup: false,
+            displayNumber: i + 1,
+            suggestedWeight: 0.0,
+            targetReps: t?.repsTargetMin ?? 5,
+            restSeconds: t?.restSeconds ?? 90,
+            rpeTarget: t?.rpeTarget,
+          ),
+        );
       }
     }
 
@@ -237,7 +262,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     double suggestedWeight = ctx.suggestedWeight;
     if (!ctx.isWarmup && _currentSetIndex > 0) {
       final prevCtx = _allSets[_currentSetIndex - 1];
-      if (!prevCtx.isWarmup && _loggedWeights.containsKey(_currentSetIndex - 1)) {
+      if (!prevCtx.isWarmup &&
+          _loggedWeights.containsKey(_currentSetIndex - 1)) {
         suggestedWeight = _loggedWeights[_currentSetIndex - 1]!;
       }
     }
@@ -246,7 +272,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       _reps = ctx.targetReps;
       _rpe = ctx.rpeTarget ?? 7;
     });
-    _weightController.text = suggestedWeight > 0 ? suggestedWeight.toStringAsFixed(0) : '';
+    _weightController.text = suggestedWeight > 0
+        ? suggestedWeight.toStringAsFixed(0)
+        : '';
     _repsController.text = ctx.targetReps.toString();
   }
 
@@ -269,13 +297,21 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           children: [
             Text(
               'No 1RM found for $variantName. Enter your estimated max to calculate weights.',
-              style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFFB0B0B0)),
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                color: const Color(0xFFB0B0B0),
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: estimateController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: GoogleFonts.spaceGrotesk(fontSize: 24, fontWeight: FontWeight.w700),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
               decoration: const InputDecoration(
                 labelText: '1RM (lbs)',
                 hintText: '225',
@@ -286,7 +322,10 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () { Navigator.of(context).pop(); completer.complete(null); },
+            onPressed: () {
+              Navigator.of(context).pop();
+              completer.complete(null);
+            },
             child: const Text('Skip'),
           ),
           ElevatedButton(
@@ -298,7 +337,10 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                 completer.complete(estimate);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter a valid weight'), duration: Duration(seconds: 2)),
+                  const SnackBar(
+                    content: Text('Enter a valid weight'),
+                    duration: Duration(seconds: 2),
+                  ),
                 );
               }
             },
@@ -314,10 +356,16 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     final weightErr = _weight <= 0 ? 'Enter a weight greater than 0' : null;
     final repsErr = _reps <= 0 ? 'Reps must be at least 1' : null;
     if (weightErr != null || repsErr != null) {
-      setState(() { _weightError = weightErr; _repsError = repsErr; });
+      setState(() {
+        _weightError = weightErr;
+        _repsError = repsErr;
+      });
       return;
     }
-    setState(() { _weightError = null; _repsError = null; });
+    setState(() {
+      _weightError = null;
+      _repsError = null;
+    });
 
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
@@ -365,7 +413,8 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
       if (isLastSet) {
         provider.nextExercise();
-        final sessionDone = provider.currentExerciseIndex! >= provider.sessionExercises.length;
+        final sessionDone =
+            provider.currentExerciseIndex! >= provider.sessionExercises.length;
         if (sessionDone) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const CompletionScreen()),
@@ -392,7 +441,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           builder: (context) => RestTimer(
             restSeconds: restSeconds,
             guidanceText: completedSet.restGuidanceText,
-            onComplete: () { if (mounted) Navigator.of(context).pop(); },
+            onComplete: () {
+              if (mounted) Navigator.of(context).pop();
+            },
           ),
         );
       }
@@ -415,13 +466,19 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
   void _adjustWeight(double delta) {
     final newWeight = (_weight + delta).clamp(0.0, 999.9);
-    setState(() { _weight = newWeight; if (newWeight > 0) _weightError = null; });
+    setState(() {
+      _weight = newWeight;
+      if (newWeight > 0) _weightError = null;
+    });
     _weightController.text = newWeight.toStringAsFixed(0);
   }
 
   void _adjustReps(int delta) {
     final newReps = (_reps + delta).clamp(1, 50);
-    setState(() { _reps = newReps; _repsError = null; });
+    setState(() {
+      _reps = newReps;
+      _repsError = null;
+    });
     _repsController.text = newReps.toString();
   }
 
@@ -435,8 +492,12 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     }
 
     final colorScheme = Theme.of(context).colorScheme;
-    final currentCtx = _currentSetIndex < _allSets.length ? _allSets[_currentSetIndex] : null;
-    final accentColor = currentCtx?.isWarmup == true ? colorScheme.secondary : colorScheme.primary;
+    final currentCtx = _currentSetIndex < _allSets.length
+        ? _allSets[_currentSetIndex]
+        : null;
+    final accentColor = currentCtx?.isWarmup == true
+        ? colorScheme.secondary
+        : colorScheme.primary;
     final showOneRmChip = _currentOneRm != null && _currentOneRm! > 0;
     final showPrChip = _pr != null && _pr! > 0;
     final hasHeaderChips = showOneRmChip || showPrChip;
@@ -458,149 +519,168 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         Navigator.of(context).pop();
       },
       child: Scaffold(
-      appBar: AppBar(
-        toolbarHeight: context.isCompact ? 74 : 80,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _slotName.toUpperCase(),
-              style: GoogleFonts.outfit(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF909090),
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _exerciseName,
-              maxLines: context.isCompact ? 2 : 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: Responsive.font(context, base: 22, min: 18, max: 24),
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
-        bottom: hasHeaderChips
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(36),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.fromLTRB(
-                      Responsive.screenPadding(context).left,
-                      0,
-                      Responsive.screenPadding(context).right,
-                      8,
-                    ),
-                    child: Row(
-                      children: [
-                        if (showOneRmChip)
-                          _StatChip(
-                            label: '1RM',
-                            value: '${_currentOneRm!.toStringAsFixed(0)} lbs',
-                          ),
-                        if (showOneRmChip && showPrChip)
-                          const SizedBox(width: 8),
-                        if (showPrChip)
-                          _StatChip(
-                            label: 'PR',
-                            value: '${_pr!.toStringAsFixed(0)} lbs',
-                            color: colorScheme.secondary,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            : null,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            Responsive.screenPadding(context).left,
-            Responsive.space(context, 8, max: 12),
-            Responsive.screenPadding(context).right,
-            Responsive.space(context, 32, max: 40),
-          ),
-          child: Column(
+        appBar: AppBar(
+          toolbarHeight: context.isCompact ? 74 : 80,
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _SetTrack(sets: _allSets, currentIndex: _currentSetIndex, accentColor: accentColor),
-              SizedBox(height: Responsive.space(context, 20, max: 28)),
-              if (currentCtx != null) _CurrentSetBadge(ctx: currentCtx, accentColor: accentColor),
-              SizedBox(height: Responsive.space(context, 20, max: 32)),
-              WeightStepper(
-                weight: _weight,
-                controller: _weightController,
-                onChanged: (v) {
-                  final parsed = double.tryParse(v) ?? 0.0;
-                  setState(() { _weight = parsed; if (parsed > 0) _weightError = null; });
-                },
-                onAdjust: _adjustWeight,
-                accentColor: accentColor,
-                errorText: _weightError,
-              ),
-              SizedBox(height: Responsive.space(context, 14, max: 20)),
-              _RepsStepper(
-                reps: _reps,
-                controller: _repsController,
-                onChanged: (v) {
-                  final parsed = int.tryParse(v) ?? 0;
-                  setState(() { _reps = parsed; if (parsed > 0) _repsError = null; });
-                },
-                onAdjust: _adjustReps,
-                errorText: _repsError,
-              ),
-              if (currentCtx?.isWarmup == false) ...[
-                const SizedBox(height: 20),
-                _RpeSelector(
-                  value: _rpe,
-                  onChanged: (v) => setState(() => _rpe = v),
-                  accentColor: accentColor,
+              Text(
+                _slotName.toUpperCase(),
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF909090),
+                  letterSpacing: 1.2,
                 ),
-              ],
-              SizedBox(height: Responsive.space(context, 14, max: 20)),
-              _NotesField(
-                controller: _notesController,
-                onChanged: (v) => setState(() => _notes = v.isEmpty ? null : v),
               ),
-              SizedBox(height: Responsive.space(context, 20, max: 32)),
-              _SubmitButton(
-                label: _currentSetIndex >= _allSets.length - 1 ? 'Finish Exercise' : 'Log Set',
-                onTap: _submitSet,
-                accentColor: accentColor,
+              const SizedBox(height: 2),
+              Text(
+                _exerciseName,
+                maxLines: context.isCompact ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: Responsive.font(
+                    context,
+                    base: 22,
+                    min: 18,
+                    max: 24,
+                  ),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
               ),
-              if (currentCtx?.isWarmup == true) ...[
-                const SizedBox(height: 12),
-                Center(
-                  child: TextButton(
-                    onPressed: _skipToWorking,
-                    child: Text(
-                      'Skip Warm-ups',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: const Color(0xFF666666),
+            ],
+          ),
+          bottom: hasHeaderChips
+              ? PreferredSize(
+                  preferredSize: const Size.fromHeight(36),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.fromLTRB(
+                        Responsive.screenPadding(context).left,
+                        0,
+                        Responsive.screenPadding(context).right,
+                        8,
+                      ),
+                      child: Row(
+                        children: [
+                          if (showOneRmChip)
+                            _StatChip(
+                              label: '1RM',
+                              value: '${_currentOneRm!.toStringAsFixed(0)} lbs',
+                            ),
+                          if (showOneRmChip && showPrChip)
+                            const SizedBox(width: 8),
+                          if (showPrChip)
+                            _StatChip(
+                              label: 'PR',
+                              value: '${_pr!.toStringAsFixed(0)} lbs',
+                              color: colorScheme.secondary,
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-              ],
-            ],
+                )
+              : null,
+          elevation: 0,
+        ),
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                Responsive.screenPadding(context).left,
+                Responsive.space(context, 8, max: 12),
+                Responsive.screenPadding(context).right,
+                Responsive.space(context, 32, max: 40),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SetTrack(
+                    sets: _allSets,
+                    currentIndex: _currentSetIndex,
+                    accentColor: accentColor,
+                  ),
+                  SizedBox(height: Responsive.space(context, 20, max: 28)),
+                  if (currentCtx != null)
+                    _CurrentSetBadge(ctx: currentCtx, accentColor: accentColor),
+                  SizedBox(height: Responsive.space(context, 20, max: 32)),
+                  WeightStepper(
+                    weight: _weight,
+                    controller: _weightController,
+                    onChanged: (v) {
+                      final parsed = double.tryParse(v) ?? 0.0;
+                      setState(() {
+                        _weight = parsed;
+                        if (parsed > 0) _weightError = null;
+                      });
+                    },
+                    onAdjust: _adjustWeight,
+                    accentColor: accentColor,
+                    errorText: _weightError,
+                  ),
+                  SizedBox(height: Responsive.space(context, 14, max: 20)),
+                  _RepsStepper(
+                    reps: _reps,
+                    controller: _repsController,
+                    onChanged: (v) {
+                      final parsed = int.tryParse(v) ?? 0;
+                      setState(() {
+                        _reps = parsed;
+                        if (parsed > 0) _repsError = null;
+                      });
+                    },
+                    onAdjust: _adjustReps,
+                    errorText: _repsError,
+                  ),
+                  if (currentCtx?.isWarmup == false) ...[
+                    const SizedBox(height: 20),
+                    _RpeSelector(
+                      value: _rpe,
+                      onChanged: (v) => setState(() => _rpe = v),
+                      accentColor: accentColor,
+                    ),
+                  ],
+                  SizedBox(height: Responsive.space(context, 14, max: 20)),
+                  _NotesField(
+                    controller: _notesController,
+                    onChanged: (v) =>
+                        setState(() => _notes = v.isEmpty ? null : v),
+                  ),
+                  SizedBox(height: Responsive.space(context, 20, max: 32)),
+                  _SubmitButton(
+                    label: _currentSetIndex >= _allSets.length - 1
+                        ? 'Finish Exercise'
+                        : 'Log Set',
+                    onTap: _submitSet,
+                    accentColor: accentColor,
+                  ),
+                  if (currentCtx?.isWarmup == true) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: TextButton(
+                        onPressed: _skipToWorking,
+                        child: Text(
+                          'Skip Warm-ups',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            color: const Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
-        ),
-      ),
-    ), // Scaffold
+      ), // Scaffold
     ); // PopScope
   }
 }
@@ -628,7 +708,10 @@ class _StatChip extends StatelessWidget {
         children: [
           Text(
             '$label ',
-            style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF909090)),
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              color: const Color(0xFF909090),
+            ),
           ),
           Text(
             value,
@@ -690,7 +773,12 @@ class _SetTrack extends StatelessWidget {
                     color: color,
                     borderRadius: BorderRadius.circular(3),
                     boxShadow: isCurrent
-                        ? [BoxShadow(color: accentColor.withValues(alpha: 0.5), blurRadius: 6)]
+                        ? [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.5),
+                              blurRadius: 6,
+                            ),
+                          ]
                         : null,
                   ),
                 ),
@@ -699,7 +787,12 @@ class _SetTrack extends StatelessWidget {
                   Text(
                     s.isWarmup ? 'W${s.displayNumber}' : 'S${s.displayNumber}',
                     style: GoogleFonts.outfit(
-                    fontSize: Responsive.font(context, base: 10, min: 9, max: 11),
+                      fontSize: Responsive.font(
+                        context,
+                        base: 10,
+                        min: 9,
+                        max: 11,
+                      ),
                       fontWeight: FontWeight.w600,
                       color: accentColor,
                     ),
@@ -727,7 +820,10 @@ class _CurrentSetBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: accentColor.withValues(alpha: 0.08),
-        border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: LayoutBuilder(
@@ -739,7 +835,12 @@ class _CurrentSetBadge extends StatelessWidget {
               Text(
                 ctx.typeLabel,
                 style: GoogleFonts.outfit(
-                  fontSize: Responsive.font(context, base: 11, min: 10, max: 12),
+                  fontSize: Responsive.font(
+                    context,
+                    base: 11,
+                    min: 10,
+                    max: 12,
+                  ),
                   fontWeight: FontWeight.w600,
                   color: accentColor,
                   letterSpacing: 1.2,
@@ -751,7 +852,12 @@ class _CurrentSetBadge extends StatelessWidget {
                 maxLines: compact ? 3 : 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.spaceGrotesk(
-                  fontSize: Responsive.font(context, base: 18, min: 15, max: 20),
+                  fontSize: Responsive.font(
+                    context,
+                    base: 18,
+                    min: 15,
+                    max: 20,
+                  ),
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                   letterSpacing: -0.5,
@@ -761,8 +867,9 @@ class _CurrentSetBadge extends StatelessWidget {
           );
           final target = ctx.suggestedWeight > 0
               ? Column(
-                  crossAxisAlignment:
-                      compact ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                  crossAxisAlignment: compact
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.end,
                   children: [
                     Text(
                       'TARGET',
@@ -776,7 +883,12 @@ class _CurrentSetBadge extends StatelessWidget {
                     Text(
                       '${ctx.suggestedWeight.toStringAsFixed(0)} lbs × ${ctx.targetReps}',
                       style: GoogleFonts.spaceGrotesk(
-                        fontSize: Responsive.font(context, base: 16, min: 14, max: 17),
+                        fontSize: Responsive.font(
+                          context,
+                          base: 16,
+                          min: 14,
+                          max: 17,
+                        ),
                         fontWeight: FontWeight.w700,
                         color: accentColor,
                         letterSpacing: -0.5,
@@ -850,7 +962,12 @@ class _RepsStepper extends StatelessWidget {
                   onChanged: onChanged,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.spaceGrotesk(
-                    fontSize: Responsive.font(context, base: 40, min: 30, max: 42),
+                    fontSize: Responsive.font(
+                      context,
+                      base: 40,
+                      min: 30,
+                      max: 42,
+                    ),
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: -1,
@@ -862,7 +979,12 @@ class _RepsStepper extends StatelessWidget {
                     filled: false,
                     hintText: '5',
                     hintStyle: GoogleFonts.spaceGrotesk(
-                      fontSize: Responsive.font(context, base: 40, min: 30, max: 42),
+                      fontSize: Responsive.font(
+                        context,
+                        base: 40,
+                        min: 30,
+                        max: 42,
+                      ),
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF444444),
                     ),
@@ -978,10 +1100,17 @@ class _RpeSelector extends StatelessWidget {
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: isSelected ? accentColor : colorScheme.surfaceContainer,
+                      color: isSelected
+                          ? accentColor
+                          : colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: isSelected
-                          ? [BoxShadow(color: accentColor.withValues(alpha: 0.4), blurRadius: 8)]
+                          ? [
+                              BoxShadow(
+                                color: accentColor.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                              ),
+                            ]
                           : null,
                     ),
                     child: Column(
@@ -1094,12 +1223,17 @@ class _SubmitButtonState extends State<_SubmitButton>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [widget.accentColor, widget.accentColor.withValues(alpha: 0.85)],
+                colors: [
+                  widget.accentColor,
+                  widget.accentColor.withValues(alpha: 0.85),
+                ],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: widget.accentColor.withValues(alpha: 0.3 + _controller.value * 0.2),
+                  color: widget.accentColor.withValues(
+                    alpha: 0.3 + _controller.value * 0.2,
+                  ),
                   blurRadius: 20 + _controller.value * 10,
                   offset: const Offset(0, 6),
                 ),

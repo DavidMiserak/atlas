@@ -1,4 +1,4 @@
-const int databaseVersion = 4;
+const int databaseVersion = 5;
 const String databaseName = 'workout_logger.db';
 
 const String tablePrograms = 'programs';
@@ -32,6 +32,7 @@ const String colSlotWorkoutId = 'workout_id';
 const String colSlotName = 'name';
 const String colSlotOrder = 'slot_order';
 const String colSlotCategory = 'category';
+const String colSlotIsMainLift = 'is_main_lift';
 
 const String colVariantId = 'variant_id';
 const String colVariantSlotId = 'slot_id';

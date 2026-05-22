@@ -78,7 +78,8 @@ Future<void> loadSeedData() async {
     await db.delete(tableSetTemplates);
     await db.delete(tableVariantOneRmHistory);
     await db.execute(
-        "DELETE FROM sqlite_sequence WHERE name IN ('$tablePrograms', '$tableWorkouts', '$tableExerciseSlots', '$tableExerciseVariants', '$tableSetTemplates', '$tableVariantOneRmHistory')");
+      "DELETE FROM sqlite_sequence WHERE name IN ('$tablePrograms', '$tableWorkouts', '$tableExerciseSlots', '$tableExerciseVariants', '$tableSetTemplates', '$tableVariantOneRmHistory')",
+    );
   } catch (e) {
     developer.log('loadSeedData: Error during deletion: $e');
   }
@@ -108,7 +109,8 @@ Future<void> loadSeedData() async {
         developer.log('loadSeedData: Created program with ID $programId');
 
         for (final workout
-            in (programData['workouts'] as List<dynamic>).cast<Map<String, dynamic>>()) {
+            in (programData['workouts'] as List<dynamic>)
+                .cast<Map<String, dynamic>>()) {
           final workoutId = await txn.insert(tableWorkouts, {
             colWorkoutProgramId: programId,
             colWorkoutName: workout['name'] as String,
@@ -118,12 +120,16 @@ Future<void> loadSeedData() async {
           });
 
           for (final slot
-              in (workout['exercise_slots'] as List<dynamic>).cast<Map<String, dynamic>>()) {
+              in (workout['exercise_slots'] as List<dynamic>)
+                  .cast<Map<String, dynamic>>()) {
             final slotId = await txn.insert(tableExerciseSlots, {
               colSlotWorkoutId: workoutId,
               colSlotName: slot['name'] as String,
               colSlotOrder: slot['order'] as int,
               colSlotCategory: slot['category'] as String,
+              colSlotIsMainLift: (slot['is_main_lift'] as bool? ?? false)
+                  ? 1
+                  : 0,
             });
 
             final tpl = slot['set_template'] as Map<String, dynamic>;
@@ -142,7 +148,8 @@ Future<void> loadSeedData() async {
                 colSetTemplateRestSeconds: restSeconds,
               };
               if (isPercentage) {
-                row[colSetTemplatePercentage1rm] = tpl['percentage_1rm'] as double;
+                row[colSetTemplatePercentage1rm] =
+                    tpl['percentage_1rm'] as double;
               } else {
                 row[colSetTemplateRpeTarget] = tpl['rpe_target'] as int;
               }
@@ -150,7 +157,8 @@ Future<void> loadSeedData() async {
             }
 
             for (final variant
-                in (slot['variants'] as List<dynamic>).cast<Map<String, dynamic>>()) {
+                in (slot['variants'] as List<dynamic>)
+                    .cast<Map<String, dynamic>>()) {
               final variantId = await txn.insert(tableExerciseVariants, {
                 colVariantSlotId: slotId,
                 colVariantName: variant['name'] as String,
@@ -159,8 +167,8 @@ Future<void> loadSeedData() async {
 
               await txn.insert(tableVariantOneRmHistory, {
                 col1rmHistoryVariantId: variantId,
-                col1rmHistoryWeight:
-                    (variant['initial_one_rm'] as num).toDouble(),
+                col1rmHistoryWeight: (variant['initial_one_rm'] as num)
+                    .toDouble(),
                 col1rmHistoryDate: seedDate,
                 col1rmHistoryNotes: 'Initial estimate',
                 col1rmHistoryIsCurrent: 1,
@@ -211,8 +219,9 @@ Future<void> seedWarmupItems(Database db) async {
 
 Future<void> seedVariants(Database db) async {
   try {
-    final jsonString =
-        await rootBundle.loadString('assets/data/exercises.json');
+    final jsonString = await rootBundle.loadString(
+      'assets/data/exercises.json',
+    );
     final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
 
     int variantsAdded = 0;
@@ -242,14 +251,17 @@ Future<void> seedVariants(Database db) async {
         );
         if (firstTemplateRows.isEmpty) {
           developer.log(
-              'seedVariants: No set template found for slot $slotName ($slotId), skipping');
+            'seedVariants: No set template found for slot $slotName ($slotId), skipping',
+          );
           continue;
         }
         final firstTemplate = firstTemplateRows.first;
 
         final variantEntries = <({String name, bool isMachine})>[];
         if (categories.containsKey('free_weight')) {
-          final freeWeightVariants = List<String>.from(categories['free_weight']);
+          final freeWeightVariants = List<String>.from(
+            categories['free_weight'],
+          );
           variantEntries.addAll(
             freeWeightVariants.map((name) => (name: name, isMachine: false)),
           );
@@ -298,7 +310,8 @@ Future<void> seedVariants(Database db) async {
       }
     }
     developer.log(
-        'seedVariants: Added $variantsAdded new variants and $oneRmRowsAdded 1RM records');
+      'seedVariants: Added $variantsAdded new variants and $oneRmRowsAdded 1RM records',
+    );
   } catch (e) {
     developer.log('seedVariants: Error: $e');
   }

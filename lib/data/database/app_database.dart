@@ -21,7 +21,8 @@ Future<Database> getDatabase() async {
 }
 
 Future<Database> _initDatabase() async {
-  final path = _testDatabasePath ?? join(await getDatabasesPath(), databaseName);
+  final path =
+      _testDatabasePath ?? join(await getDatabasesPath(), databaseName);
 
   return await openDatabase(
     path,
@@ -82,6 +83,15 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       );
     });
   }
+  if (oldVersion < 5) {
+    await db.execute(
+      'ALTER TABLE $tableExerciseSlots ADD COLUMN $colSlotIsMainLift INTEGER NOT NULL DEFAULT 0',
+    );
+    await db.rawUpdate(
+      'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+      ['5', settingSchemaVersion],
+    );
+  }
 }
 
 Future<void> _createTables(Database db) async {
@@ -115,6 +125,7 @@ Future<void> _createTables(Database db) async {
       $colSlotName TEXT NOT NULL,
       $colSlotOrder INTEGER NOT NULL,
       $colSlotCategory TEXT,
+      $colSlotIsMainLift INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY ($colSlotWorkoutId) REFERENCES $tableWorkouts ($colWorkoutId)
     )
   ''');
@@ -211,10 +222,18 @@ Future<void> _createTables(Database db) async {
     )
   ''');
 
-  await db.execute('CREATE INDEX idx_sessions_workout_id ON $tableSessions ($colSessionWorkoutId)');
-  await db.execute('CREATE INDEX idx_session_sets_session_exercise_id ON $tableSessionSets ($colSessionSetSessionExerciseId)');
-  await db.execute('CREATE INDEX idx_variant_1rm_history_variant_id_date ON $tableVariantOneRmHistory ($col1rmHistoryVariantId, $col1rmHistoryDate)');
-  await db.execute('CREATE INDEX idx_sessions_date ON $tableSessions ($colSessionDateCompleted)');
+  await db.execute(
+    'CREATE INDEX idx_sessions_workout_id ON $tableSessions ($colSessionWorkoutId)',
+  );
+  await db.execute(
+    'CREATE INDEX idx_session_sets_session_exercise_id ON $tableSessionSets ($colSessionSetSessionExerciseId)',
+  );
+  await db.execute(
+    'CREATE INDEX idx_variant_1rm_history_variant_id_date ON $tableVariantOneRmHistory ($col1rmHistoryVariantId, $col1rmHistoryDate)',
+  );
+  await db.execute(
+    'CREATE INDEX idx_sessions_date ON $tableSessions ($colSessionDateCompleted)',
+  );
 }
 
 Future<void> _initializeSettings(Database db) async {

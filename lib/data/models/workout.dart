@@ -66,6 +66,7 @@ class ExerciseSlot {
   final String name;
   final int slotOrder;
   final String? category;
+  final bool isMainLift;
   final List<ExerciseVariant> variants;
   final List<SetTemplate> setTemplates;
 
@@ -75,6 +76,7 @@ class ExerciseSlot {
     required this.name,
     required this.slotOrder,
     this.category,
+    this.isMainLift = false,
     this.variants = const [],
     this.setTemplates = const [],
   });
@@ -86,6 +88,7 @@ class ExerciseSlot {
       'name': name,
       'slot_order': slotOrder,
       'category': category,
+      'is_main_lift': isMainLift ? 1 : 0,
     };
   }
 
@@ -96,6 +99,7 @@ class ExerciseSlot {
       name: map['name'] as String,
       slotOrder: map['slot_order'] as int,
       category: map['category'] as String?,
+      isMainLift: (map['is_main_lift'] as int?) == 1,
     );
   }
 
@@ -105,6 +109,7 @@ class ExerciseSlot {
     String? name,
     int? slotOrder,
     String? category,
+    bool? isMainLift,
     List<ExerciseVariant>? variants,
     List<SetTemplate>? setTemplates,
   }) {
@@ -114,6 +119,7 @@ class ExerciseSlot {
       name: name ?? this.name,
       slotOrder: slotOrder ?? this.slotOrder,
       category: category ?? this.category,
+      isMainLift: isMainLift ?? this.isMainLift,
       variants: variants ?? this.variants,
       setTemplates: setTemplates ?? this.setTemplates,
     );

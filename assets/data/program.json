@@ -15,6 +15,7 @@
               "name": "Squat Variant",
               "order": 1,
               "category": "Compound Lower",
+              "is_main_lift": true,
               "set_template": {
                 "type": "percentage",
                 "reps": 5,
@@ -31,6 +32,7 @@
               "name": "Deadlift Variant",
               "order": 2,
               "category": "Compound Lower",
+              "is_main_lift": true,
               "set_template": {
                 "type": "percentage",
                 "reps": 5,
@@ -47,6 +49,7 @@
               "name": "Single Leg Variant",
               "order": 3,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 8,
@@ -63,6 +66,7 @@
               "name": "Standing Calf Raise",
               "order": 4,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 8,
@@ -87,6 +91,7 @@
               "name": "Horizontal Push",
               "order": 1,
               "category": "Compound Upper",
+              "is_main_lift": true,
               "set_template": {
                 "type": "percentage",
                 "reps": 5,
@@ -103,6 +108,7 @@
               "name": "Horizontal Pull",
               "order": 2,
               "category": "Compound Upper",
+              "is_main_lift": true,
               "set_template": {
                 "type": "rpe",
                 "reps": 5,
@@ -119,6 +125,7 @@
               "name": "Vertical Push",
               "order": 3,
               "category": "Compound Upper",
+              "is_main_lift": true,
               "set_template": {
                 "type": "percentage",
                 "reps": 8,
@@ -135,6 +142,7 @@
               "name": "Vertical Pull",
               "order": 4,
               "category": "Compound Upper",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 8,
@@ -151,6 +159,7 @@
               "name": "Chest Flys",
               "order": 5,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 15,
@@ -175,6 +184,7 @@
               "name": "Hip Hinge Variant",
               "order": 1,
               "category": "Compound Lower",
+              "is_main_lift": true,
               "set_template": {
                 "type": "rpe",
                 "reps": 8,
@@ -191,6 +201,7 @@
               "name": "Leg Press Variant",
               "order": 2,
               "category": "Compound Lower",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 8,
@@ -206,6 +217,7 @@
               "name": "Leg Extension",
               "order": 3,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 12,
@@ -221,6 +233,7 @@
               "name": "Leg Curl",
               "order": 4,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 12,
@@ -236,6 +249,7 @@
               "name": "Seated Calf Raise",
               "order": 5,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 15,
@@ -259,6 +273,7 @@
               "name": "Horizontal Push",
               "order": 1,
               "category": "Compound Upper",
+              "is_main_lift": true,
               "set_template": {
                 "type": "percentage",
                 "reps": 10,
@@ -274,6 +289,7 @@
               "name": "Horizontal Pull",
               "order": 2,
               "category": "Compound Upper",
+              "is_main_lift": true,
               "set_template": {
                 "type": "rpe",
                 "reps": 10,
@@ -289,6 +305,7 @@
               "name": "Incline Push",
               "order": 3,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 12,
@@ -305,6 +322,7 @@
               "name": "Vertical Pull",
               "order": 4,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 12,
@@ -320,6 +338,7 @@
               "name": "Triceps Isolation",
               "order": 5,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 12,
@@ -336,6 +355,7 @@
               "name": "Biceps Isolation",
               "order": 6,
               "category": "Accessory",
+              "is_main_lift": false,
               "set_template": {
                 "type": "rpe",
                 "reps": 12,

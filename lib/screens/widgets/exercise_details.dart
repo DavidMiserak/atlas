@@ -10,14 +10,11 @@ import '../../utils/weight_calculator.dart';
 class ExerciseDetails extends StatelessWidget {
   final SessionExercise sessionExercise;
 
-  const ExerciseDetails({
-    super.key,
-    required this.sessionExercise,
-  });
+  const ExerciseDetails({super.key, required this.sessionExercise});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<(double?, List<SetTemplate>)>(
+    return FutureBuilder<(double?, List<SetTemplate>, bool)>(
       future: _loadDetails(context),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -29,7 +26,7 @@ class ExerciseDetails extends StatelessWidget {
 
         if (!snapshot.hasData) return const SizedBox();
 
-        final (oneRm, templates) = snapshot.data!;
+        final (oneRm, templates, isMainLift) = snapshot.data!;
 
         if (oneRm == null || templates.isEmpty) {
           return _NoDataCard();
@@ -44,10 +41,12 @@ class ExerciseDetails extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionHeader(label: 'Warm-up'),
-            const SizedBox(height: 12),
-            _WarmupRow(weights: warmupWeights),
-            const SizedBox(height: 28),
+            if (isMainLift) ...[
+              _SectionHeader(label: 'Warm-up'),
+              const SizedBox(height: 12),
+              _WarmupRow(weights: warmupWeights),
+              const SizedBox(height: 28),
+            ],
             _SectionHeader(label: 'Working Sets'),
             const SizedBox(height: 12),
             ...templates.asMap().entries.map((entry) {
@@ -77,11 +76,18 @@ class ExerciseDetails extends StatelessWidget {
     );
   }
 
-  Future<(double?, List<SetTemplate>)> _loadDetails(BuildContext context) async {
+  Future<(double?, List<SetTemplate>, bool)> _loadDetails(
+    BuildContext context,
+  ) async {
     final provider = context.read<SessionProvider>();
-    final oneRm = await provider.getVariantOneRm(sessionExercise.chosenVariantId);
-    final templates = await provider.getSlotSetTemplates(sessionExercise.slotId);
-    return (oneRm, templates);
+    final oneRm = await provider.getVariantOneRm(
+      sessionExercise.chosenVariantId,
+    );
+    final templates = await provider.getSlotSetTemplates(
+      sessionExercise.slotId,
+    );
+    final slot = provider.getSlotForExercise(sessionExercise.slotId);
+    return (oneRm, templates, slot?.isMainLift == true);
   }
 }
 
@@ -115,10 +121,7 @@ class _NoDataCard extends StatelessWidget {
       ),
       child: Text(
         'No 1RM set — you\'ll be prompted when you start logging.',
-        style: GoogleFonts.outfit(
-          fontSize: 14,
-          color: const Color(0xFF909090),
-        ),
+        style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF909090)),
       ),
     );
   }
@@ -162,7 +165,12 @@ class _WarmupRow extends StatelessWidget {
                   Text(
                     w.toStringAsFixed(0),
                     style: GoogleFonts.spaceGrotesk(
-                      fontSize: Responsive.font(context, base: 22, min: 18, max: 24),
+                      fontSize: Responsive.font(
+                        context,
+                        base: 22,
+                        min: 18,
+                        max: 24,
+                      ),
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                       letterSpacing: -0.5,
@@ -240,7 +248,12 @@ class _WorkingSetRow extends StatelessWidget {
                 Text(
                   '$reps reps',
                   style: GoogleFonts.outfit(
-                    fontSize: Responsive.font(context, base: 15, min: 13, max: 16),
+                    fontSize: Responsive.font(
+                      context,
+                      base: 15,
+                      min: 13,
+                      max: 16,
+                    ),
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
@@ -248,7 +261,12 @@ class _WorkingSetRow extends StatelessWidget {
                 Text(
                   percentageLabel,
                   style: GoogleFonts.outfit(
-                    fontSize: Responsive.font(context, base: 13, min: 12, max: 14),
+                    fontSize: Responsive.font(
+                      context,
+                      base: 13,
+                      min: 12,
+                      max: 14,
+                    ),
                     color: const Color(0xFF909090),
                   ),
                 ),
