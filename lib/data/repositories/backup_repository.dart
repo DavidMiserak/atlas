@@ -23,13 +23,22 @@ class BackupRepository {
     return destPath;
   }
 
-  /// Shares the backup file at [path] via the system share sheet (mobile)
-  /// or saves it to the Downloads directory (desktop).
-  /// Returns the destination path on desktop platforms, null on mobile.
-  Future<String?> shareBackup(String path) async {
-    developer.log('BackupRepository: sharing backup at $path');
-    if (Platform.isAndroid || Platform.isIOS) {
-      const channel = MethodChannel('com.miserak.atlas/share');
+  /// Saves the backup file to the device Downloads folder (Android/desktop)
+  /// or presents a share sheet (iOS, so the user can save to Files.app).
+  /// Returns a human-readable destination string, or null on iOS.
+  Future<String?> saveBackup(String path) async {
+    const channel = MethodChannel('com.miserak.atlas/share');
+    if (Platform.isAndroid) {
+      final fileName = basename(path);
+      developer.log('BackupRepository: saving backup to Downloads: $fileName');
+      await channel.invokeMethod<String>('saveToDownloads', {
+        'path': path,
+        'fileName': fileName,
+      });
+      return 'Downloads/$fileName';
+    }
+    if (Platform.isIOS) {
+      developer.log('BackupRepository: sharing backup via iOS share sheet');
       await channel.invokeMethod<void>('shareFile', {
         'path': path,
         'mimeType': 'application/octet-stream',

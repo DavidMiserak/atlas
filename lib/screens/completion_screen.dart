@@ -200,154 +200,163 @@ class _CompletionScreenState extends State<CompletionScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FadeTransition(
-                  opacity: _headlineFade,
-                  child: Row(
-                    children: [
-                      _PulsingDot(color: colorScheme.primary),
-                      const SizedBox(width: 10),
-                      Text(
-                        'WORKOUT COMPLETE',
-                        style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF555555),
-                          letterSpacing: 2.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                SlideTransition(
-                  position: _headlineSlide,
-                  child: FadeTransition(
-                    opacity: _headlineFade,
-                    child: Text(
-                      'DONE.',
-                      style: GoogleFonts.barlowCondensed(
-                        fontSize: 120,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -3,
-                        height: 0.88,
-                      ),
-                    ),
-                  ),
-                ),
-
-                if (_workoutName != null) ...[
-                  const SizedBox(height: 10),
-                  SlideTransition(
-                    position: _nameSlide,
-                    child: FadeTransition(
-                      opacity: _nameFade,
-                      child: Text(
-                        _workoutName!,
-                        style: GoogleFonts.outfit(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.secondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 36),
-
-                AnimatedBuilder(
-                  animation: _ruleProgress,
-                  builder: (context, _) {
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        return Stack(
-                          children: [
-                            Container(
-                              width: constraints.maxWidth,
-                              height: 1,
-                              color: const Color(0xFF1E1E1E),
-                            ),
-                            Container(
-                              width: constraints.maxWidth * _ruleProgress.value,
-                              height: 1.5,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    colorScheme.primary,
-                                    colorScheme.primary.withValues(alpha: 0.2),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 40),
-
-                SlideTransition(
-                  position: _statsSlide,
-                  child: FadeTransition(
-                    opacity: _statsFade,
+                Expanded(
+                  child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_totalVolume > 0) ...[
-                          _RawStat(
-                            value: _formatVolume(_totalVolume),
-                            label: 'LBS MOVED',
-                            color: colorScheme.primary,
+                        FadeTransition(
+                          opacity: _headlineFade,
+                          child: Row(
+                            children: [
+                              _PulsingDot(color: colorScheme.primary),
+                              const SizedBox(width: 10),
+                              Text(
+                                'WORKOUT COMPLETE',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF555555),
+                                  letterSpacing: 2.5,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 28),
-                        ],
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _RawStat(
-                              value: '$_totalSets',
-                              label: 'SETS',
-                              color: Colors.white,
-                            ),
-                            _VerticalRule(),
-                            _RawStat(
-                              value: '$_exerciseCount',
-                              label: 'EXERCISES',
-                              color: Colors.white,
-                            ),
-                          ],
                         ),
+
+                        const SizedBox(height: 28),
+
+                        SlideTransition(
+                          position: _headlineSlide,
+                          child: FadeTransition(
+                            opacity: _headlineFade,
+                            child: Text(
+                              'DONE.',
+                              style: GoogleFonts.barlowCondensed(
+                                fontSize: 120,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: -3,
+                                height: 0.88,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        if (_workoutName != null) ...[
+                          const SizedBox(height: 10),
+                          SlideTransition(
+                            position: _nameSlide,
+                            child: FadeTransition(
+                              opacity: _nameFade,
+                              child: Text(
+                                _workoutName!,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.secondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 36),
+
+                        AnimatedBuilder(
+                          animation: _ruleProgress,
+                          builder: (context, _) {
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                return Stack(
+                                  children: [
+                                    Container(
+                                      width: constraints.maxWidth,
+                                      height: 1,
+                                      color: const Color(0xFF1E1E1E),
+                                    ),
+                                    Container(
+                                      width: constraints.maxWidth * _ruleProgress.value,
+                                      height: 1.5,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            colorScheme.primary,
+                                            colorScheme.primary.withValues(alpha: 0.2),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 40),
+
+                        SlideTransition(
+                          position: _statsSlide,
+                          child: FadeTransition(
+                            opacity: _statsFade,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (_totalVolume > 0) ...[
+                                  _RawStat(
+                                    value: _formatVolume(_totalVolume),
+                                    label: 'LBS MOVED',
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(height: 28),
+                                ],
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _RawStat(
+                                      value: '$_totalSets',
+                                      label: 'SETS',
+                                      color: Colors.white,
+                                    ),
+                                    _VerticalRule(),
+                                    _RawStat(
+                                      value: '$_exerciseCount',
+                                      label: 'EXERCISES',
+                                      color: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        if (_progressions.isNotEmpty) ...[
+                          const SizedBox(height: 32),
+                          FadeTransition(
+                            opacity: _ctaFade,
+                            child: _ProgressionCallout(
+                              progressions: _progressions,
+                              accentColor: colorScheme.primary,
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 32),
+                        FadeTransition(
+                          opacity: _ctaFade,
+                          child: _NotesField(
+                            controller: _notesController,
+                            onChanged: _saveNotes,
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
                 ),
-
-                if (_progressions.isNotEmpty) ...[
-                  const SizedBox(height: 32),
-                  FadeTransition(
-                    opacity: _ctaFade,
-                    child: _ProgressionCallout(
-                      progressions: _progressions,
-                      accentColor: colorScheme.primary,
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-                FadeTransition(
-                  opacity: _ctaFade,
-                  child: _NotesField(
-                    controller: _notesController,
-                    onChanged: _saveNotes,
-                  ),
-                ),
-
-                const Spacer(),
 
                 FadeTransition(
                   opacity: _ctaFade,
