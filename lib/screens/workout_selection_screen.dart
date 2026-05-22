@@ -4,11 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import '../data/models/program.dart';
 import '../theme/responsive.dart';
-import 'session_screen.dart';
 import 'warmup_screen.dart';
 import 'session_review_screen.dart';
 import 'one_rm_history_list_screen.dart';
 import 'settings_screen.dart';
+import 'workout_overview_screen.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
   const WorkoutSelectionScreen({super.key});
@@ -59,8 +59,12 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         index: _selectedTab,
         children: [
           _buildWorkoutsTab(colorScheme),
-          _tabVisited[1] ? const SessionReviewScreen() : const SizedBox.shrink(),
-          _tabVisited[2] ? const OneRmHistoryListScreen() : const SizedBox.shrink(),
+          _tabVisited[1]
+              ? const SessionReviewScreen()
+              : const SizedBox.shrink(),
+          _tabVisited[2]
+              ? const OneRmHistoryListScreen()
+              : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -75,18 +79,9 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         selectedItemColor: const Color(0xFF00D9FF),
         unselectedItemColor: const Color(0xFF666666),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Workouts',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.trending_up),
-            label: '1RM',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Workouts'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: '1RM'),
         ],
       ),
     );
@@ -101,9 +96,7 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
         if (!snapshot.hasData || snapshot.data == null) {
@@ -136,10 +129,7 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
             }
 
             final workout = workouts[index - 1];
-            final colors = [
-              colorScheme.primary,
-              colorScheme.secondary,
-            ];
+            final colors = [colorScheme.primary, colorScheme.secondary];
             final accentColor = colors[(index - 1) % colors.length];
 
             return Padding(
@@ -150,18 +140,15 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                     .where((s) => s.variants.isNotEmpty)
                     .length,
                 accentColor: accentColor,
-                onPressed: () async {
-                  final nav = Navigator.of(context);
-                  await context
-                      .read<SessionProvider>()
-                      .startSession(workout.id!);
-                  if (mounted) {
-                    nav.push(
-                      MaterialPageRoute(
-                        builder: (context) => const SessionScreen(),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => WorkoutOverviewScreen(
+                        workout: workout,
+                        accentColor: accentColor,
                       ),
-                    );
-                  }
+                    ),
+                  );
                 },
               ),
             );
@@ -310,7 +297,12 @@ class _WorkoutCard extends StatelessWidget {
                     Text(
                       '$exerciseCount exercises',
                       style: GoogleFonts.outfit(
-                        fontSize: Responsive.font(context, base: 14, min: 12, max: 15),
+                        fontSize: Responsive.font(
+                          context,
+                          base: 14,
+                          min: 12,
+                          max: 15,
+                        ),
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFFB0B0B0),
                       ),
