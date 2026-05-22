@@ -5,6 +5,7 @@ import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 import 'set_logging_screen.dart';
 import 'widgets/exercise_details.dart';
+import 'widgets/pinned_action_bar.dart';
 import 'widgets/variant_selector.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -109,58 +110,57 @@ class _SessionScreenState extends State<SessionScreen> {
                   final colors = [colorScheme.primary, colorScheme.secondary];
                   final accentColor = colors[exerciseIndex % colors.length];
 
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _PremiumProgressBar(
-                            current: exerciseIndex + 1,
-                            total: provider.sessionExercises.length,
-                            accentColor: accentColor,
-                          ),
-                          SizedBox(
-                            height: Responsive.space(context, 28, max: 40),
-                          ),
-                          _ExerciseHero(
-                            sessionExercise: sessionExercise,
-                            accentColor: accentColor,
-                          ),
-                          SizedBox(
-                            height: Responsive.space(context, 24, max: 36),
-                          ),
-                          ExerciseDetails(sessionExercise: sessionExercise),
-                          SizedBox(
-                            height: Responsive.space(context, 20, max: 32),
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: VariantSelector(
-                                  sessionExercise: sessionExercise,
-                                  onVariantSwapped: () {
-                                    setState(() {});
-                                  },
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                          children: [
+                            _PremiumProgressBar(
+                              current: exerciseIndex + 1,
+                              total: provider.sessionExercises.length,
+                              accentColor: accentColor,
+                            ),
+                            SizedBox(
+                              height: Responsive.space(context, 28, max: 40),
+                            ),
+                            _ExerciseHero(
+                              sessionExercise: sessionExercise,
+                              accentColor: accentColor,
+                            ),
+                            SizedBox(
+                              height: Responsive.space(context, 16, max: 24),
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: VariantSelector(
+                                    sessionExercise: sessionExercise,
+                                    onVariantSwapped: () {
+                                      setState(() {});
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(
-                            height: Responsive.space(context, 24, max: 40),
-                          ),
-                          _LogSetsCTA(
-                            sessionExerciseId: sessionExercise.id!,
-                            slotId: sessionExercise.slotId,
-                            chosenVariantId: sessionExercise.chosenVariantId,
-                            accentColor: accentColor,
-                          ),
-                          SizedBox(
-                            height: Responsive.space(context, 14, max: 20),
-                          ),
-                        ],
+                              ],
+                            ),
+                            SizedBox(
+                              height: Responsive.space(context, 20, max: 32),
+                            ),
+                            ExerciseDetails(
+                              sessionExercise: sessionExercise,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      PinnedActionBar(
+                        child: _LogSetsCTA(
+                          sessionExerciseId: sessionExercise.id!,
+                          slotId: sessionExercise.slotId,
+                          chosenVariantId: sessionExercise.chosenVariantId,
+                          accentColor: accentColor,
+                        ),
+                      ),
+                    ],
                   );
                 },
               );

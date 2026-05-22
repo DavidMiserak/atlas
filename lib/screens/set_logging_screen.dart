@@ -7,6 +7,7 @@ import '../theme/responsive.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../utils/weight_calculator.dart';
 import 'completion_screen.dart';
+import 'widgets/pinned_action_bar.dart';
 import 'widgets/rest_timer.dart';
 import 'widgets/weight_stepper.dart';
 
@@ -682,94 +683,103 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         ),
         body: SafeArea(
           top: false,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                Responsive.screenPadding(context).left,
-                Responsive.space(context, 8, max: 12),
-                Responsive.screenPadding(context).right,
-                Responsive.space(context, 32, max: 40),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SetTrack(
-                    sets: _allSets,
-                    currentIndex: _currentSetIndex,
-                    accentColor: accentColor,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                    Responsive.screenPadding(context).left,
+                    Responsive.space(context, 8, max: 12),
+                    Responsive.screenPadding(context).right,
+                    24,
                   ),
-                  SizedBox(height: Responsive.space(context, 20, max: 28)),
-                  if (currentCtx != null)
-                    _CurrentSetBadge(ctx: currentCtx, accentColor: accentColor),
-                  SizedBox(height: Responsive.space(context, 20, max: 32)),
-                  WeightStepper(
-                    weight: _weight,
-                    controller: _weightController,
-                    onChanged: (v) {
-                      final parsed = double.tryParse(v) ?? 0.0;
-                      setState(() {
-                        _weight = parsed;
-                        if (parsed > 0) _weightError = null;
-                      });
-                    },
-                    onAdjust: _adjustWeight,
-                    accentColor: accentColor,
-                    errorText: _weightError,
-                  ),
-                  SizedBox(height: Responsive.space(context, 14, max: 20)),
-                  _RepsStepper(
-                    reps: _reps,
-                    controller: _repsController,
-                    onChanged: (v) {
-                      final parsed = int.tryParse(v) ?? 0;
-                      setState(() {
-                        _reps = parsed;
-                        if (parsed > 0) _repsError = null;
-                      });
-                    },
-                    onAdjust: _adjustReps,
-                    errorText: _repsError,
-                  ),
-                  if (currentCtx?.isWarmup == false) ...[
-                    const SizedBox(height: 20),
-                    _RpeSelector(
-                      value: _rpe,
-                      onChanged: (v) => setState(() => _rpe = v),
+                  children: [
+                    _SetTrack(
+                      sets: _allSets,
+                      currentIndex: _currentSetIndex,
+                      accentColor: accentColor,
+                    ),
+                    SizedBox(height: Responsive.space(context, 20, max: 28)),
+                    if (currentCtx != null)
+                      _CurrentSetBadge(
+                        ctx: currentCtx,
+                        accentColor: accentColor,
+                      ),
+                    SizedBox(height: Responsive.space(context, 20, max: 32)),
+                    WeightStepper(
+                      weight: _weight,
+                      controller: _weightController,
+                      onChanged: (v) {
+                        final parsed = double.tryParse(v) ?? 0.0;
+                        setState(() {
+                          _weight = parsed;
+                          if (parsed > 0) _weightError = null;
+                        });
+                      },
+                      onAdjust: _adjustWeight,
+                      accentColor: accentColor,
+                      errorText: _weightError,
+                    ),
+                    SizedBox(height: Responsive.space(context, 14, max: 20)),
+                    _RepsStepper(
+                      reps: _reps,
+                      controller: _repsController,
+                      onChanged: (v) {
+                        final parsed = int.tryParse(v) ?? 0;
+                        setState(() {
+                          _reps = parsed;
+                          if (parsed > 0) _repsError = null;
+                        });
+                      },
+                      onAdjust: _adjustReps,
+                      errorText: _repsError,
+                    ),
+                    if (currentCtx?.isWarmup == false) ...[
+                      const SizedBox(height: 20),
+                      _RpeSelector(
+                        value: _rpe,
+                        onChanged: (v) => setState(() => _rpe = v),
+                        accentColor: accentColor,
+                      ),
+                    ],
+                    SizedBox(height: Responsive.space(context, 14, max: 20)),
+                    _NotesButton(
+                      hasNotes: _notes != null && _notes!.trim().isNotEmpty,
+                      onTap: _openNotesSheet,
                       accentColor: accentColor,
                     ),
                   ],
-                  SizedBox(height: Responsive.space(context, 14, max: 20)),
-                  _NotesButton(
-                    hasNotes: _notes != null && _notes!.trim().isNotEmpty,
-                    onTap: _openNotesSheet,
-                    accentColor: accentColor,
-                  ),
-                  SizedBox(height: Responsive.space(context, 12, max: 18)),
-                  _SubmitButton(
-                    label: _currentSetIndex >= _allSets.length - 1
-                        ? 'Finish Exercise'
-                        : 'Log Set',
-                    onTap: _submitSet,
-                    accentColor: accentColor,
-                  ),
-                  if (currentCtx?.isWarmup == true) ...[
-                    const SizedBox(height: 12),
-                    Center(
-                      child: TextButton(
-                        onPressed: _skipToWorking,
-                        child: Text(
-                          'Skip Warm-ups',
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            color: const Color(0xFF666666),
+                ),
+              ),
+              PinnedActionBar(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (currentCtx?.isWarmup == true)
+                      Center(
+                        child: TextButton(
+                          onPressed: _skipToWorking,
+                          child: Text(
+                            'Skip Warm-ups',
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              color: const Color(0xFF666666),
+                            ),
                           ),
                         ),
                       ),
+                    _SubmitButton(
+                      label: _currentSetIndex >= _allSets.length - 1
+                          ? 'Finish Exercise'
+                          : 'Log Set',
+                      onTap: _submitSet,
+                      accentColor: accentColor,
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ), // Scaffold
