@@ -2,6 +2,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
+const _rpeToPercent = <int, double>{
+  10: 1.00,
+  9: 0.94,
+  8: 0.88,
+  7: 0.82,
+  6: 0.76,
+};
+
+double _baselineWorkingWeight(String variantName, String description) {
+  final text = '${variantName.toLowerCase()} ${description.toLowerCase()}';
+  if (text.contains('pull-up') ||
+      text.contains('pullups') ||
+      text.contains('chin-up') ||
+      text.contains('chinups') ||
+      text.contains('dip')) {
+    return 45.0;
+  }
+  if (text.contains('split squat') || text.contains('lunge')) return 20.0;
+  if (text.contains('dumbbell')) return 20.0;
+  if (text.contains('machine') || text.contains('cable') || text.contains('pulldown')) {
+    return 10.0;
+  }
+  return 45.0;
+}
+
+double _expectedOneRm(
+  Map<String, dynamic> setTemplate,
+  String variantName,
+  String description,
+) {
+  final baseline = _baselineWorkingWeight(variantName, description);
+  final type = setTemplate['type'] as String;
+  final percentage = type == 'percentage'
+      ? (setTemplate['percentage_1rm'] as num).toDouble()
+      : _rpeToPercent[setTemplate['rpe_target'] as int]!;
+  return ((baseline / percentage) / 5).round() * 5.0;
+}
+
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -103,18 +141,25 @@ void main() {
       }
     });
 
-    test('Back Squat has initial_one_rm = 135 (test hack removed)', () {
+    test('all variants match beginner baseline assumptions and template math', () {
       final program = (json['programs'] as List<dynamic>)[0] as Map<String, dynamic>;
-      final day1 = (program['workouts'] as List<dynamic>)
-          .cast<Map<String, dynamic>>()
-          .firstWhere((w) => w['day_number'] == 1);
-      final squatSlot = (day1['exercise_slots'] as List<dynamic>)
-          .cast<Map<String, dynamic>>()
-          .firstWhere((s) => s['name'] == 'Squat Variant');
-      final backSquat = (squatSlot['variants'] as List<dynamic>)
-          .cast<Map<String, dynamic>>()
-          .firstWhere((v) => v['name'] == 'Back Squat');
-      expect(backSquat['initial_one_rm'], 135);
+      for (final workout in (program['workouts'] as List<dynamic>).cast<Map<String, dynamic>>()) {
+        for (final slot in (workout['exercise_slots'] as List<dynamic>).cast<Map<String, dynamic>>()) {
+          final setTemplate = slot['set_template'] as Map<String, dynamic>;
+          for (final variant in (slot['variants'] as List<dynamic>).cast<Map<String, dynamic>>()) {
+            final name = variant['name'] as String;
+            final description = variant['description'] as String? ?? '';
+            final expected = _expectedOneRm(setTemplate, name, description);
+            final actual = (variant['initial_one_rm'] as num).toDouble();
+            expect(
+              actual,
+              expected,
+              reason:
+                  '$name in ${slot['name']} expected beginner-seeded 1RM $expected but found $actual',
+            );
+          }
+        }
+      }
     });
   });
 }

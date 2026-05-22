@@ -76,26 +76,34 @@ void main() {
       expect(currentRecords.length, 33);
     });
 
-    test('Back Squat has initial 1RM of 135', () async {
+    test('seeded 1RMs reflect beginner baseline assumptions', () async {
       await loadSeedData();
       final db = await getDatabase();
-      final backSquat = await db.query(
-        tableExerciseVariants,
-        where: '$colVariantName = ?',
-        whereArgs: ['Back Squat'],
-        limit: 1,
-      );
-      expect(backSquat.isNotEmpty, isTrue);
-      final variantId = backSquat.first[colVariantId] as int;
-      final oneRm = await db.query(
-        tableVariantOneRmHistory,
-        where:
-            '$col1rmHistoryVariantId = ? AND $col1rmHistoryIsCurrent = 1',
-        whereArgs: [variantId],
-        limit: 1,
-      );
-      expect(oneRm.isNotEmpty, isTrue);
-      expect((oneRm.first[col1rmHistoryWeight] as num).toDouble(), 135.0);
+
+      Future<double> currentOneRmFor(String variantName) async {
+        final variant = await db.query(
+          tableExerciseVariants,
+          where: '$colVariantName = ?',
+          whereArgs: [variantName],
+          limit: 1,
+        );
+        expect(variant, isNotEmpty, reason: 'missing variant $variantName');
+        final variantId = variant.first[colVariantId] as int;
+        final oneRm = await db.query(
+          tableVariantOneRmHistory,
+          where:
+              '$col1rmHistoryVariantId = ? AND $col1rmHistoryIsCurrent = 1',
+          whereArgs: [variantId],
+          limit: 1,
+        );
+        expect(oneRm, isNotEmpty, reason: 'missing current 1RM for $variantName');
+        return (oneRm.first[col1rmHistoryWeight] as num).toDouble();
+      }
+
+      expect(await currentOneRmFor('Back Squat'), 55.0); // barbell + percentage
+      expect(await currentOneRmFor('Dumbbell Bench Press'), 25.0); // dumbbell + percentage
+      expect(await currentOneRmFor('Leg Press Machine'), 10.0); // machine + rpe
+      expect(await currentOneRmFor('Pull-ups'), 50.0); // bodyweight + rpe
     });
 
     test('calling loadSeedData twice does not duplicate data', () async {
