@@ -482,6 +482,98 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
     _repsController.text = newReps.toString();
   }
 
+  Future<void> _openNotesSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF111111),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            Responsive.screenPadding(context).left,
+            16,
+            Responsive.screenPadding(context).right,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Set Notes',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    tooltip: 'Close notes',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                autofocus: true,
+                minLines: 3,
+                maxLines: 6,
+                style: GoogleFonts.outfit(fontSize: 14, color: Colors.white),
+                onChanged: (v) =>
+                    setState(() => _notes = v.trim().isEmpty ? null : v),
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: 'Felt strong, good depth...',
+                  hintStyle: GoogleFonts.outfit(color: const Color(0xFF616161)),
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A1A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2E2E2E)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2E2E2E)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _notes = null;
+                      _notesController.clear();
+                    });
+                  },
+                  child: Text(
+                    'Clear',
+                    style: GoogleFonts.outfit(color: const Color(0xFFB0B0B0)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingContext) {
@@ -647,12 +739,12 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                     ),
                   ],
                   SizedBox(height: Responsive.space(context, 14, max: 20)),
-                  _NotesField(
-                    controller: _notesController,
-                    onChanged: (v) =>
-                        setState(() => _notes = v.isEmpty ? null : v),
+                  _NotesButton(
+                    hasNotes: _notes != null && _notes!.trim().isNotEmpty,
+                    onTap: _openNotesSheet,
+                    accentColor: accentColor,
                   ),
-                  SizedBox(height: Responsive.space(context, 20, max: 32)),
+                  SizedBox(height: Responsive.space(context, 12, max: 18)),
                   _SubmitButton(
                     label: _currentSetIndex >= _allSets.length - 1
                         ? 'Finish Exercise'
@@ -1137,38 +1229,64 @@ class _RpeSelector extends StatelessWidget {
   }
 }
 
-class _NotesField extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+class _NotesButton extends StatelessWidget {
+  final bool hasNotes;
+  final VoidCallback onTap;
+  final Color accentColor;
 
-  const _NotesField({required this.controller, required this.onChanged});
+  const _NotesButton({
+    required this.hasNotes,
+    required this.onTap,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'NOTES',
-          style: GoogleFonts.outfit(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF909090),
-            letterSpacing: 1.5,
+    final textColor = hasNotes ? Colors.white : const Color(0xFFB8B8B8);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: hasNotes
+              ? accentColor.withValues(alpha: 0.16)
+              : const Color(0xFF171717),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasNotes
+                ? accentColor.withValues(alpha: 0.55)
+                : const Color(0xFF2A2A2A),
           ),
         ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: controller,
-          onChanged: onChanged,
-          maxLines: 2,
-          style: GoogleFonts.outfit(fontSize: 14, color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Felt strong, good depth...',
-            hintStyle: GoogleFonts.outfit(color: const Color(0xFF444444)),
-          ),
+        child: Row(
+          children: [
+            Icon(Icons.sticky_note_2_outlined, size: 18, color: textColor),
+            const SizedBox(width: 8),
+            Text(
+              hasNotes ? 'Notes Added' : 'Add Notes',
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const Spacer(),
+            if (hasNotes)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor,
+                ),
+              ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF8F8F8F)),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
