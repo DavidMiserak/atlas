@@ -20,6 +20,7 @@ class WorkoutSelectionScreen extends StatefulWidget {
 class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   late Future<Program?> _programFuture;
   int _selectedTab = 0;
+  final List<bool> _tabVisited = [true, false, false];
 
   @override
   void initState() {
@@ -64,14 +65,17 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         index: _selectedTab,
         children: [
           _buildWorkoutsTab(colorScheme),
-          const SessionReviewScreen(),
-          const OneRmHistoryListScreen(),
+          _tabVisited[1] ? const SessionReviewScreen() : const SizedBox.shrink(),
+          _tabVisited[2] ? const OneRmHistoryListScreen() : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedTab,
         onTap: (index) {
-          setState(() => _selectedTab = index);
+          setState(() {
+            _selectedTab = index;
+            _tabVisited[index] = true;
+          });
         },
         backgroundColor: const Color(0xFF0D0D0D),
         selectedItemColor: const Color(0xFF00D9FF),
