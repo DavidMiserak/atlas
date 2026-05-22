@@ -23,6 +23,7 @@ class SessionProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   Map<int, double> _estimatedOneRms = {};
+  Map<int, int> _preselectedVariantsBySlot = {};
 
   // Getters
   Session? get currentSession => _currentSession;
@@ -42,7 +43,10 @@ class SessionProvider extends ChangeNotifier {
     return await programRepo.getProgramById(programs.first.id!);
   }
 
-  Future<void> startSession(int workoutId) async {
+  Future<void> startSession(
+    int workoutId, {
+    Map<int, int>? preselectedVariantsBySlot,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -57,14 +61,13 @@ class SessionProvider extends ChangeNotifier {
         throw Exception('Program not found');
       }
 
-      final workout = program.workouts
-          .firstWhere((w) => w.id == workoutId, orElse: () => program.workouts[0]);
+      final workout = program.workouts.firstWhere(
+        (w) => w.id == workoutId,
+        orElse: () => program.workouts[0],
+      );
 
       final now = DateTime.now();
-      final session = Session(
-        workoutId: workoutId,
-        dateCompleted: now,
-      );
+      final session = Session(workoutId: workoutId, dateCompleted: now);
 
       final sessionId = await sessionRepo.createSession(session);
       final createdSession = await sessionRepo.getSessionById(sessionId);
@@ -77,6 +80,7 @@ class SessionProvider extends ChangeNotifier {
       _sessionExercises = [];
       _sessionSets = {};
       _estimatedOneRms = {};
+      _preselectedVariantsBySlot = preselectedVariantsBySlot ?? {};
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -96,7 +100,9 @@ class SessionProvider extends ChangeNotifier {
         chosenVariantId: chosenVariantId,
       );
 
-      final exerciseId = await sessionRepo.createSessionExercise(sessionExercise);
+      final exerciseId = await sessionRepo.createSessionExercise(
+        sessionExercise,
+      );
 
       final createdExercise = sessionExercise.copyWith(id: exerciseId);
       _sessionExercises = [..._sessionExercises, createdExercise];
@@ -176,6 +182,7 @@ class SessionProvider extends ChangeNotifier {
       _sessionSets = {};
       _currentExerciseIndex = null;
       _estimatedOneRms = {};
+      _preselectedVariantsBySlot = {};
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -206,11 +213,42 @@ class SessionProvider extends ChangeNotifier {
     return await sessionRepo.getHighestWeightForVariant(variantId);
   }
 
+  Future<Map<int, int>> getLastUsedVariantIdsForSlots(List<int> slotIds) async {
+    return await sessionRepo.getLastUsedVariantIdsForSlots(slotIds);
+  }
+
+  Future<void> initializeSessionExercisesForCurrentWorkout() async {
+    final workout = _currentWorkout;
+    if (_currentSession == null || workout == null) return;
+    if (_sessionExercises.isNotEmpty) return;
+
+    for (final slot in workout.exerciseSlots) {
+      if (slot.id == null || slot.variants.isEmpty) continue;
+
+      final selectedVariant = _preselectedVariantsBySlot[slot.id!];
+      if (selectedVariant != null &&
+          slot.variants.any((variant) => variant.id == selectedVariant)) {
+        await addSessionExercise(slot.id!, selectedVariant);
+        continue;
+      }
+
+      final lastUsedId = await sessionRepo.getLastUsedVariantId(slot.id!);
+      final fallbackVariantId = slot.variants.first.id;
+      if (fallbackVariantId == null) continue;
+
+      final variantId = slot.variants.any((v) => v.id == lastUsedId)
+          ? lastUsedId!
+          : fallbackVariantId;
+      await addSessionExercise(slot.id!, variantId);
+    }
+  }
+
   ExerciseSlot? getSlotForExercise(int slotId) {
     if (_currentWorkout == null) return null;
     try {
-      return _currentWorkout!.exerciseSlots
-          .firstWhere((slot) => slot.id == slotId);
+      return _currentWorkout!.exerciseSlots.firstWhere(
+        (slot) => slot.id == slotId,
+      );
     } catch (_) {
       return null;
     }
@@ -218,16 +256,19 @@ class SessionProvider extends ChangeNotifier {
 
   Future<void> swapVariant(int sessionExerciseId, int newVariantId) async {
     try {
-      final index = _sessionExercises.indexWhere((e) => e.id == sessionExerciseId);
+      final index = _sessionExercises.indexWhere(
+        (e) => e.id == sessionExerciseId,
+      );
       if (index == -1) return;
 
-      final updatedExercise =
-          _sessionExercises[index].copyWith(chosenVariantId: newVariantId);
+      final updatedExercise = _sessionExercises[index].copyWith(
+        chosenVariantId: newVariantId,
+      );
       await sessionRepo.updateSessionExercise(updatedExercise);
 
       _sessionExercises = [
         for (var i = 0; i < _sessionExercises.length; i++)
-          if (i == index) updatedExercise else _sessionExercises[i]
+          if (i == index) updatedExercise else _sessionExercises[i],
       ];
       notifyListeners();
     } catch (e) {

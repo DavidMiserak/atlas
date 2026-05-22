@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 import 'set_logging_screen.dart';
@@ -27,28 +26,13 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Future<void> _loadExercises() async {
-    final program = await _sessionProvider.getProgram();
-    final workoutId = _sessionProvider.selectedWorkoutId;
-
-    if (program == null || workoutId == null) return;
-
-    final workout = program.workouts
-        .firstWhere((w) => w.id == workoutId, orElse: () => program.workouts[0]);
-
-    final sessionRepo = SessionRepository();
-    for (final slot in workout.exerciseSlots) {
-      if (slot.variants.isNotEmpty) {
-        final lastUsedId = await sessionRepo.getLastUsedVariantId(slot.id!);
-        final variantId = slot.variants.any((v) => v.id == lastUsedId)
-            ? lastUsedId!
-            : slot.variants[0].id!;
-        await _sessionProvider.addSessionExercise(slot.id!, variantId);
-      }
-    }
+    await _sessionProvider.initializeSessionExercisesForCurrentWorkout();
   }
 
   Future<bool> _onWillPop() async {
-    final hasSets = _sessionProvider.sessionSets.values.any((sets) => sets.isNotEmpty);
+    final hasSets = _sessionProvider.sessionSets.values.any(
+      (sets) => sets.isNotEmpty,
+    );
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -56,8 +40,8 @@ class _SessionScreenState extends State<SessionScreen> {
         title: const Text('Go Back?'),
         content: Text(
           hasSets
-            ? 'Any logged sets will be saved, but you\'ll need to restart to continue this session.'
-            : 'Select a different workout?',
+              ? 'Any logged sets will be saved, but you\'ll need to restart to continue this session.'
+              : 'Select a different workout?',
         ),
         actions: [
           TextButton(
@@ -102,80 +86,86 @@ class _SessionScreenState extends State<SessionScreen> {
         body: SafeArea(
           top: false,
           child: FutureBuilder(
-          future: _loadExercisesFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            future: _loadExercisesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            return Consumer<SessionProvider>(
-              builder: (context, provider, child) {
-                if (provider.sessionExercises.isEmpty) {
-                  return const Center(
-                    child: Text('No exercises loaded'),
-                  );
-                }
+              return Consumer<SessionProvider>(
+                builder: (context, provider, child) {
+                  if (provider.sessionExercises.isEmpty) {
+                    return const Center(child: Text('No exercises loaded'));
+                  }
 
-                final exerciseIndex = provider.currentExerciseIndex ?? 0;
-                if (exerciseIndex >= provider.sessionExercises.length) {
-                  return const SizedBox();
-                }
+                  final exerciseIndex = provider.currentExerciseIndex ?? 0;
+                  if (exerciseIndex >= provider.sessionExercises.length) {
+                    return const SizedBox();
+                  }
 
-                final sessionExercise = provider.sessionExercises[exerciseIndex];
-                final colorScheme = Theme.of(context).colorScheme;
-                final colors = [
-                  colorScheme.primary,
-                  colorScheme.secondary,
-                ];
-                final accentColor = colors[exerciseIndex % colors.length];
+                  final sessionExercise =
+                      provider.sessionExercises[exerciseIndex];
+                  final colorScheme = Theme.of(context).colorScheme;
+                  final colors = [colorScheme.primary, colorScheme.secondary];
+                  final accentColor = colors[exerciseIndex % colors.length];
 
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _PremiumProgressBar(
-                          current: exerciseIndex + 1,
-                          total: provider.sessionExercises.length,
-                          accentColor: accentColor,
-                        ),
-                        SizedBox(height: Responsive.space(context, 28, max: 40)),
-                        _ExerciseHero(
-                          sessionExercise: sessionExercise,
-                          accentColor: accentColor,
-                        ),
-                        SizedBox(height: Responsive.space(context, 24, max: 36)),
-                        ExerciseDetails(sessionExercise: sessionExercise),
-                        SizedBox(height: Responsive.space(context, 20, max: 32)),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: VariantSelector(
-                                sessionExercise: sessionExercise,
-                                onVariantSwapped: () {
-                                  setState(() {});
-                                },
+                  return SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _PremiumProgressBar(
+                            current: exerciseIndex + 1,
+                            total: provider.sessionExercises.length,
+                            accentColor: accentColor,
+                          ),
+                          SizedBox(
+                            height: Responsive.space(context, 28, max: 40),
+                          ),
+                          _ExerciseHero(
+                            sessionExercise: sessionExercise,
+                            accentColor: accentColor,
+                          ),
+                          SizedBox(
+                            height: Responsive.space(context, 24, max: 36),
+                          ),
+                          ExerciseDetails(sessionExercise: sessionExercise),
+                          SizedBox(
+                            height: Responsive.space(context, 20, max: 32),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: VariantSelector(
+                                  sessionExercise: sessionExercise,
+                                  onVariantSwapped: () {
+                                    setState(() {});
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: Responsive.space(context, 24, max: 40)),
-                        _LogSetsCTA(
-                          sessionExerciseId: sessionExercise.id!,
-                          slotId: sessionExercise.slotId,
-                          chosenVariantId: sessionExercise.chosenVariantId,
-                          accentColor: accentColor,
-                        ),
-                        SizedBox(height: Responsive.space(context, 14, max: 20)),
-                      ],
+                            ],
+                          ),
+                          SizedBox(
+                            height: Responsive.space(context, 24, max: 40),
+                          ),
+                          _LogSetsCTA(
+                            sessionExerciseId: sessionExercise.id!,
+                            slotId: sessionExercise.slotId,
+                            chosenVariantId: sessionExercise.chosenVariantId,
+                            accentColor: accentColor,
+                          ),
+                          SizedBox(
+                            height: Responsive.space(context, 14, max: 20),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -241,10 +231,7 @@ class _PremiumProgressBar extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
-                    colors: [
-                      accentColor,
-                      accentColor.withValues(alpha: 0.7),
-                    ],
+                    colors: [accentColor, accentColor.withValues(alpha: 0.7)],
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -280,14 +267,19 @@ class _ExerciseHero extends StatelessWidget {
         final variant = snapshot.data![0];
         final oneRm = snapshot.data![1] as double?;
         if (variant == null) return const SizedBox();
-        final slotName = provider.getSlotForExercise(sessionExercise.slotId)?.name ?? 'Variant';
+        final slotName =
+            provider.getSlotForExercise(sessionExercise.slotId)?.name ??
+            'Variant';
 
         final compact = context.isCompact;
         return Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: accentColor.withValues(alpha: 0.07),
-            border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1.5),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -370,12 +362,7 @@ class _HeroPrimary extends StatelessWidget {
           maxLines: context.isCompact ? 3 : 2,
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.spaceGrotesk(
-            fontSize: Responsive.font(
-              context,
-              base: 30,
-              min: 22,
-              max: 34,
-            ),
+            fontSize: Responsive.font(context, base: 30, min: 22, max: 34),
             fontWeight: FontWeight.w700,
             letterSpacing: -1.5,
             color: Colors.white,
@@ -396,8 +383,9 @@ class _HeroOneRm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          context.isCompact ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      crossAxisAlignment: context.isCompact
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       children: [
         Text(
           '1RM',
@@ -412,12 +400,7 @@ class _HeroOneRm extends StatelessWidget {
         Text(
           '${oneRm.toStringAsFixed(0)} lbs',
           style: GoogleFonts.spaceGrotesk(
-            fontSize: Responsive.font(
-              context,
-              base: 24,
-              min: 18,
-              max: 28,
-            ),
+            fontSize: Responsive.font(context, base: 24, min: 18, max: 28),
             fontWeight: FontWeight.w700,
             color: accentColor,
             letterSpacing: -1,
@@ -515,7 +498,12 @@ class _LogSetsCTAState extends State<_LogSetsCTA>
                     Text(
                       'Log Sets',
                       style: GoogleFonts.outfit(
-                        fontSize: Responsive.font(context, base: 18, min: 16, max: 19),
+                        fontSize: Responsive.font(
+                          context,
+                          base: 18,
+                          min: 16,
+                          max: 19,
+                        ),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: 0.5,

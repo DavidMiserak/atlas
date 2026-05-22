@@ -58,16 +58,30 @@ class SessionRepository {
 
   Future<int?> getLastUsedVariantId(int slotId) async {
     final db = await getDatabase();
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT se.$colSessionExerciseChosenVariantId
       FROM $tableSessionExercises se
       JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
       WHERE se.$colSessionExerciseSlotId = ?
       ORDER BY s.$colSessionDateCompleted DESC
       LIMIT 1
-    ''', [slotId]);
+    ''',
+      [slotId],
+    );
     if (rows.isEmpty) return null;
     return rows.first[colSessionExerciseChosenVariantId] as int?;
+  }
+
+  Future<Map<int, int>> getLastUsedVariantIdsForSlots(List<int> slotIds) async {
+    final result = <int, int>{};
+    for (final slotId in slotIds) {
+      final variantId = await getLastUsedVariantId(slotId);
+      if (variantId != null) {
+        result[slotId] = variantId;
+      }
+    }
+    return result;
   }
 
   Future<int> logSet(SessionSet set) async {
@@ -76,7 +90,8 @@ class SessionRepository {
   }
 
   Future<Map<int, List<SessionSet>>> getSessionSetsForExercises(
-      List<int> seIds) async {
+    List<int> seIds,
+  ) async {
     if (seIds.isEmpty) return {};
     final db = await getDatabase();
     final placeholders = seIds.map((_) => '?').join(',');
@@ -217,12 +232,16 @@ class SessionRepository {
 
     for (final row in weightRows) {
       final sessionId = row['session_id'] as int;
-      prMap.putIfAbsent(sessionId, () => []).add(PrRecord(
-        variantName: row['variant_name'] as String,
-        prev: (row['prior_max'] as num).toDouble(),
-        value: (row['session_max'] as num).toDouble(),
-        is1rm: false,
-      ));
+      prMap
+          .putIfAbsent(sessionId, () => [])
+          .add(
+            PrRecord(
+              variantName: row['variant_name'] as String,
+              prev: (row['prior_max'] as num).toDouble(),
+              value: (row['session_max'] as num).toDouble(),
+              is1rm: false,
+            ),
+          );
     }
 
     // 1RM PRs: session max one_rm_at_session_time > prior session max
@@ -250,12 +269,16 @@ class SessionRepository {
 
     for (final row in oneRmRows) {
       final sessionId = row['session_id'] as int;
-      prMap.putIfAbsent(sessionId, () => []).add(PrRecord(
-        variantName: row['variant_name'] as String,
-        prev: (row['prior_max'] as num).toDouble(),
-        value: (row['session_max'] as num).toDouble(),
-        is1rm: true,
-      ));
+      prMap
+          .putIfAbsent(sessionId, () => [])
+          .add(
+            PrRecord(
+              variantName: row['variant_name'] as String,
+              prev: (row['prior_max'] as num).toDouble(),
+              value: (row['session_max'] as num).toDouble(),
+              is1rm: true,
+            ),
+          );
     }
 
     return prMap;
@@ -264,7 +287,8 @@ class SessionRepository {
   Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {
     final db = await getDatabase();
 
-    final exercisesResult = await db.rawQuery('''
+    final exercisesResult = await db.rawQuery(
+      '''
       SELECT
         se.$colSessionExerciseId,
         se.$colSessionExerciseSlotId,
@@ -300,7 +324,9 @@ class SessionRepository {
       JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
       WHERE se.$colSessionExerciseSessionId = ?
       ORDER BY es.$colSlotOrder
-    ''', [sessionId]);
+    ''',
+      [sessionId],
+    );
 
     final exercises = <SessionDetailExercise>[];
 
@@ -312,7 +338,8 @@ class SessionRepository {
       final allTimePr = (exerciseRow['all_time_pr'] as num?)?.toDouble();
       final allTime1rm = (exerciseRow['all_time_1rm'] as num?)?.toDouble();
 
-      final setsResult = await db.rawQuery('''
+      final setsResult = await db.rawQuery(
+        '''
         SELECT
           ss.$colSessionSetNumber,
           CASE WHEN ss.$colSessionSetIsWarmup = 1 THEN 'warm-up'
@@ -331,7 +358,9 @@ class SessionRepository {
           AND st.$colSetTemplateSetNumber = ss.$colSessionSetNumber
         WHERE ss.$colSessionSetSessionExerciseId = ?
         ORDER BY ss.$colSessionSetNumber
-      ''', [slotId, sessionExerciseId]);
+      ''',
+        [slotId, sessionExerciseId],
+      );
 
       final sets = setsResult
           .map((row) => SessionDetailSet.fromMap(row))
@@ -351,32 +380,38 @@ class SessionRepository {
 
       final newPrs = <PrRecord>[];
       if (sessionPr != null && priorPr != null && sessionPr > priorPr) {
-        newPrs.add(PrRecord(
-          variantName: variantName,
-          prev: priorPr,
-          value: sessionPr,
-          is1rm: false,
-        ));
+        newPrs.add(
+          PrRecord(
+            variantName: variantName,
+            prev: priorPr,
+            value: sessionPr,
+            is1rm: false,
+          ),
+        );
       }
       if (session1rm != null && prior1rm != null && session1rm > prior1rm) {
-        newPrs.add(PrRecord(
-          variantName: variantName,
-          prev: prior1rm,
-          value: session1rm,
-          is1rm: true,
-        ));
+        newPrs.add(
+          PrRecord(
+            variantName: variantName,
+            prev: prior1rm,
+            value: session1rm,
+            is1rm: true,
+          ),
+        );
       }
 
-      exercises.add(SessionDetailExercise(
-        slotName: slotName,
-        variantName: variantName,
-        sets: sets,
-        sessionPr: sessionPr,
-        allTimePr: allTimePr,
-        session1rm: session1rm,
-        allTime1rm: allTime1rm,
-        newPrs: newPrs,
-      ));
+      exercises.add(
+        SessionDetailExercise(
+          slotName: slotName,
+          variantName: variantName,
+          sets: sets,
+          sessionPr: sessionPr,
+          allTimePr: allTimePr,
+          session1rm: session1rm,
+          allTime1rm: allTime1rm,
+          newPrs: newPrs,
+        ),
+      );
     }
 
     return exercises;

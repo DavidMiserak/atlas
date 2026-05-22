@@ -23,7 +23,48 @@ class WorkoutOverviewScreen extends StatefulWidget {
 
 class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
   bool _isStarting = false;
+  bool _isLoadingSelections = true;
   String? _startError;
+  final Map<int, int> _selectedVariantsBySlot = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialVariantSelections();
+  }
+
+  Future<void> _loadInitialVariantSelections() async {
+    final slotIds = widget.workout.exerciseSlots
+        .where((slot) => slot.id != null && slot.variants.isNotEmpty)
+        .map((slot) => slot.id!)
+        .toList();
+    final lastUsedBySlot = await context
+        .read<SessionProvider>()
+        .getLastUsedVariantIdsForSlots(slotIds);
+
+    final selected = <int, int>{};
+    for (final slot in widget.workout.exerciseSlots) {
+      if (slot.id == null || slot.variants.isEmpty) continue;
+      final fallbackId = slot.variants.first.id;
+      if (fallbackId == null) continue;
+
+      final lastUsedId = lastUsedBySlot[slot.id!];
+      if (lastUsedId != null &&
+          slot.variants.any((variant) => variant.id == lastUsedId)) {
+        selected[slot.id!] = lastUsedId;
+      } else {
+        selected[slot.id!] = fallbackId;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _selectedVariantsBySlot
+        ..clear()
+        ..addAll(selected);
+      _isLoadingSelections = false;
+    });
+  }
 
   int get _exerciseCount => widget.workout.exerciseSlots.length;
 
@@ -57,7 +98,10 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
       _startError = null;
     });
 
-    await context.read<SessionProvider>().startSession(workoutId);
+    await context.read<SessionProvider>().startSession(
+      workoutId,
+      preselectedVariantsBySlot: _selectedVariantsBySlot,
+    );
     if (!mounted) return;
 
     final provider = context.read<SessionProvider>();
@@ -74,6 +118,57 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
     ).push(MaterialPageRoute(builder: (_) => const SessionScreen()));
     setState(() {
       _isStarting = false;
+    });
+  }
+
+  String _selectedVariantName(ExerciseSlot slot) {
+    if (slot.variants.isEmpty) return 'No variant assigned';
+    if (slot.id == null) return slot.variants.first.name;
+    final selectedId = _selectedVariantsBySlot[slot.id!];
+    ExerciseVariant? variant;
+    for (final candidate in slot.variants) {
+      if (candidate.id == selectedId) {
+        variant = candidate;
+        break;
+      }
+    }
+    return variant?.name ?? slot.variants.first.name;
+  }
+
+  Future<void> _showVariantDialog(ExerciseSlot slot) async {
+    if (slot.id == null || slot.variants.length <= 1) return;
+
+    final selectedVariantId = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        final currentVariantId = _selectedVariantsBySlot[slot.id!];
+        return AlertDialog(
+          title: const Text('Choose Exercise Variant'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: slot.variants.map((variant) {
+                final isSelected = variant.id == currentVariantId;
+                return ListTile(
+                  title: Text(variant.name),
+                  subtitle: variant.description != null
+                      ? Text(variant.description!)
+                      : null,
+                  trailing: isSelected
+                      ? Icon(Icons.check_circle, color: widget.accentColor)
+                      : null,
+                  onTap: () => Navigator.pop(dialogContext, variant.id),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selectedVariantId == null || slot.id == null) return;
+    setState(() {
+      _selectedVariantsBySlot[slot.id!] = selectedVariantId;
     });
   }
 
@@ -107,6 +202,11 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
                     estimatedMinutes: _estimatedMinutes,
                   ),
                   const SizedBox(height: 18),
+                  if (_isLoadingSelections)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 14),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
                   ...widget.workout.exerciseSlots.asMap().entries.map((entry) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 14),
@@ -114,6 +214,11 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
                         slot: entry.value,
                         index: entry.key + 1,
                         accentColor: widget.accentColor,
+                        selectedVariantName: _selectedVariantName(entry.value),
+                        canChangeVariant: entry.value.variants.length > 1,
+                        onChangeVariant: _isLoadingSelections
+                            ? null
+                            : () => _showVariantDialog(entry.value),
                       ),
                     );
                   }),
@@ -144,7 +249,9 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: _isStarting ? null : _startWorkout,
+                      onPressed: _isStarting || _isLoadingSelections
+                          ? null
+                          : _startWorkout,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: widget.accentColor,
                         foregroundColor: Colors.black,
@@ -301,11 +408,17 @@ class _ExerciseOverviewCard extends StatelessWidget {
   final ExerciseSlot slot;
   final int index;
   final Color accentColor;
+  final String selectedVariantName;
+  final bool canChangeVariant;
+  final VoidCallback? onChangeVariant;
 
   const _ExerciseOverviewCard({
     required this.slot,
     required this.index,
     required this.accentColor,
+    required this.selectedVariantName,
+    required this.canChangeVariant,
+    required this.onChangeVariant,
   });
 
   @override
@@ -325,10 +438,6 @@ class _ExerciseOverviewCard extends StatelessWidget {
         groupedSets['other']!.add(template);
       }
     }
-
-    final variantName = slot.variants.isNotEmpty
-        ? slot.variants.first.name
-        : 'No variant assigned';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -371,13 +480,34 @@ class _ExerciseOverviewCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      variantName,
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: const Color(0xFFB9B9B9),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            selectedVariantName,
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              color: const Color(0xFFB9B9B9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (canChangeVariant)
+                          TextButton.icon(
+                            onPressed: onChangeVariant,
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: const Text('Change Exercise'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: accentColor,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     if (slot.category != null &&
                         slot.category!.trim().isNotEmpty) ...[
