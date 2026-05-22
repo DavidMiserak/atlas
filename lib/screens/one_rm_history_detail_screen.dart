@@ -63,9 +63,11 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
                 ),
               ),
       ),
-      body: widget.variantId == null
-          ? _buildEmptyState(context)
-          : FutureBuilder<List<OneRmHistory>>(
+      body: SafeArea(
+        top: false,
+        child: widget.variantId == null
+            ? _buildEmptyState(context)
+            : FutureBuilder<List<OneRmHistory>>(
               future: _historyFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -99,6 +101,7 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
                 );
               },
             ),
+        ),
       floatingActionButton: widget.variantId != null
           ? FloatingActionButton.extended(
               onPressed: () => _showUpdateModal(context),

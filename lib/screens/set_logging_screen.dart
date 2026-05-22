@@ -435,7 +435,9 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
         ),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           child: Column(
@@ -503,6 +505,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
               ],
             ],
           ),
+        ),
         ),
       ),
     ), // Scaffold

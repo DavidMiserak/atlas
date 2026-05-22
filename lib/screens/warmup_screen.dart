@@ -45,7 +45,7 @@ class _WarmupScreenState extends State<WarmupScreen> {
         foregroundColor: Colors.white,
       ),
       backgroundColor: Colors.grey[850],
-      body: _buildBody(),
+      body: SafeArea(top: false, child: _buildBody()),
     );
   }
 

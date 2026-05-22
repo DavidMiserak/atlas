@@ -98,7 +98,9 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
           elevation: 0,
         ),
-        body: FutureBuilder(
+        body: SafeArea(
+          top: false,
+          child: FutureBuilder(
           future: _loadExercisesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -172,6 +174,7 @@ class _SessionScreenState extends State<SessionScreen> {
               },
             );
           },
+        ),
         ),
       ),
     );

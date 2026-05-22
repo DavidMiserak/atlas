@@ -272,9 +272,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         elevation: 0,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
               children: [
                 ListView(
                   children: [
@@ -356,6 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const _RestoreProgressOverlay(),
               ],
             ),
+        ),
     );
   }
 }
