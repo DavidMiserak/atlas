@@ -14,6 +14,8 @@ class _SetContext {
   final int displayNumber;
   final double suggestedWeight;
   final int targetReps;
+  final int restSeconds;
+  final String? restGuidanceText;
   final double? percentage;
   final int? rpeTarget;
   final double? workingSetWeight;
@@ -23,6 +25,8 @@ class _SetContext {
     required this.displayNumber,
     required this.suggestedWeight,
     required this.targetReps,
+    required this.restSeconds,
+    this.restGuidanceText,
     this.percentage,
     this.rpeTarget,
     this.workingSetWeight,
@@ -44,6 +48,33 @@ class _SetContext {
       : '—';
 
   String get repsLabel => '$targetReps reps';
+}
+
+class WarmupSetConfig {
+  final int reps;
+  final int targetRestSeconds;
+  final String rangeLabel;
+
+  const WarmupSetConfig({
+    required this.reps,
+    required this.targetRestSeconds,
+    required this.rangeLabel,
+  });
+
+  String get guidanceText =>
+      'Recommended rest: $rangeLabel. You can skip anytime.';
+}
+
+List<WarmupSetConfig> buildWarmupSetConfigs(int workingSetRestSeconds) {
+  return [
+    const WarmupSetConfig(reps: 8, targetRestSeconds: 120, rangeLabel: '1:00-2:00'),
+    const WarmupSetConfig(reps: 4, targetRestSeconds: 180, rangeLabel: '2:00-3:00'),
+    WarmupSetConfig(
+      reps: 2,
+      targetRestSeconds: workingSetRestSeconds,
+      rangeLabel: 'See Working Set',
+    ),
+  ];
 }
 
 class SetLoggingScreen extends StatefulWidget {
@@ -138,12 +169,16 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           : estimateWorkingWeightFromRpe(oneRm, firstTemplate.rpeTarget ?? 8);
       final warmupWeights = calculateWarmupProgression(workingWeight);
       final warmupPercentages = [0.50, 0.70, 0.90];
+      final warmupConfigs = buildWarmupSetConfigs(firstTemplate.restSeconds);
       for (var i = 0; i < warmupWeights.length; i++) {
+        final warmupConfig = warmupConfigs[i];
         sets.add(_SetContext(
           isWarmup: true,
           displayNumber: i + 1,
           suggestedWeight: warmupWeights[i],
-          targetReps: 5,
+          targetReps: warmupConfig.reps,
+          restSeconds: warmupConfig.targetRestSeconds,
+          restGuidanceText: warmupConfig.guidanceText,
           percentage: warmupPercentages[i],
           workingSetWeight: workingWeight,
         ));
@@ -158,6 +193,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           displayNumber: i + 1,
           suggestedWeight: weight,
           targetReps: t.repsTargetMin ?? 5,
+          restSeconds: t.restSeconds,
           percentage: t.percentage1rm,
           rpeTarget: t.rpeTarget,
         ));
@@ -170,6 +206,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           displayNumber: i + 1,
           suggestedWeight: 0.0,
           targetReps: t?.repsTargetMin ?? 5,
+          restSeconds: t?.restSeconds ?? 90,
           rpeTarget: t?.rpeTarget,
         ));
       }
@@ -338,13 +375,15 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       });
       _prefillFromContext();
 
-      final restSeconds = _allSets[loggedSetIndex].isWarmup ? 60 : 90;
+      final completedSet = _allSets[loggedSetIndex];
+      final restSeconds = completedSet.restSeconds;
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) => RestTimer(
             restSeconds: restSeconds,
+            guidanceText: completedSet.restGuidanceText,
             onComplete: () { if (mounted) Navigator.of(context).pop(); },
           ),
         );

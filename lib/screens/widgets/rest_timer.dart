@@ -3,11 +3,13 @@ import 'dart:async';
 
 class RestTimer extends StatefulWidget {
   final int restSeconds;
+  final String? guidanceText;
   final VoidCallback onComplete;
 
   const RestTimer({
     super.key,
     this.restSeconds = 90,
+    this.guidanceText,
     required this.onComplete,
   });
 
@@ -62,7 +64,8 @@ class _RestTimerState extends State<RestTimer> {
   @override
   Widget build(BuildContext context) {
     final isActive = _timer?.isActive ?? false;
-    final progress = 1 - (_secondsRemaining / widget.restSeconds);
+    final totalSeconds = widget.restSeconds <= 0 ? 1 : widget.restSeconds;
+    final progress = 1 - (_secondsRemaining / totalSeconds);
 
     return Dialog(
       child: Padding(
@@ -74,6 +77,14 @@ class _RestTimerState extends State<RestTimer> {
               'Rest Time',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (widget.guidanceText != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                widget.guidanceText!,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 32),
             Stack(
               alignment: Alignment.center,
@@ -95,7 +106,7 @@ class _RestTimerState extends State<RestTimer> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'of ${_formatTime(widget.restSeconds)}',
+                      'of ${_formatTime(totalSeconds)}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
