@@ -5,6 +5,47 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../database/database_constants.dart';
 import '../database/app_database.dart';
 
+const _rpeToPercent = <int, double>{
+  10: 1.00,
+  9: 0.94,
+  8: 0.88,
+  7: 0.82,
+  6: 0.76,
+};
+
+double _beginnerBaselineWeight({
+  required String variantName,
+  required bool isMachineVariant,
+}) {
+  final lowerName = variantName.toLowerCase();
+  if (lowerName.contains('pull-up') ||
+      lowerName.contains('pullups') ||
+      lowerName.contains('chin-up') ||
+      lowerName.contains('chinups') ||
+      lowerName.contains('dip')) {
+    return 45.0;
+  }
+  if (isMachineVariant) return 10.0;
+  if (lowerName.contains('dumbbell') ||
+      lowerName.contains('split squat') ||
+      lowerName.contains('lunge')) {
+    return 20.0;
+  }
+  return 45.0;
+}
+
+double _seededOneRmFromTemplate({
+  required double baselineWeight,
+  required Map<String, Object?> setTemplateRow,
+}) {
+  final percentageRaw = setTemplateRow[colSetTemplatePercentage1rm];
+  final percentage = percentageRaw != null
+      ? (percentageRaw as num).toDouble()
+      : _rpeToPercent[(setTemplateRow[colSetTemplateRpeTarget] as num).toInt()];
+  if (percentage == null || percentage <= 0) return baselineWeight;
+  return ((baselineWeight / percentage) / 5).round() * 5.0;
+}
+
 Future<void> loadSeedData() async {
   developer.log('loadSeedData: Starting seed data load');
   final db = await getDatabase();
@@ -175,6 +216,10 @@ Future<void> seedVariants(Database db) async {
     final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
 
     int variantsAdded = 0;
+    int oneRmRowsAdded = 0;
+    final seedDate = DateTime.now()
+        .subtract(const Duration(days: 30))
+        .toIso8601String();
 
     for (final entry in jsonData.entries) {
       final slotName = entry.key;
@@ -187,17 +232,37 @@ Future<void> seedVariants(Database db) async {
       );
 
       for (final slot in slotRows) {
-        final slotId = slot[colSlotId];
+        final slotId = slot[colSlotId] as int;
+        final firstTemplateRows = await db.query(
+          tableSetTemplates,
+          where: '$colSetTemplateSlotId = ?',
+          whereArgs: [slotId],
+          orderBy: '$colSetTemplateSetNumber ASC',
+          limit: 1,
+        );
+        if (firstTemplateRows.isEmpty) {
+          developer.log(
+              'seedVariants: No set template found for slot $slotName ($slotId), skipping');
+          continue;
+        }
+        final firstTemplate = firstTemplateRows.first;
 
-        final variants = <String>[];
+        final variantEntries = <({String name, bool isMachine})>[];
         if (categories.containsKey('free_weight')) {
-          variants.addAll(List<String>.from(categories['free_weight']));
+          final freeWeightVariants = List<String>.from(categories['free_weight']);
+          variantEntries.addAll(
+            freeWeightVariants.map((name) => (name: name, isMachine: false)),
+          );
         }
         if (categories.containsKey('machine')) {
-          variants.addAll(List<String>.from(categories['machine']));
+          final machineVariants = List<String>.from(categories['machine']);
+          variantEntries.addAll(
+            machineVariants.map((name) => (name: name, isMachine: true)),
+          );
         }
 
-        for (final variantName in variants) {
+        for (final variantEntry in variantEntries) {
+          final variantName = variantEntry.name;
           final existing = await db.query(
             tableExerciseVariants,
             where: '$colVariantSlotId = ? AND $colVariantName = ?',
@@ -206,17 +271,34 @@ Future<void> seedVariants(Database db) async {
           );
 
           if (existing.isEmpty) {
-            await db.insert(tableExerciseVariants, {
+            final variantId = await db.insert(tableExerciseVariants, {
               colVariantSlotId: slotId,
               colVariantName: variantName,
               colVariantDescription: variantName,
             });
+            final baselineWeight = _beginnerBaselineWeight(
+              variantName: variantName,
+              isMachineVariant: variantEntry.isMachine,
+            );
+            final seededOneRm = _seededOneRmFromTemplate(
+              baselineWeight: baselineWeight,
+              setTemplateRow: firstTemplate,
+            );
+            await db.insert(tableVariantOneRmHistory, {
+              col1rmHistoryVariantId: variantId,
+              col1rmHistoryWeight: seededOneRm,
+              col1rmHistoryDate: seedDate,
+              col1rmHistoryNotes: 'Initial estimate',
+              col1rmHistoryIsCurrent: 1,
+            });
             variantsAdded++;
+            oneRmRowsAdded++;
           }
         }
       }
     }
-    developer.log('seedVariants: Added $variantsAdded new variants');
+    developer.log(
+        'seedVariants: Added $variantsAdded new variants and $oneRmRowsAdded 1RM records');
   } catch (e) {
     developer.log('seedVariants: Error: $e');
   }

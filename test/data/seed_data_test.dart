@@ -64,16 +64,16 @@ void main() {
       }
     });
 
-    test('all program.json variants have an initial 1RM record', () async {
+    test('all seeded variants have a current 1RM record', () async {
       await loadSeedData();
       final db = await getDatabase();
+      final variants = await db.query(tableExerciseVariants);
       final currentRecords = await db.query(
         tableVariantOneRmHistory,
         where: '$col1rmHistoryIsCurrent = 1',
       );
-      // 33 variants defined in program.json each get one seeded 1RM record;
-      // extra variants added by seedVariants() from exercises.json have no 1RM
-      expect(currentRecords.length, 33);
+      expect(currentRecords.length, variants.length);
+      expect(currentRecords.length, greaterThan(33));
     });
 
     test('seeded 1RMs reflect beginner baseline assumptions', () async {
@@ -104,6 +104,9 @@ void main() {
       expect(await currentOneRmFor('Dumbbell Bench Press'), 25.0); // dumbbell + percentage
       expect(await currentOneRmFor('Leg Press Machine'), 10.0); // machine + rpe
       expect(await currentOneRmFor('Pull-ups'), 50.0); // bodyweight + rpe
+      expect(await currentOneRmFor('Cable Row'), 10.0); // machine + rpe
+      expect(await currentOneRmFor('Goblet Squat'), 55.0); // free-weight + percentage
+      expect(await currentOneRmFor('Overhead Dumbbell Extension'), 25.0); // dumbbell + rpe
     });
 
     test('calling loadSeedData twice does not duplicate data', () async {
