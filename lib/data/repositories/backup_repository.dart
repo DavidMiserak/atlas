@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:developer' as developer;
+import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:sqflite/sqflite.dart';
 import '../database/app_database.dart';
@@ -23,13 +23,29 @@ class BackupRepository {
     return destPath;
   }
 
-  /// Shares the backup file at [path] via the system share sheet.
-  Future<void> shareBackup(String path) async {
+  /// Shares the backup file at [path] via the system share sheet (mobile)
+  /// or saves it to the Downloads directory (desktop).
+  /// Returns the destination path on desktop platforms, null on mobile.
+  Future<String?> shareBackup(String path) async {
     developer.log('BackupRepository: sharing backup at $path');
-    await Share.shareXFiles(
-      [XFile(path, mimeType: 'application/octet-stream')],
-      subject: 'Atlas workout backup',
+    if (Platform.isAndroid || Platform.isIOS) {
+      const channel = MethodChannel('com.miserak.atlas/share');
+      await channel.invokeMethod<void>('shareFile', {
+        'path': path,
+        'mimeType': 'application/octet-stream',
+        'subject': 'Atlas workout backup',
+      });
+      return null;
+    }
+    // Desktop: copy to Downloads folder.
+    final downloadsDir = await getDownloadsDirectory();
+    final dest = join(
+      downloadsDir?.path ?? Platform.environment['HOME'] ?? Directory.systemTemp.path,
+      basename(path),
     );
+    await File(path).copy(dest);
+    developer.log('BackupRepository: backup saved to $dest');
+    return dest;
   }
 
   /// Opens a file picker and returns the selected file path, or null if cancelled.

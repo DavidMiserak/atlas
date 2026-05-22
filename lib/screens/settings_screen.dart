@@ -49,8 +49,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _backupBusy = true);
     try {
       final path = await _backupRepo.createBackup();
-      await _backupRepo.shareBackup(path);
-      if (mounted) _showSnack('Backup created.');
+      final savedTo = await _backupRepo.shareBackup(path);
+      if (mounted) {
+        _showSnack(savedTo != null ? 'Backup saved to $savedTo' : 'Backup created.');
+      }
     } catch (e) {
       developer.log('Backup failed: $e');
       if (mounted) _showError('Backup failed', e.toString());
@@ -79,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _backupBusy = true);
       try {
         final path = await _backupRepo.createBackup();
-        await _backupRepo.shareBackup(path);
+        await _backupRepo.shareBackup(path); // result ignored here — pre-restore backup
       } catch (e) {
         if (mounted) _showError('Backup failed', e.toString());
         if (mounted) setState(() => _backupBusy = false);
