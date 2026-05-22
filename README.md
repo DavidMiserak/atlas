@@ -5,6 +5,31 @@ A personal strength training logbook built with Flutter. Structured around a
 estimates — and surfaces progress over time through a session history with
 per-exercise PR detection.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="screenshots/01_home.png" alt="Workouts home" width="200"/><br/><sub>Workouts home</sub></td>
+    <td align="center"><img src="screenshots/05_workout_detail.png" alt="Workout overview" width="200"/><br/><sub>Workout overview</sub></td>
+    <td align="center"><img src="screenshots/06_active_workout.png" alt="Active session" width="200"/><br/><sub>Active session</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/07_log_sets.png" alt="Log sets" width="200"/><br/><sub>Log sets</sub></td>
+    <td align="center"><img src="screenshots/08_rest_timer.png" alt="Rest timer" width="200"/><br/><sub>Rest timer</sub></td>
+    <td align="center"><img src="screenshots/09_last_set.png" alt="Last set" width="200"/><br/><sub>Last set</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/10_workout_summary_1.png" alt="Workout summary" width="200"/><br/><sub>Workout summary</sub></td>
+    <td align="center"><img src="screenshots/11_workout_summary_2.png" alt="Next session progression" width="200"/><br/><sub>Next session progression</sub></td>
+    <td align="center"><img src="screenshots/12_session_review.png" alt="Session review" width="200"/><br/><sub>Session review</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/02_history.png" alt="Training log" width="200"/><br/><sub>Training log</sub></td>
+    <td align="center"><img src="screenshots/03_1rm.png" alt="1RM history" width="200"/><br/><sub>1RM history</sub></td>
+    <td align="center"><img src="screenshots/04_settings.png" alt="Settings" width="200"/><br/><sub>Settings</sub></td>
+  </tr>
+</table>
+
 ## Features
 
 ### Session workflow
