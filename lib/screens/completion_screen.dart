@@ -165,8 +165,102 @@ class _CompletionScreenState extends State<CompletionScreen>
   void _saveNotes(String value) {
     final id = _completedSessionId;
     if (id == null) return;
-    SessionRepository().updateSessionNotes(id, value.trim());
+    final trimmed = value.trim();
+    SessionRepository().updateSessionNotes(id, trimmed);
+    if (mounted) {
+      setState(() {});
+    }
   }
+
+  Future<void> _openNotesSheet() async {
+    final accentColor = Theme.of(context).colorScheme.primary;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF111111),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            Responsive.screenPadding(context).left,
+            16,
+            Responsive.screenPadding(context).right,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Session Notes',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    tooltip: 'Close notes',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                autofocus: true,
+                minLines: 3,
+                maxLines: 6,
+                style: GoogleFonts.outfit(fontSize: 14, color: Colors.white),
+                onChanged: _saveNotes,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: 'Session notes...',
+                  hintStyle: GoogleFonts.outfit(color: const Color(0xFF616161)),
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A1A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2E2E2E)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2E2E2E)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accentColor),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    _notesController.clear();
+                    _saveNotes('');
+                  },
+                  child: Text(
+                    'Clear',
+                    style: GoogleFonts.outfit(color: const Color(0xFFB0B0B0)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool get _hasSessionNotes => _notesController.text.trim().isNotEmpty;
 
   String _formatVolume(double v) {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
@@ -367,15 +461,6 @@ class _CompletionScreenState extends State<CompletionScreen>
                         ],
 
                         const SizedBox(height: 32),
-                        FadeTransition(
-                          opacity: _ctaFade,
-                          child: _NotesField(
-                            controller: _notesController,
-                            onChanged: _saveNotes,
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
@@ -385,6 +470,14 @@ class _CompletionScreenState extends State<CompletionScreen>
                   opacity: _ctaFade,
                   child: Column(
                     children: [
+                      if (_completedSessionId != null) ...[
+                        _NotesButton(
+                          hasNotes: _hasSessionNotes,
+                          onTap: _openNotesSheet,
+                          accentColor: colorScheme.primary,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       if (_completedSessionId != null)
                         _SecondaryButton(
                           label: 'Review Session',
@@ -715,41 +808,64 @@ class _SecondaryButtonState extends State<_SecondaryButton>
   }
 }
 
-class _NotesField extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+class _NotesButton extends StatelessWidget {
+  final bool hasNotes;
+  final VoidCallback onTap;
+  final Color accentColor;
 
-  const _NotesField({required this.controller, required this.onChanged});
+  const _NotesButton({
+    required this.hasNotes,
+    required this.onTap,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      minLines: 1,
-      maxLines: 4,
-      style: GoogleFonts.outfit(
-        fontSize: 14,
-        color: Colors.white,
+    final textColor = hasNotes ? Colors.white : const Color(0xFFB8B8B8);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: hasNotes
+              ? accentColor.withValues(alpha: 0.16)
+              : const Color(0xFF171717),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasNotes
+                ? accentColor.withValues(alpha: 0.55)
+                : const Color(0xFF2A2A2A),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.sticky_note_2_outlined, size: 18, color: textColor),
+            const SizedBox(width: 8),
+            Text(
+              hasNotes ? 'Notes Added' : 'Add Session Notes',
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const Spacer(),
+            if (hasNotes)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor,
+                ),
+              ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF8F8F8F)),
+          ],
+        ),
       ),
-      decoration: InputDecoration(
-        hintText: 'Session notes...',
-        hintStyle: GoogleFonts.outfit(
-          fontSize: 14,
-          color: const Color(0xFF444444),
-        ),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF252525)),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF444444)),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        isDense: true,
-      ),
-      cursorColor: Colors.white,
-      keyboardType: TextInputType.multiline,
-      textCapitalization: TextCapitalization.sentences,
     );
   }
 }
