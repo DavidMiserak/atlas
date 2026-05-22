@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../data/models/workout.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
+import '../utils/workout_duration_estimator.dart';
 import 'session_screen.dart';
 
 class WorkoutOverviewScreen extends StatefulWidget {
@@ -73,16 +74,7 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
     (sum, slot) => sum + slot.setTemplates.length,
   );
 
-  int get _estimatedMinutes {
-    final totalRestSeconds = widget.workout.exerciseSlots.fold(
-      0,
-      (sum, slot) =>
-          sum + slot.setTemplates.fold(0, (inner, s) => inner + s.restSeconds),
-    );
-    final transitionSeconds = (_exerciseCount * 90) + (_plannedSetCount * 35);
-    final totalSeconds = totalRestSeconds + transitionSeconds;
-    return ((totalSeconds / 900).ceil() * 15).clamp(15, 195);
-  }
+  int get _estimatedMinutes => estimateWorkoutMinutes(widget.workout);
 
   Future<void> _startWorkout() async {
     final workoutId = widget.workout.id;
@@ -352,7 +344,10 @@ class _OverviewHero extends StatelessWidget {
             children: [
               _MetaPill(label: 'Exercises', value: '$exerciseCount'),
               _MetaPill(label: 'Planned Sets', value: '$plannedSetCount'),
-              _MetaPill(label: 'Est. Time', value: '$estimatedMinutes min'),
+              _MetaPill(
+                label: 'Est. Time',
+                value: formatEstimatedDuration(estimatedMinutes),
+              ),
             ],
           ),
         ],

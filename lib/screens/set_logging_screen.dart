@@ -5,6 +5,7 @@ import 'dart:async';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 import '../data/repositories/one_rm_repository.dart';
+import '../utils/warmup_set_configs.dart';
 import '../utils/weight_calculator.dart';
 import 'completion_screen.dart';
 import 'widgets/pinned_action_bar.dart';
@@ -52,41 +53,6 @@ class _SetContext {
       suggestedWeight > 0 ? suggestedWeight.toStringAsFixed(0) : '—';
 
   String get repsLabel => '$targetReps reps';
-}
-
-class WarmupSetConfig {
-  final int reps;
-  final int targetRestSeconds;
-  final String rangeLabel;
-
-  const WarmupSetConfig({
-    required this.reps,
-    required this.targetRestSeconds,
-    required this.rangeLabel,
-  });
-
-  String get guidanceText =>
-      'Recommended rest: $rangeLabel. You can skip anytime.';
-}
-
-List<WarmupSetConfig> buildWarmupSetConfigs(int workingSetRestSeconds) {
-  return [
-    const WarmupSetConfig(
-      reps: 8,
-      targetRestSeconds: 120,
-      rangeLabel: '1:00-2:00',
-    ),
-    const WarmupSetConfig(
-      reps: 4,
-      targetRestSeconds: 180,
-      rangeLabel: '2:00-3:00',
-    ),
-    WarmupSetConfig(
-      reps: 2,
-      targetRestSeconds: workingSetRestSeconds,
-      rangeLabel: 'See Working Set',
-    ),
-  ];
 }
 
 class SetLoggingScreen extends StatefulWidget {

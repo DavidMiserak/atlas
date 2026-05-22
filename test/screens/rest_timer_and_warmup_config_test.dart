@@ -1,4 +1,4 @@
-import 'package:atlas/screens/set_logging_screen.dart';
+import 'package:atlas/utils/warmup_set_configs.dart';
 import 'package:atlas/screens/widgets/rest_timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
