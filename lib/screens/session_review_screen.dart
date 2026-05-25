@@ -99,9 +99,7 @@ class _SearchHeader extends StatelessWidget {
               style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search notes...',
-                hintStyle: GoogleFonts.outfit(
-                  color: const Color(0xFF444444),
-                ),
+                hintStyle: GoogleFonts.outfit(color: const Color(0xFF444444)),
                 filled: true,
                 fillColor: const Color(0xFF1A1A1A),
                 contentPadding: const EdgeInsets.symmetric(
@@ -140,8 +138,7 @@ class _SearchHeader extends StatelessWidget {
           GestureDetector(
             onTap: onToggleHasNotes,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 border: Border.all(
                   color: hasNotesOnly
@@ -173,10 +170,7 @@ class _SessionList extends StatefulWidget {
   final String searchQuery;
   final bool hasNotesOnly;
 
-  const _SessionList({
-    required this.searchQuery,
-    required this.hasNotesOnly,
-  });
+  const _SessionList({required this.searchQuery, required this.hasNotesOnly});
 
   @override
   State<_SessionList> createState() => _SessionListState();
@@ -190,8 +184,10 @@ class _SessionListState extends State<_SessionList> {
   @override
   void initState() {
     super.initState();
-    _summariesFuture = Provider.of<SessionProvider>(context, listen: false)
-        .getAllSessionSummaries();
+    _summariesFuture = Provider.of<SessionProvider>(
+      context,
+      listen: false,
+    ).getAllSessionSummaries();
   }
 
   @override
@@ -203,8 +199,7 @@ class _SessionListState extends State<_SessionList> {
         setState(() => _matchingIds = {});
       } else {
         _debounce = Timer(const Duration(milliseconds: 300), () async {
-          final provider =
-              Provider.of<SessionProvider>(context, listen: false);
+          final provider = Provider.of<SessionProvider>(context, listen: false);
           final ids = await provider.searchSessionIds(widget.searchQuery);
           if (mounted) setState(() => _matchingIds = ids);
         });
@@ -226,10 +221,41 @@ class _SessionListState extends State<_SessionList> {
     });
   }
 
+  Future<void> _confirmDelete(SessionSummary session) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this workout entry?'),
+        content: const Text(
+          'This removes the selected session from your training log and cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete Entry'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !mounted) return;
+
+    final provider = Provider.of<SessionProvider>(context, listen: false);
+    await provider.deleteSessionEntry(session.sessionId);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Workout entry removed.')));
+    await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filterActive =
-        widget.searchQuery.isNotEmpty || widget.hasNotesOnly;
+    final filterActive = widget.searchQuery.isNotEmpty || widget.hasNotesOnly;
 
     return FutureBuilder<List<SessionSummary>>(
       future: _summariesFuture,
@@ -291,15 +317,15 @@ class _SessionListState extends State<_SessionList> {
 
         final filtered = widget.hasNotesOnly
             ? allSessions
-                .where((s) => s.hasSessionNote || s.hasSetNote)
-                .toList()
+                  .where((s) => s.hasSessionNote || s.hasSetNote)
+                  .toList()
             : allSessions;
 
         final displayed = widget.searchQuery.isEmpty
             ? filtered
             : filtered
-                .where((s) => _matchingIds.contains(s.sessionId))
-                .toList();
+                  .where((s) => _matchingIds.contains(s.sessionId))
+                  .toList();
 
         if (displayed.isEmpty) {
           return Center(
@@ -328,10 +354,8 @@ class _SessionListState extends State<_SessionList> {
                   MediaQuery.of(context).viewInsets.bottom,
             ),
             itemCount: displayed.length,
-            separatorBuilder: (context, index) => Container(
-              height: 1,
-              color: const Color(0xFF141414),
-            ),
+            separatorBuilder: (context, index) =>
+                Container(height: 1, color: const Color(0xFF141414)),
             itemBuilder: (context, index) {
               final session = displayed[index];
               return _SessionRow(
@@ -352,6 +376,7 @@ class _SessionListState extends State<_SessionList> {
                     ),
                   );
                 },
+                onDelete: () => _confirmDelete(session),
               );
             },
           ),
@@ -367,6 +392,7 @@ class _SessionRow extends StatefulWidget {
   final bool filterActive;
   final String searchQuery;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   const _SessionRow({
     required this.session,
@@ -374,6 +400,7 @@ class _SessionRow extends StatefulWidget {
     required this.filterActive,
     required this.searchQuery,
     required this.onTap,
+    required this.onDelete,
   });
 
   @override
@@ -406,8 +433,18 @@ class _SessionRowState extends State<_SessionRow>
 
   String _formatDate(DateTime date) {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     final day = weekdays[date.weekday - 1];
@@ -429,13 +466,15 @@ class _SessionRowState extends State<_SessionRow>
       if (idx > start) {
         spans.add(TextSpan(text: snippet.substring(start, idx)));
       }
-      spans.add(TextSpan(
-        text: snippet.substring(idx, idx + query.length),
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF00D9FF),
+      spans.add(
+        TextSpan(
+          text: snippet.substring(idx, idx + query.length),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF00D9FF),
+          ),
         ),
-      ));
+      );
       start = idx + query.length;
     }
     return spans;
@@ -448,6 +487,7 @@ class _SessionRowState extends State<_SessionRow>
       onExit: (_) => _hover.reverse(),
       child: GestureDetector(
         onTap: widget.onTap,
+        onLongPress: widget.onDelete,
         behavior: HitTestBehavior.opaque,
         child: AnimatedBuilder(
           animation: _hover,
@@ -577,14 +617,27 @@ class _SessionRowState extends State<_SessionRow>
                       ],
                     ),
                   ),
-                  AnimatedOpacity(
-                    opacity: _hover.value,
-                    duration: const Duration(milliseconds: 150),
-                    child: const Icon(
-                      Icons.arrow_forward,
-                      size: 14,
-                      color: Color(0xFF00D9FF),
-                    ),
+                  Column(
+                    children: [
+                      IconButton(
+                        tooltip: 'Delete entry',
+                        onPressed: widget.onDelete,
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: Color(0xFF777777),
+                        ),
+                      ),
+                      AnimatedOpacity(
+                        opacity: _hover.value,
+                        duration: const Duration(milliseconds: 150),
+                        child: const Icon(
+                          Icons.arrow_forward,
+                          size: 14,
+                          color: Color(0xFF00D9FF),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -601,7 +654,11 @@ class _MiniStat extends StatelessWidget {
   final String label;
   final bool accent;
 
-  const _MiniStat({required this.value, required this.label, this.accent = false});
+  const _MiniStat({
+    required this.value,
+    required this.label,
+    this.accent = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -643,7 +700,9 @@ class _PrCountPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF00D9FF).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFF00D9FF).withValues(alpha: 0.2),
+        ),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
@@ -668,7 +727,9 @@ class _LabelPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFB8B8B8).withValues(alpha: 0.25)),
+        border: Border.all(
+          color: const Color(0xFFB8B8B8).withValues(alpha: 0.25),
+        ),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(

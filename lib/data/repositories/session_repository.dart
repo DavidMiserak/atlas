@@ -154,6 +154,28 @@ class SessionRepository {
     );
   }
 
+  Future<int> deleteSession(int sessionId) async {
+    final db = await getDatabase();
+    return await db.transaction<int>((txn) async {
+      await txn.delete(
+        tableSessionSets,
+        where:
+            '$colSessionSetSessionExerciseId IN (SELECT $colSessionExerciseId FROM $tableSessionExercises WHERE $colSessionExerciseSessionId = ?)',
+        whereArgs: [sessionId],
+      );
+      await txn.delete(
+        tableSessionExercises,
+        where: '$colSessionExerciseSessionId = ?',
+        whereArgs: [sessionId],
+      );
+      return await txn.delete(
+        tableSessions,
+        where: '$colSessionId = ?',
+        whereArgs: [sessionId],
+      );
+    });
+  }
+
   Future<double?> getHighestWeightForVariant(int variantId) async {
     final db = await getDatabase();
     final result = await db.rawQuery(
@@ -228,7 +250,8 @@ class SessionRepository {
         .replaceAll('%', '\\%')
         .replaceAll('_', '\\_');
     final pattern = '%$escaped%';
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT DISTINCT s.$colSessionId
       FROM $tableSessions s
       LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
@@ -238,7 +261,9 @@ class SessionRepository {
           TRIM(COALESCE(s.$colSessionNotes, '')) LIKE ? ESCAPE '\\'
           OR TRIM(COALESCE(ss.$colSessionSetNotes, '')) LIKE ? ESCAPE '\\'
         )
-    ''', [pattern, pattern]);
+    ''',
+      [pattern, pattern],
+    );
     return rows.map((r) => r[colSessionId] as int).toSet();
   }
 

@@ -287,4 +287,8 @@ class SessionProvider extends ChangeNotifier {
   Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {
     return await sessionRepo.getSessionDetail(sessionId);
   }
+
+  Future<void> deleteSessionEntry(int sessionId) async {
+    await sessionRepo.deleteSession(sessionId);
+  }
 }
