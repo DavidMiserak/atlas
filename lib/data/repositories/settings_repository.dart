@@ -18,11 +18,29 @@ class SettingsRepository {
 
   Future<void> setOneRmFormula(OneRmFormula formula) async {
     final db = await getDatabase();
-    await db.insert(
+    await db.insert(tableSettings, {
+      colSettingsKey: settingOneRmFormula,
+      colSettingsValue: formula.toStorageKey(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<bool> getKeepScreenAwakeDuringRest() async {
+    final db = await getDatabase();
+    final rows = await db.query(
       tableSettings,
-      {colSettingsKey: settingOneRmFormula, colSettingsValue: formula.toStorageKey()},
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: '$colSettingsKey = ?',
+      whereArgs: [settingKeepScreenAwakeDuringRest],
     );
+    if (rows.isEmpty) return false;
+    return (rows.first[colSettingsValue] as String).toLowerCase() == 'true';
+  }
+
+  Future<void> setKeepScreenAwakeDuringRest(bool value) async {
+    final db = await getDatabase();
+    await db.insert(tableSettings, {
+      colSettingsKey: settingKeepScreenAwakeDuringRest,
+      colSettingsValue: value.toString(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> clearOneRmHistory() async {

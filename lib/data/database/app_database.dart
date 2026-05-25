@@ -92,6 +92,25 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       ['5', settingSchemaVersion],
     );
   }
+  if (oldVersion < 6) {
+    await db.transaction((txn) async {
+      final existing = await txn.query(
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingKeepScreenAwakeDuringRest],
+      );
+      if (existing.isEmpty) {
+        await txn.insert(tableSettings, {
+          colSettingsKey: settingKeepScreenAwakeDuringRest,
+          colSettingsValue: 'false',
+        });
+      }
+      await txn.rawUpdate(
+        'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+        ['6', settingSchemaVersion],
+      );
+    });
+  }
 }
 
 Future<void> _createTables(Database db) async {
@@ -248,6 +267,10 @@ Future<void> _initializeSettings(Database db) async {
   await db.insert(tableSettings, {
     colSettingsKey: settingOneRmFormula,
     colSettingsValue: 'rpe_rts',
+  });
+  await db.insert(tableSettings, {
+    colSettingsKey: settingKeepScreenAwakeDuringRest,
+    colSettingsValue: 'false',
   });
 }
 

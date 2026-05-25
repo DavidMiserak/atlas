@@ -29,9 +29,11 @@ void main() {
       final db = await getDatabase();
 
       // Check all tables exist
-      final tables = await db.query('sqlite_master',
-          where: 'type = ? AND name NOT LIKE ?',
-          whereArgs: ['table', 'sqlite_%']);
+      final tables = await db.query(
+        'sqlite_master',
+        where: 'type = ? AND name NOT LIKE ?',
+        whereArgs: ['table', 'sqlite_%'],
+      );
 
       final tableNames = tables.map((t) => t['name']).toSet();
 
@@ -46,7 +48,6 @@ void main() {
       expect(tableNames.contains(tableSessionSets), true);
       expect(tableNames.contains(tableSettings), true);
       expect(tableNames.contains(tableWarmupItems), true);
-
     });
 
     test('Settings table is initialized with defaults', () async {
@@ -59,7 +60,7 @@ void main() {
       );
 
       expect(schemaVersion.isNotEmpty, true);
-      expect(schemaVersion.first[colSettingsValue], '5');
+      expect(schemaVersion.first[colSettingsValue], databaseVersion.toString());
 
       final deloadFreq = await db.query(
         tableSettings,
@@ -70,6 +71,14 @@ void main() {
       expect(deloadFreq.isNotEmpty, true);
       expect(deloadFreq.first[colSettingsValue], '4');
 
+      final keepAwake = await db.query(
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingKeepScreenAwakeDuringRest],
+      );
+
+      expect(keepAwake.isNotEmpty, true);
+      expect(keepAwake.first[colSettingsValue], 'false');
     });
   });
 
@@ -83,7 +92,6 @@ void main() {
       expect(programs.isNotEmpty, true);
       expect(programs.first[colProgramName], '4-Day Novice Bodybuilding');
       expect(programs.first[colProgramVersion], 'v1');
-
     });
 
     test('Loading seed data twice does not create duplicates', () async {
@@ -98,7 +106,6 @@ void main() {
       );
 
       expect(programs.length, 1);
-
     });
   });
 
@@ -131,7 +138,6 @@ void main() {
 
       expect(squatSlot?.variants.isNotEmpty, true);
       expect(squatSlot?.setTemplates.isNotEmpty, true);
-
     });
 
     test('getAllPrograms returns list of programs', () async {
@@ -142,7 +148,6 @@ void main() {
 
       expect(programs.isNotEmpty, true);
       expect(programs.length, greaterThanOrEqualTo(1));
-
     });
   });
 
@@ -151,10 +156,7 @@ void main() {
       await loadSeedData();
 
       final repo = SessionRepository();
-      final session = Session(
-        workoutId: 1,
-        dateCompleted: DateTime.now(),
-      );
+      final session = Session(workoutId: 1, dateCompleted: DateTime.now());
 
       final sessionId = await repo.createSession(session);
 
@@ -163,7 +165,6 @@ void main() {
       final retrieved = await repo.getSessionById(sessionId);
       expect(retrieved, isNotNull);
       expect(retrieved?.workoutId, 1);
-
     });
 
     test('getSessionsByWorkoutId returns sessions', () async {
@@ -172,19 +173,19 @@ void main() {
       final repo = SessionRepository();
 
       // Create two sessions
-      await repo.createSession(Session(
-        workoutId: 1,
-        dateCompleted: DateTime.now(),
-      ));
+      await repo.createSession(
+        Session(workoutId: 1, dateCompleted: DateTime.now()),
+      );
 
-      await repo.createSession(Session(
-        workoutId: 1,
-        dateCompleted: DateTime.now().subtract(Duration(days: 1)),
-      ));
+      await repo.createSession(
+        Session(
+          workoutId: 1,
+          dateCompleted: DateTime.now().subtract(Duration(days: 1)),
+        ),
+      );
 
       final sessions = await repo.getSessionsByWorkoutId(1);
       expect(sessions.length, greaterThanOrEqualTo(2));
-
     });
   });
 
@@ -206,7 +207,11 @@ void main() {
 
       final repo = OneRmRepository();
 
-      await repo.recordNewOneRm(1, 285.0, DateTime.now().subtract(const Duration(days: 7)));
+      await repo.recordNewOneRm(
+        1,
+        285.0,
+        DateTime.now().subtract(const Duration(days: 7)),
+      );
       await repo.recordNewOneRm(1, 310.0, DateTime.now());
 
       final currentOneRm = await repo.getCurrentOneRm(1);
@@ -225,7 +230,6 @@ void main() {
       // Verify PRAGMA foreign_keys is enabled by default in sqflite
       final result = await db.rawQuery('PRAGMA foreign_keys');
       expect(result.isNotEmpty, true);
-
     });
   });
 }

@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import '../../data/repositories/settings_repository.dart';
 
 class RestTimer extends StatefulWidget {
   final int restSeconds;
   final String? guidanceText;
   final VoidCallback onComplete;
+  final bool? keepScreenAwakeDuringRest;
 
   const RestTimer({
     super.key,
     this.restSeconds = 90,
     this.guidanceText,
     required this.onComplete,
+    this.keepScreenAwakeDuringRest,
   });
 
   @override
@@ -18,14 +22,52 @@ class RestTimer extends StatefulWidget {
 }
 
 class _RestTimerState extends State<RestTimer> {
+  final _settingsRepository = SettingsRepository();
   late int _secondsRemaining;
   Timer? _timer;
+  bool _keepScreenAwakeDuringRest = false;
 
   @override
   void initState() {
     super.initState();
     _secondsRemaining = widget.restSeconds;
     _startTimer();
+    if (widget.keepScreenAwakeDuringRest != null) {
+      _keepScreenAwakeDuringRest = widget.keepScreenAwakeDuringRest!;
+      unawaited(_syncWakelock());
+    } else {
+      unawaited(_loadKeepAwakePreference());
+    }
+  }
+
+  Future<void> _loadKeepAwakePreference() async {
+    try {
+      final keepAwake = await _settingsRepository
+          .getKeepScreenAwakeDuringRest();
+      if (!mounted) return;
+      _keepScreenAwakeDuringRest = keepAwake;
+      await _syncWakelock();
+    } catch (_) {
+      // Some widget tests do not initialize the sqflite database factory.
+      if (!mounted) return;
+      _keepScreenAwakeDuringRest = false;
+    }
+  }
+
+  Future<void> _syncWakelock() async {
+    final shouldKeepAwake =
+        _keepScreenAwakeDuringRest &&
+        (_timer?.isActive ?? false) &&
+        _secondsRemaining > 0;
+    try {
+      if (shouldKeepAwake) {
+        await WakelockPlus.enable();
+      } else {
+        await WakelockPlus.disable();
+      }
+    } catch (_) {
+      // Ignore plugin issues on unsupported platforms and test environments.
+    }
   }
 
   void _startTimer() {
@@ -35,10 +77,12 @@ class _RestTimerState extends State<RestTimer> {
           _secondsRemaining--;
         } else {
           timer.cancel();
+          unawaited(_syncWakelock());
           widget.onComplete();
         }
       });
     });
+    unawaited(_syncWakelock());
   }
 
   void _togglePause() {
@@ -47,11 +91,13 @@ class _RestTimerState extends State<RestTimer> {
     } else {
       _startTimer();
     }
+    unawaited(_syncWakelock());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    unawaited(WakelockPlus.disable());
     super.dispose();
   }
 
@@ -73,10 +119,7 @@ class _RestTimerState extends State<RestTimer> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Rest Time',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('Rest Time', style: Theme.of(context).textTheme.headlineSmall),
             if (widget.guidanceText != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -130,6 +173,7 @@ class _RestTimerState extends State<RestTimer> {
                 ElevatedButton(
                   onPressed: () {
                     _timer?.cancel();
+                    unawaited(_syncWakelock());
                     Navigator.of(context).pop();
                   },
                   child: const Text('Skip'),

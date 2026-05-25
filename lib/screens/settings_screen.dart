@@ -21,6 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _backupRepo = BackupRepository();
 
   OneRmFormula _formula = OneRmFormula.rpeRts;
+  bool _keepScreenAwakeDuringRest = false;
   bool _loading = true;
   bool _backupBusy = false;
   bool _restoreBusy = false;
@@ -33,7 +34,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final formula = await _settingsRepo.getOneRmFormula();
-    if (mounted) setState(() { _formula = formula; _loading = false; });
+    final keepAwake = await _settingsRepo.getKeepScreenAwakeDuringRest();
+    if (mounted) {
+      setState(() {
+        _formula = formula;
+        _keepScreenAwakeDuringRest = keepAwake;
+        _loading = false;
+      });
+    }
   }
 
   bool get _sessionActive =>
@@ -51,7 +59,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final path = await _backupRepo.createBackup();
       final savedTo = await _backupRepo.saveBackup(path);
       if (mounted) {
-        _showSnack(savedTo != null ? 'Backup saved to $savedTo' : 'Backup created.');
+        _showSnack(
+          savedTo != null ? 'Backup saved to $savedTo' : 'Backup created.',
+        );
       }
     } catch (e) {
       developer.log('Backup failed: $e');
@@ -72,7 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Offer to backup first (D5)
     final shouldBackup = await _showConfirm(
       title: 'Back up first?',
-      message: 'Before restoring, would you like to save a backup of your current data?',
+      message:
+          'Before restoring, would you like to save a backup of your current data?',
       confirmLabel: 'Back up first',
       cancelLabel: 'Skip backup',
     );
@@ -81,7 +92,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _backupBusy = true);
       try {
         final path = await _backupRepo.createBackup();
-        await _backupRepo.saveBackup(path); // result ignored here — pre-restore backup
+        await _backupRepo.saveBackup(
+          path,
+        ); // result ignored here — pre-restore backup
       } catch (e) {
         if (mounted) _showError('Backup failed', e.toString());
         if (mounted) setState(() => _backupBusy = false);
@@ -92,7 +105,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final proceed = await _showConfirm(
       title: 'Restore from backup?',
-      message: 'This will replace ALL current data with the backup. '
+      message:
+          'This will replace ALL current data with the backup. '
           'Your current data will be lost.',
       confirmLabel: 'Continue',
       cancelLabel: 'Cancel',
@@ -114,7 +128,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) _showError('Cannot restore', e.message);
     } catch (e) {
       developer.log('Restore failed: $e');
-      if (mounted) _showError('Restore failed', 'Please try again or reinstall the app.');
+      if (mounted) {
+        _showError('Restore failed', 'Please try again or reinstall the app.');
+      }
     } finally {
       if (mounted) setState(() => _restoreBusy = false);
     }
@@ -125,7 +141,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _onClearOneRmTap() async {
     final proceed = await _showConfirm(
       title: 'Clear 1RM history?',
-      message: 'This will delete all 1RM records for every exercise. '
+      message:
+          'This will delete all 1RM records for every exercise. '
           'Your training session history is preserved. '
           'The app will prompt for new 1RM estimates the next time you start each exercise.',
       confirmLabel: 'Clear 1RM History',
@@ -151,7 +168,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     final proceed = await _showConfirm(
       title: 'Factory reset?',
-      message: 'This will permanently delete ALL your data including workout '
+      message:
+          'This will permanently delete ALL your data including workout '
           'history, 1RM records, and formula preference. '
           'You cannot undo this.',
       confirmLabel: 'Reset Everything',
@@ -182,13 +200,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _onKeepScreenAwakeChanged(bool value) async {
+    await _settingsRepo.setKeepScreenAwakeDuringRest(value);
+    if (mounted) {
+      setState(() => _keepScreenAwakeDuringRest = value);
+    }
+  }
+
   // ── Navigation ───────────────────────────────────────────────────────────────
 
   void _navigateToRoot() {
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) =>
-            const WorkoutSelectionScreen(),
+        pageBuilder: (_, _, _) => const WorkoutSelectionScreen(),
         transitionDuration: const Duration(milliseconds: 400),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -200,8 +224,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showError(String title, String message) {
@@ -279,88 +304,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : Stack(
-              children: [
-                ListView(
-                  children: [
-                    _SectionHeader(title: 'Training Data'),
-                    _ActionTile(
-                      icon: Icons.backup_outlined,
-                      title: 'Backup Data',
-                      subtitle: 'Save a copy of all your training data',
-                      loading: _backupBusy,
-                      enabled: !_backupBusy && !_restoreBusy,
-                      onTap: _onBackupTap,
-                    ),
-                    _ActionTile(
-                      icon: Icons.restore_outlined,
-                      title: 'Restore from Backup',
-                      subtitle: 'Replace all data with a previous backup',
-                      loading: _restoreBusy,
-                      enabled: !_backupBusy && !_restoreBusy,
-                      onTap: _onRestoreTap,
-                    ),
-                    _ActionTile(
-                      icon: Icons.delete_sweep_outlined,
-                      title: 'Clear 1RM History',
-                      subtitle:
-                          'Delete all 1RM records — use when moving to a new gym',
-                      enabled: !_backupBusy && !_restoreBusy,
-                      onTap: _onClearOneRmTap,
-                      destructive: true,
-                    ),
-                    _ActionTile(
-                      icon: Icons.restart_alt_outlined,
-                      title: 'Factory Reset',
-                      subtitle: 'Delete all data and restore seed program',
-                      enabled: !_backupBusy && !_restoreBusy,
-                      onTap: _onFactoryResetTap,
-                      destructive: true,
-                    ),
-                    const Divider(height: 32, indent: 16, endIndent: 16),
-                    _SectionHeader(title: '1RM Formula'),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DropdownButtonFormField<OneRmFormula>(
-                            initialValue: _formula,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                            ),
-                            items: OneRmFormula.values
-                                .map(
-                                  (f) => DropdownMenuItem(
-                                    value: f,
-                                    child: Text(f.displayName,
-                                        style: GoogleFonts.outfit(fontSize: 14)),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: _onFormulaChanged,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Applies to new sessions only. Existing records are unchanged.',
-                            style: GoogleFonts.outfit(
-                              fontSize: 12,
-                              color: const Color(0xFF888888),
-                            ),
-                          ),
-                        ],
+                children: [
+                  ListView(
+                    children: [
+                      _SectionHeader(title: 'Training Data'),
+                      _ActionTile(
+                        icon: Icons.backup_outlined,
+                        title: 'Backup Data',
+                        subtitle: 'Save a copy of all your training data',
+                        loading: _backupBusy,
+                        enabled: !_backupBusy && !_restoreBusy,
+                        onTap: _onBackupTap,
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-                if (_restoreBusy)
-                  const _RestoreProgressOverlay(),
-              ],
-            ),
-        ),
+                      _ActionTile(
+                        icon: Icons.restore_outlined,
+                        title: 'Restore from Backup',
+                        subtitle: 'Replace all data with a previous backup',
+                        loading: _restoreBusy,
+                        enabled: !_backupBusy && !_restoreBusy,
+                        onTap: _onRestoreTap,
+                      ),
+                      _ActionTile(
+                        icon: Icons.delete_sweep_outlined,
+                        title: 'Clear 1RM History',
+                        subtitle:
+                            'Delete all 1RM records — use when moving to a new gym',
+                        enabled: !_backupBusy && !_restoreBusy,
+                        onTap: _onClearOneRmTap,
+                        destructive: true,
+                      ),
+                      _ActionTile(
+                        icon: Icons.restart_alt_outlined,
+                        title: 'Factory Reset',
+                        subtitle: 'Delete all data and restore seed program',
+                        enabled: !_backupBusy && !_restoreBusy,
+                        onTap: _onFactoryResetTap,
+                        destructive: true,
+                      ),
+                      const Divider(height: 32, indent: 16, endIndent: 16),
+                      _SectionHeader(title: 'Rest Timer'),
+                      SwitchListTile(
+                        title: Text(
+                          'Keep screen awake during rest timer',
+                          style: GoogleFonts.outfit(fontSize: 15),
+                        ),
+                        subtitle: Text(
+                          'Prevents auto-lock while the rest countdown is active.',
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            color: const Color(0xFF888888),
+                          ),
+                        ),
+                        value: _keepScreenAwakeDuringRest,
+                        onChanged: _onKeepScreenAwakeChanged,
+                      ),
+                      const Divider(height: 32, indent: 16, endIndent: 16),
+                      _SectionHeader(title: '1RM Formula'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DropdownButtonFormField<OneRmFormula>(
+                              initialValue: _formula,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              items: OneRmFormula.values
+                                  .map(
+                                    (f) => DropdownMenuItem(
+                                      value: f,
+                                      child: Text(
+                                        f.displayName,
+                                        style: GoogleFonts.outfit(fontSize: 14),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _onFormulaChanged,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Applies to new sessions only. Existing records are unchanged.',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                color: const Color(0xFF888888),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                  if (_restoreBusy) const _RestoreProgressOverlay(),
+                ],
+              ),
+      ),
     );
   }
 }
@@ -432,10 +479,7 @@ class _ActionTile extends StatelessWidget {
         subtitle,
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
-        style: GoogleFonts.outfit(
-          fontSize: 12,
-          color: const Color(0xFF888888),
-        ),
+        style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF888888)),
       ),
       enabled: enabled && !loading,
       onTap: onTap,
@@ -460,13 +504,14 @@ class _RestoreProgressOverlay extends StatelessWidget {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text('Restoring data…',
-                    style: GoogleFonts.outfit(fontSize: 16)),
+                Text(
+                  'Restoring data…',
+                  style: GoogleFonts.outfit(fontSize: 16),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Please do not close the app.',
-                  style:
-                      GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
+                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -505,8 +550,8 @@ class _HoldToConfirmDialogState extends State<_HoldToConfirmDialog> {
   void _startHold() {
     _timer = Timer.periodic(_tickInterval, (t) {
       setState(() {
-        _progress += _tickInterval.inMilliseconds /
-            _holdDuration.inMilliseconds;
+        _progress +=
+            _tickInterval.inMilliseconds / _holdDuration.inMilliseconds;
         if (_progress >= 1.0) {
           t.cancel();
           Navigator.of(context).pop(true);
@@ -551,8 +596,9 @@ class _HoldToConfirmDialogState extends State<_HoldToConfirmDialog> {
                       value: _progress,
                       minHeight: 52,
                       backgroundColor: Colors.red.withValues(alpha: 0.15),
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(Colors.red),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.red,
+                      ),
                     ),
                   ),
                   Center(
