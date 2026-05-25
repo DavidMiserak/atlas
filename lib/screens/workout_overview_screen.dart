@@ -8,6 +8,8 @@ import '../theme/responsive.dart';
 import '../utils/workout_duration_estimator.dart';
 import 'session_screen.dart';
 
+enum _IncompleteSessionAction { cancel, startNew, resume }
+
 class WorkoutOverviewScreen extends StatefulWidget {
   final Workout workout;
   final Color accentColor;
@@ -76,6 +78,42 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
 
   int get _estimatedMinutes => estimateWorkoutMinutes(widget.workout);
 
+  Future<_IncompleteSessionAction> _promptForIncompleteSession() async {
+    final choice = await showDialog<_IncompleteSessionAction>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Resume Incomplete Session?'),
+        content: const Text(
+          'You already have an in-progress session for this workout. '
+          'Would you like to continue where you left off or start a new one?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(_IncompleteSessionAction.cancel);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(
+                dialogContext,
+              ).pop(_IncompleteSessionAction.startNew);
+            },
+            child: const Text('Start New'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(_IncompleteSessionAction.resume);
+            },
+            child: const Text('Continue Workout'),
+          ),
+        ],
+      ),
+    );
+    return choice ?? _IncompleteSessionAction.cancel;
+  }
+
   Future<void> _startWorkout() async {
     final workoutId = widget.workout.id;
     if (workoutId == null) {
@@ -85,18 +123,35 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
       return;
     }
 
+    final provider = context.read<SessionProvider>();
+    if (provider.currentSession != null &&
+        provider.selectedWorkoutId == workoutId) {
+      final action = await _promptForIncompleteSession();
+      if (!mounted) return;
+
+      if (action == _IncompleteSessionAction.cancel) {
+        return;
+      }
+
+      if (action == _IncompleteSessionAction.resume) {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const SessionScreen()));
+        return;
+      }
+    }
+
     setState(() {
       _isStarting = true;
       _startError = null;
     });
 
-    await context.read<SessionProvider>().startSession(
+    await provider.startSession(
       workoutId,
       preselectedVariantsBySlot: _selectedVariantsBySlot,
     );
     if (!mounted) return;
 
-    final provider = context.read<SessionProvider>();
     if (provider.error != null) {
       setState(() {
         _isStarting = false;

@@ -41,7 +41,7 @@ class _SessionScreenState extends State<SessionScreen> {
         title: const Text('Go Back?'),
         content: Text(
           hasSets
-              ? 'Any logged sets will be saved, but you\'ll need to restart to continue this session.'
+              ? 'Any logged sets will be saved. You can continue this session later from the workout overview.'
               : 'Select a different workout?',
         ),
         actions: [
@@ -146,9 +146,7 @@ class _SessionScreenState extends State<SessionScreen> {
                             SizedBox(
                               height: Responsive.space(context, 20, max: 32),
                             ),
-                            ExerciseDetails(
-                              sessionExercise: sessionExercise,
-                            ),
+                            ExerciseDetails(sessionExercise: sessionExercise),
                           ],
                         ),
                       ),
