@@ -21,11 +21,19 @@ class OneRmHistoryListScreen extends StatefulWidget {
 
 class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
   late Future<List<_SlotGroup>> _future;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _future = _loadGroups();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<List<_SlotGroup>> _loadGroups() async {
@@ -57,10 +65,10 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
 
     if (slotVariants.isEmpty) return [];
 
-    final allVariantIds =
-        slotVariants.values.expand((m) => m.keys).toList();
-    final oneRmData =
-        await oneRmRepo.getCurrentOneRmDataForVariants(allVariantIds);
+    final allVariantIds = slotVariants.values.expand((m) => m.keys).toList();
+    final oneRmData = await oneRmRepo.getCurrentOneRmDataForVariants(
+      allVariantIds,
+    );
 
     return [
       for (final slotName in slotOrder)
@@ -79,6 +87,78 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
           ],
         ),
     ];
+  }
+
+  List<_SlotGroup> _filterGroups(List<_SlotGroup> groups) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return groups;
+
+    final filtered = <_SlotGroup>[];
+    for (final group in groups) {
+      final slotMatches = group.slotName.toLowerCase().contains(query);
+      final matchingVariants = slotMatches
+          ? group.variants
+          : group.variants
+                .where((v) => v.info.name.toLowerCase().contains(query))
+                .toList();
+
+      if (matchingVariants.isNotEmpty) {
+        filtered.add((slotName: group.slotName, variants: matchingVariants));
+      }
+    }
+    return filtered;
+  }
+
+  Widget _buildSearchField(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+        style: GoogleFonts.outfit(fontSize: 14, color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Search exercises',
+          hintStyle: GoogleFonts.outfit(
+            fontSize: 14,
+            color: const Color(0xFF666666),
+          ),
+          prefixIcon: const Icon(
+            Icons.search,
+            color: Color(0xFF666666),
+            size: 20,
+          ),
+          suffixIcon: _searchQuery.trim().isNotEmpty
+              ? IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: Color(0xFF666666),
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: const Color(0xFF151515),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -135,15 +215,18 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
                     Text(
                       'No exercises found',
                       style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Your program data may not have loaded. Try restarting the app.',
                       style: GoogleFonts.outfit(
-                          fontSize: 14, color: const Color(0xFF888888)),
+                        fontSize: 14,
+                        color: const Color(0xFF888888),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -152,37 +235,84 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
             );
           }
 
-          // Flatten groups into a linear list of header + row widgets.
-          final items = <Widget>[];
-          for (final group in groups) {
-            items.add(_SlotHeader(name: group.slotName));
-            for (final v in group.variants) {
-              items.add(_VariantRow(
-                variantId: v.variantId,
-                info: v.info,
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (c) => OneRmHistoryDetailScreen(
-                        variantId: v.variantId,
-                        variantName: v.info.name,
+          final filteredGroups = _filterGroups(groups);
+          final hasActiveFilter = _searchQuery.trim().isNotEmpty;
+
+          if (filteredGroups.isEmpty) {
+            return Column(
+              children: [
+                _buildSearchField(context),
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'No matching exercises',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            hasActiveFilter
+                                ? 'Try a different search term.'
+                                : 'No exercises available.',
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              color: const Color(0xFF888888),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                  final next = _loadGroups();
-                  setState(() {
-                    _future = next;
-                  });
-                },
-              ));
+                  ),
+                ),
+              ],
+            );
+          }
+
+          // Flatten groups into a linear list of header + row widgets.
+          final items = <Widget>[];
+          items.add(_buildSearchField(context));
+          for (final group in filteredGroups) {
+            items.add(_SlotHeader(name: group.slotName));
+            for (final v in group.variants) {
+              items.add(
+                _VariantRow(
+                  variantId: v.variantId,
+                  info: v.info,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (c) => OneRmHistoryDetailScreen(
+                          variantId: v.variantId,
+                          variantName: v.info.name,
+                        ),
+                      ),
+                    );
+                    final next = _loadGroups();
+                    setState(() {
+                      _future = next;
+                    });
+                  },
+                ),
+              );
               items.add(const Divider(color: Color(0xFF1A1A1A), height: 1));
             }
             items.add(const SizedBox(height: 8));
           }
 
           return ListView(
-            padding: EdgeInsets.symmetric(vertical: Responsive.space(context, 8, max: 10)),
+            padding: EdgeInsets.symmetric(
+              vertical: Responsive.space(context, 8, max: 10),
+            ),
             children: items,
           );
         },
@@ -262,7 +392,9 @@ class _VariantRow extends StatelessWidget {
                   Text(
                     _formatDate(info.lastUpdated),
                     style: GoogleFonts.outfit(
-                        fontSize: 11, color: const Color(0xFF666666)),
+                      fontSize: 11,
+                      color: const Color(0xFF666666),
+                    ),
                   ),
                 ],
               ),
@@ -277,14 +409,22 @@ class _VariantRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.spaceGrotesk(
-                    fontSize: Responsive.font(context, base: 20, min: 16, max: 21),
+                    fontSize: Responsive.font(
+                      context,
+                      base: 20,
+                      min: 16,
+                      max: 21,
+                    ),
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF00D9FF),
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Icon(Icons.arrow_forward,
-                    size: 16, color: Color(0xFF666666)),
+                const Icon(
+                  Icons.arrow_forward,
+                  size: 16,
+                  color: Color(0xFF666666),
+                ),
               ],
             ),
           ],
