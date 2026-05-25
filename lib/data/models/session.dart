@@ -4,6 +4,7 @@ class Session {
   final DateTime dateCompleted;
   final bool isDeload;
   final bool isDemo;
+  final String status;
   final String? notes;
 
   Session({
@@ -12,6 +13,7 @@ class Session {
     required this.dateCompleted,
     this.isDeload = false,
     this.isDemo = false,
+    this.status = 'in_progress',
     this.notes,
   });
 
@@ -22,6 +24,7 @@ class Session {
       'date_completed': dateCompleted.toIso8601String(),
       'is_deload': isDeload ? 1 : 0,
       'is_demo': isDemo ? 1 : 0,
+      'status': status,
       'notes': notes,
     };
   }
@@ -33,6 +36,7 @@ class Session {
       dateCompleted: DateTime.parse(map['date_completed'] as String),
       isDeload: (map['is_deload'] as int?) == 1,
       isDemo: (map['is_demo'] as int?) == 1,
+      status: (map['status'] as String?) ?? 'in_progress',
       notes: map['notes'] as String?,
     );
   }

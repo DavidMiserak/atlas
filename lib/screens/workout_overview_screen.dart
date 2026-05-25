@@ -8,8 +8,6 @@ import '../theme/responsive.dart';
 import '../utils/workout_duration_estimator.dart';
 import 'session_screen.dart';
 
-enum _IncompleteSessionAction { cancel, startNew, resume }
-
 class WorkoutOverviewScreen extends StatefulWidget {
   final Workout workout;
   final Color accentColor;
@@ -27,6 +25,7 @@ class WorkoutOverviewScreen extends StatefulWidget {
 class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
   bool _isStarting = false;
   bool _isLoadingSelections = true;
+  bool _hasIncompleteSession = false;
   String? _startError;
   final Map<int, int> _selectedVariantsBySlot = {};
 
@@ -37,13 +36,18 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
   }
 
   Future<void> _loadInitialVariantSelections() async {
+    final workoutId = widget.workout.id;
     final slotIds = widget.workout.exerciseSlots
         .where((slot) => slot.id != null && slot.variants.isNotEmpty)
         .map((slot) => slot.id!)
         .toList();
-    final lastUsedBySlot = await context
-        .read<SessionProvider>()
-        .getLastUsedVariantIdsForSlots(slotIds);
+    final provider = context.read<SessionProvider>();
+    final lastUsedBySlot = await provider.getLastUsedVariantIdsForSlots(
+      slotIds,
+    );
+    final hasIncompleteSession = workoutId == null
+        ? false
+        : await provider.hasIncompleteSessionForWorkout(workoutId);
 
     final selected = <int, int>{};
     for (final slot in widget.workout.exerciseSlots) {
@@ -65,7 +69,22 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
       _selectedVariantsBySlot
         ..clear()
         ..addAll(selected);
+      _hasIncompleteSession = hasIncompleteSession;
       _isLoadingSelections = false;
+    });
+  }
+
+  Future<void> _refreshIncompleteSessionState() async {
+    final workoutId = widget.workout.id;
+    if (workoutId == null || !mounted) return;
+
+    final hasIncompleteSession = await context
+        .read<SessionProvider>()
+        .hasIncompleteSessionForWorkout(workoutId);
+    if (!mounted) return;
+
+    setState(() {
+      _hasIncompleteSession = hasIncompleteSession;
     });
   }
 
@@ -78,40 +97,34 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
 
   int get _estimatedMinutes => estimateWorkoutMinutes(widget.workout);
 
-  Future<_IncompleteSessionAction> _promptForIncompleteSession() async {
-    final choice = await showDialog<_IncompleteSessionAction>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Resume Incomplete Session?'),
-        content: const Text(
-          'You already have an in-progress session for this workout. '
-          'Would you like to continue where you left off or start a new one?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(_IncompleteSessionAction.cancel);
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(
-                dialogContext,
-              ).pop(_IncompleteSessionAction.startNew);
-            },
-            child: const Text('Start New'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(_IncompleteSessionAction.resume);
-            },
-            child: const Text('Continue Workout'),
-          ),
-        ],
-      ),
-    );
-    return choice ?? _IncompleteSessionAction.cancel;
+  Future<void> _resumeIncompleteSession() async {
+    final workoutId = widget.workout.id;
+    if (workoutId == null) {
+      setState(() {
+        _startError = 'Unable to resume this workout right now.';
+      });
+      return;
+    }
+
+    final provider = context.read<SessionProvider>();
+    await provider.resumeIncompleteSessionForWorkout(workoutId);
+    if (!mounted) return;
+
+    if (provider.error != null) {
+      final stillIncomplete = await provider.hasIncompleteSessionForWorkout(
+        workoutId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _startError = provider.error;
+        _hasIncompleteSession = stillIncomplete;
+      });
+      return;
+    }
+
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const SessionScreen()))
+        .then((_) => _refreshIncompleteSessionState());
   }
 
   Future<void> _startWorkout() async {
@@ -124,23 +137,6 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
     }
 
     final provider = context.read<SessionProvider>();
-    if (provider.currentSession != null &&
-        provider.selectedWorkoutId == workoutId) {
-      final action = await _promptForIncompleteSession();
-      if (!mounted) return;
-
-      if (action == _IncompleteSessionAction.cancel) {
-        return;
-      }
-
-      if (action == _IncompleteSessionAction.resume) {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const SessionScreen()));
-        return;
-      }
-    }
-
     setState(() {
       _isStarting = true;
       _startError = null;
@@ -160,9 +156,9 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
       return;
     }
 
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SessionScreen()));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const SessionScreen()))
+        .then((_) => _refreshIncompleteSessionState());
     setState(() {
       _isStarting = false;
     });
@@ -281,6 +277,10 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (_hasIncompleteSession) ...[
+                    _IncompleteSessionBanner(accentColor: widget.accentColor),
+                    const SizedBox(height: 10),
+                  ],
                   if (_startError != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -295,44 +295,147 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
                     ),
                   SizedBox(
                     height: 54,
-                    child: ElevatedButton(
-                      onPressed: _isStarting || _isLoadingSelections
-                          ? null
-                          : _startWorkout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.accentColor,
-                        foregroundColor: Colors.black,
-                        disabledBackgroundColor: widget.accentColor.withValues(
-                          alpha: 0.35,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isStarting
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.black.withValues(alpha: 0.75),
+                    child: _hasIncompleteSession
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _isLoadingSelections
+                                      ? null
+                                      : _resumeIncompleteSession,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: BorderSide(
+                                      color: widget.accentColor.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Continue Session',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            )
-                          : Text(
-                              'Start Workout',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.3,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _isStarting || _isLoadingSelections
+                                      ? null
+                                      : _startWorkout,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: widget.accentColor,
+                                    foregroundColor: Colors.black,
+                                    disabledBackgroundColor: widget.accentColor
+                                        .withValues(alpha: 0.35),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: _isStarting
+                                      ? SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.black.withValues(
+                                              alpha: 0.75,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          'Start New Session',
+                                          style: GoogleFonts.spaceGrotesk(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ElevatedButton(
+                            onPressed: _isStarting || _isLoadingSelections
+                                ? null
+                                : _startWorkout,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: widget.accentColor,
+                              foregroundColor: Colors.black,
+                              disabledBackgroundColor: widget.accentColor
+                                  .withValues(alpha: 0.35),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                    ),
+                            child: _isStarting
+                                ? SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.black.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    'Start Workout',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                          ),
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _IncompleteSessionBanner extends StatelessWidget {
+  final Color accentColor;
+
+  const _IncompleteSessionBanner({required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.pause_circle_filled, color: accentColor, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Incomplete session found. Continue where you left off or start a new session.',
+              style: GoogleFonts.outfit(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFE8E8E8),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

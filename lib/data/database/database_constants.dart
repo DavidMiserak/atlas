@@ -1,4 +1,4 @@
-const int databaseVersion = 7;
+const int databaseVersion = 8;
 const String databaseName = 'workout_logger.db';
 
 const String tablePrograms = 'programs';
@@ -61,7 +61,12 @@ const String colSessionWorkoutId = 'workout_id';
 const String colSessionDateCompleted = 'date_completed';
 const String colSessionIsDeload = 'is_deload';
 const String colSessionIsDemo = 'is_demo';
+const String colSessionStatus = 'status';
 const String colSessionNotes = 'notes';
+
+const String sessionStatusInProgress = 'in_progress';
+const String sessionStatusCompleted = 'completed';
+const String sessionStatusAbandoned = 'abandoned';
 
 const String colSessionExerciseId = 'session_exercise_id';
 const String colSessionExerciseSessionId = 'session_id';

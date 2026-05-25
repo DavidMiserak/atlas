@@ -41,6 +41,7 @@ void main() {
         dateCompleted: date ?? DateTime.now(),
         isDeload: isDeload,
         isDemo: isDemo,
+        status: sessionStatusCompleted,
       ),
     );
   }

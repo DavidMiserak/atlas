@@ -133,6 +133,21 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       );
     });
   }
+  if (oldVersion < 8) {
+    await db.transaction((txn) async {
+      await txn.execute(
+        "ALTER TABLE $tableSessions ADD COLUMN $colSessionStatus TEXT NOT NULL DEFAULT '$sessionStatusCompleted'",
+      );
+      await txn.rawUpdate(
+        "UPDATE $tableSessions SET $colSessionStatus = ? WHERE $colSessionStatus IS NULL OR TRIM($colSessionStatus) = ''",
+        [sessionStatusCompleted],
+      );
+      await txn.rawUpdate(
+        'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+        ['8', settingSchemaVersion],
+      );
+    });
+  }
 }
 
 Future<void> _createTables(Database db) async {
@@ -215,6 +230,7 @@ Future<void> _createTables(Database db) async {
       $colSessionDateCompleted TEXT NOT NULL,
       $colSessionIsDeload INTEGER NOT NULL DEFAULT 0,
       $colSessionIsDemo INTEGER NOT NULL DEFAULT 0,
+      $colSessionStatus TEXT NOT NULL DEFAULT '$sessionStatusInProgress',
       $colSessionNotes TEXT,
       FOREIGN KEY ($colSessionWorkoutId) REFERENCES $tableWorkouts ($colWorkoutId)
     )

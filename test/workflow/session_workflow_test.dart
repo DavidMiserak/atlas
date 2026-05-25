@@ -27,6 +27,7 @@ void main() {
   Future<int> createSession({
     bool isDeload = false,
     bool isDemo = false,
+    String status = sessionStatusCompleted,
   }) async {
     return SessionRepository().createSession(
       Session(
@@ -34,6 +35,7 @@ void main() {
         dateCompleted: DateTime.now(),
         isDeload: isDeload,
         isDemo: isDemo,
+        status: status,
       ),
     );
   }

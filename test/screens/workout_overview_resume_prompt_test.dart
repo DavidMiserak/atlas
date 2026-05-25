@@ -1,4 +1,3 @@
-import 'package:atlas/data/models/session.dart';
 import 'package:atlas/data/models/workout.dart';
 import 'package:atlas/providers/session_provider.dart';
 import 'package:atlas/screens/workout_overview_screen.dart';
@@ -7,21 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 class _FakeSessionProvider extends SessionProvider {
-  _FakeSessionProvider({
-    required this.fakeCurrentSession,
-    required this.fakeSelectedWorkoutId,
-  });
+  _FakeSessionProvider({required this.hasIncompleteSession});
 
-  final Session? fakeCurrentSession;
-  final int? fakeSelectedWorkoutId;
+  final bool hasIncompleteSession;
   int startSessionCalls = 0;
+  int resumeSessionCalls = 0;
   String? fakeError;
-
-  @override
-  Session? get currentSession => fakeCurrentSession;
-
-  @override
-  int? get selectedWorkoutId => fakeSelectedWorkoutId;
 
   @override
   String? get error => fakeError;
@@ -37,6 +27,17 @@ class _FakeSessionProvider extends SessionProvider {
     Map<int, int>? preselectedVariantsBySlot,
   }) async {
     startSessionCalls++;
+    fakeError = null;
+  }
+
+  @override
+  Future<bool> hasIncompleteSessionForWorkout(int workoutId) async {
+    return hasIncompleteSession;
+  }
+
+  @override
+  Future<void> resumeIncompleteSessionForWorkout(int workoutId) async {
+    resumeSessionCalls++;
     fakeError = null;
   }
 }
@@ -73,48 +74,42 @@ Widget _buildHarness(SessionProvider provider) {
 }
 
 void main() {
-  testWidgets('prompts to resume when matching incomplete session exists', (
+  testWidgets('shows continue and start-new options in pre-flight', (
     tester,
   ) async {
-    final provider = _FakeSessionProvider(
-      fakeCurrentSession: Session(
-        id: 50,
-        workoutId: 1,
-        dateCompleted: DateTime.now(),
-      ),
-      fakeSelectedWorkoutId: 1,
-    );
+    final provider = _FakeSessionProvider(hasIncompleteSession: true);
 
     await tester.pumpWidget(_buildHarness(provider));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Start Workout'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Resume Incomplete Session?'), findsOneWidget);
-    expect(find.text('Continue Workout'), findsOneWidget);
-    expect(find.text('Start New'), findsOneWidget);
+    expect(find.text('Continue Session'), findsOneWidget);
+    expect(find.text('Start New Session'), findsOneWidget);
+    expect(find.textContaining('Incomplete session found.'), findsOneWidget);
   });
 
-  testWidgets('start new from prompt creates a new session', (tester) async {
-    final provider = _FakeSessionProvider(
-      fakeCurrentSession: Session(
-        id: 77,
-        workoutId: 1,
-        dateCompleted: DateTime.now(),
-      ),
-      fakeSelectedWorkoutId: 1,
-    );
+  testWidgets('start new from pre-flight creates a new session', (
+    tester,
+  ) async {
+    final provider = _FakeSessionProvider(hasIncompleteSession: true);
 
     await tester.pumpWidget(_buildHarness(provider));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Start Workout'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Start New'));
+    await tester.tap(find.text('Start New Session'));
     await tester.pumpAndSettle();
 
     expect(provider.startSessionCalls, 1);
+  });
+
+  testWidgets('continue session uses resume flow', (tester) async {
+    final provider = _FakeSessionProvider(hasIncompleteSession: true);
+
+    await tester.pumpWidget(_buildHarness(provider));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continue Session'));
+    await tester.pumpAndSettle();
+
+    expect(provider.resumeSessionCalls, 1);
   });
 }

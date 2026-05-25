@@ -4,6 +4,40 @@ import '../models/session.dart';
 import '../models/session_review.dart';
 
 class SessionRepository {
+  Future<int?> getLatestIncompleteSessionIdForWorkout(int workoutId) async {
+    final db = await getDatabase();
+    final rows = await db.query(
+      tableSessions,
+      columns: [colSessionId],
+      where: '$colSessionWorkoutId = ? AND $colSessionStatus = ?',
+      whereArgs: [workoutId, sessionStatusInProgress],
+      orderBy: '$colSessionId DESC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return rows.first[colSessionId] as int?;
+  }
+
+  Future<int> updateSessionStatus(int sessionId, String status) async {
+    final db = await getDatabase();
+    return await db.update(
+      tableSessions,
+      {colSessionStatus: status},
+      where: '$colSessionId = ?',
+      whereArgs: [sessionId],
+    );
+  }
+
+  Future<int> abandonIncompleteSessionsForWorkout(int workoutId) async {
+    final db = await getDatabase();
+    return await db.update(
+      tableSessions,
+      {colSessionStatus: sessionStatusAbandoned},
+      where: '$colSessionWorkoutId = ? AND $colSessionStatus = ?',
+      whereArgs: [workoutId, sessionStatusInProgress],
+    );
+  }
+
   Future<int> createSession(Session session) async {
     final db = await getDatabase();
     return await db.insert(tableSessions, session.toMap());
@@ -65,6 +99,7 @@ class SessionRepository {
       JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
       WHERE se.$colSessionExerciseSlotId = ?
         AND s.$colSessionIsDemo = 0
+        AND s.$colSessionStatus = '$sessionStatusCompleted'
       ORDER BY s.$colSessionDateCompleted DESC
       LIMIT 1
     ''',
@@ -222,6 +257,7 @@ class SessionRepository {
       JOIN $tableWorkouts w ON s.$colSessionWorkoutId = w.$colWorkoutId
       LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
       LEFT JOIN $tableSessionSets ss ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
+      WHERE s.$colSessionStatus = '$sessionStatusCompleted'
       GROUP BY s.$colSessionId
       HAVING COUNT(ss.$colSessionSetId) > 0
       ORDER BY s.$colSessionDateCompleted DESC
@@ -263,6 +299,7 @@ class SessionRepository {
       LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
       LEFT JOIN $tableSessionSets ss ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
       WHERE s.$colSessionDateCompleted IS NOT NULL
+        AND s.$colSessionStatus = '$sessionStatusCompleted'
         AND (
           TRIM(COALESCE(s.$colSessionNotes, '')) LIKE ? ESCAPE '\\'
           OR TRIM(COALESCE(ss.$colSessionSetNotes, '')) LIKE ? ESCAPE '\\'

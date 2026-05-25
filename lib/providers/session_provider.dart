@@ -7,6 +7,7 @@ import '../data/repositories/program_repository.dart';
 import '../data/repositories/session_repository.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../data/repositories/settings_repository.dart';
+import '../data/database/database_constants.dart';
 import '../utils/weight_calculator.dart';
 
 class SessionProvider extends ChangeNotifier {
@@ -74,8 +75,10 @@ class SessionProvider extends ChangeNotifier {
         workoutId: workoutId,
         dateCompleted: now,
         isDemo: demoModeEnabled,
+        status: sessionStatusInProgress,
       );
 
+      await sessionRepo.abandonIncompleteSessionsForWorkout(workoutId);
       final sessionId = await sessionRepo.createSession(session);
       final createdSession = await sessionRepo.getSessionById(sessionId);
 
@@ -182,6 +185,10 @@ class SessionProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
+      await sessionRepo.updateSessionStatus(
+        _currentSession!.id!,
+        sessionStatusCompleted,
+      );
 
       _currentSession = null;
       _selectedWorkoutId = null;
@@ -293,6 +300,82 @@ class SessionProvider extends ChangeNotifier {
 
   Future<List<SessionDetailExercise>> getSessionDetail(int sessionId) async {
     return await sessionRepo.getSessionDetail(sessionId);
+  }
+
+  Future<bool> hasIncompleteSessionForWorkout(int workoutId) async {
+    final activeSessionId = await sessionRepo
+        .getLatestIncompleteSessionIdForWorkout(workoutId);
+    return activeSessionId != null;
+  }
+
+  Future<void> resumeIncompleteSessionForWorkout(int workoutId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final activeSessionId = await sessionRepo
+          .getLatestIncompleteSessionIdForWorkout(workoutId);
+      if (activeSessionId == null) {
+        throw Exception('No incomplete session found for this workout.');
+      }
+
+      final activeSession = await sessionRepo.getSessionById(activeSessionId);
+      if (activeSession == null) {
+        throw Exception('Incomplete session no longer exists.');
+      }
+
+      final programs = await programRepo.getAllPrograms();
+      if (programs.isEmpty) {
+        throw Exception('No programs found in database');
+      }
+      final program = await programRepo.getProgramById(programs.first.id!);
+      if (program == null) {
+        throw Exception('Program not found');
+      }
+
+      final workout = program.workouts.firstWhere(
+        (w) => w.id == workoutId,
+        orElse: () => program.workouts[0],
+      );
+
+      final exercises = await sessionRepo.getSessionExercises(activeSessionId);
+      final exerciseIds = exercises
+          .map((exercise) => exercise.id)
+          .whereType<int>()
+          .toList();
+      final setsByExercise = await sessionRepo.getSessionSetsForExercises(
+        exerciseIds,
+      );
+
+      var nextExerciseIndex = 0;
+      if (exercises.isNotEmpty) {
+        final firstWithoutSets = exercises.indexWhere((exercise) {
+          final exerciseId = exercise.id;
+          if (exerciseId == null) return true;
+          return (setsByExercise[exerciseId] ?? const []).isEmpty;
+        });
+        nextExerciseIndex = firstWithoutSets >= 0
+            ? firstWithoutSets
+            : exercises.length - 1;
+      }
+
+      _currentSession = activeSession;
+      _selectedWorkoutId = workoutId;
+      _currentProgram = program;
+      _currentWorkout = workout;
+      _sessionExercises = exercises;
+      _sessionSets = setsByExercise;
+      _currentExerciseIndex = nextExerciseIndex;
+      _estimatedOneRms = {};
+      _preselectedVariantsBySlot = {};
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to resume session: $e';
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> deleteSessionEntry(int sessionId) async {
