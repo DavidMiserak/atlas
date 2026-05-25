@@ -22,7 +22,29 @@ class OneRmRepository {
       whereArgs: [variantId],
       orderBy: '$col1rmHistoryDate DESC',
     );
-    return historyMaps.map((map) => OneRmHistory.fromMap(map)).toList();
+    final history = historyMaps.map((map) => OneRmHistory.fromMap(map)).toList();
+    if (history.isEmpty) return history;
+
+    // Filter accidental duplicate saves (same weight repeated within a minute).
+    final deduped = <OneRmHistory>[];
+    for (final record in history) {
+      if (deduped.isEmpty) {
+        deduped.add(record);
+        continue;
+      }
+
+      final previous = deduped.last;
+      final sameWeight = (previous.weight - record.weight).abs() < 0.0001;
+      final nearInTime =
+          previous.date.difference(record.date).abs() < const Duration(minutes: 1);
+      if (sameWeight && nearInTime) {
+        continue;
+      }
+
+      deduped.add(record);
+    }
+
+    return deduped;
   }
 
   Future<int> recordNewOneRm(
@@ -33,6 +55,37 @@ class OneRmRepository {
   }) async {
     final db = await getDatabase();
     return await db.transaction<int>((txn) async {
+      final existingCurrent = await txn.query(
+        tableVariantOneRmHistory,
+        columns: [
+          col1rmHistoryId,
+          col1rmHistoryWeight,
+        ],
+        where: '$col1rmHistoryVariantId = ? AND $col1rmHistoryIsCurrent = 1',
+        whereArgs: [variantId],
+        limit: 1,
+      );
+
+      if (existingCurrent.isNotEmpty) {
+        final currentRow = existingCurrent.first;
+        final currentWeight = (currentRow[col1rmHistoryWeight] as num).toDouble();
+        final currentId = currentRow[col1rmHistoryId] as int?;
+
+        // Avoid duplicate history rows when the 1RM didn't actually change.
+        if (currentId != null && (currentWeight - weight).abs() < 0.0001) {
+          await txn.update(
+            tableVariantOneRmHistory,
+            {
+              col1rmHistoryDate: date.toIso8601String(),
+              col1rmHistoryNotes: notes,
+            },
+            where: '$col1rmHistoryId = ?',
+            whereArgs: [currentId],
+          );
+          return currentId;
+        }
+      }
+
       await txn.update(
         tableVariantOneRmHistory,
         {col1rmHistoryIsCurrent: 0},

@@ -278,5 +278,76 @@ void main() {
       final history = await oneRmRepo.getOneRmHistory(variantId);
       expect(history.first.weight, 225.0);
     });
+
+    test('Same-weight update does not create duplicate history entries', () async {
+      final oneRmRepo = OneRmRepository();
+      await loadSeedData();
+      final slot = await firstSlot();
+      final variantId = slot['variantId']!;
+      final db = await getDatabase();
+      await db.delete(
+        tableVariantOneRmHistory,
+        where: '$col1rmHistoryVariantId = ?',
+        whereArgs: [variantId],
+      );
+
+      final firstDate = DateTime(2026, 5, 25, 10, 0);
+      final secondDate = DateTime(2026, 5, 25, 11, 0);
+
+      await oneRmRepo.recordNewOneRm(
+        variantId,
+        225.0,
+        firstDate,
+        notes: 'Manual update',
+      );
+      await oneRmRepo.recordNewOneRm(
+        variantId,
+        225.0,
+        secondDate,
+        notes: 'Manual update retry',
+      );
+
+      final history = await oneRmRepo.getOneRmHistory(variantId);
+      expect(history.length, 1);
+      expect(history.first.weight, 225.0);
+      expect(history.first.date, secondDate);
+      expect(history.first.notes, 'Manual update retry');
+      expect(history.first.isCurrent, isTrue);
+    });
+
+    test('getOneRmHistory hides accidental duplicate rows', () async {
+      final oneRmRepo = OneRmRepository();
+      await loadSeedData();
+      final slot = await firstSlot();
+      final variantId = slot['variantId']!;
+      final db = await getDatabase();
+      await db.delete(
+        tableVariantOneRmHistory,
+        where: '$col1rmHistoryVariantId = ?',
+        whereArgs: [variantId],
+      );
+
+      final t1 = DateTime(2026, 5, 25, 10, 0, 0);
+      final t2 = DateTime(2026, 5, 25, 10, 0, 10);
+      await db.insert(tableVariantOneRmHistory, {
+        col1rmHistoryVariantId: variantId,
+        col1rmHistoryWeight: 180.0,
+        col1rmHistoryDate: t1.toIso8601String(),
+        col1rmHistoryNotes: 'dup-a',
+        col1rmHistoryIsCurrent: 0,
+      });
+      await db.insert(tableVariantOneRmHistory, {
+        col1rmHistoryVariantId: variantId,
+        col1rmHistoryWeight: 180.0,
+        col1rmHistoryDate: t2.toIso8601String(),
+        col1rmHistoryNotes: 'dup-b',
+        col1rmHistoryIsCurrent: 1,
+      });
+
+      final history = await oneRmRepo.getOneRmHistory(variantId);
+      expect(history.length, 1);
+      expect(history.first.weight, 180.0);
+      expect(history.first.date, t2);
+    });
   });
 }
