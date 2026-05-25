@@ -144,7 +144,9 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
       builder: (context) => _UpdateOneRmModal(
         variantId: widget.variantId,
         onUpdate: () {
-          setState(() => _historyFuture = _loadHistory());
+          setState(() {
+            _historyFuture = _loadHistory();
+          });
         },
       ),
     );

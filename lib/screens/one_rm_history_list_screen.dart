@@ -171,7 +171,9 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
                     ),
                   );
                   final next = _loadGroups();
-                  setState(() => _future = next);
+                  setState(() {
+                    _future = next;
+                  });
                 },
               ));
               items.add(const Divider(color: Color(0xFF1A1A1A), height: 1));
