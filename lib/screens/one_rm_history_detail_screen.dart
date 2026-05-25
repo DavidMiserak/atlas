@@ -139,6 +139,7 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
   void _showUpdateModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF0D0D0D),
       shape: const RoundedRectangleBorder(),
       builder: (context) => _UpdateOneRmModal(
@@ -275,8 +276,12 @@ class _UpdateOneRmModalState extends State<_UpdateOneRmModal> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom;
+    final bottomSafeArea = mediaQuery.padding.bottom;
+
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset + bottomSafeArea),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
