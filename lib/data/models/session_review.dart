@@ -22,6 +22,7 @@ class SessionSummary {
   final List<PrRecord> newPrs;
   final bool hasSessionNote;
   final bool hasSetNote;
+  final bool isDemo;
   final String? noteSnippet;
 
   SessionSummary({
@@ -34,22 +35,24 @@ class SessionSummary {
     this.newPrs = const [],
     this.hasSessionNote = false,
     this.hasSetNote = false,
+    this.isDemo = false,
     this.noteSnippet,
   });
 
   SessionSummary.fromMap(Map<String, dynamic> map)
-      : sessionId = map['session_id'],
-        workoutName = map['workout_name'],
-        dateCompleted = DateTime.parse(map['date_completed']),
-        exerciseCount = map['exercise_count'],
-        totalSetsLogged = map['total_sets'],
-        totalVolume = (map['total_volume'] as num).toDouble(),
-        newPrs = const [],
-        hasSessionNote = (map['has_session_note'] as int? ?? 0) != 0,
-        hasSetNote = (map['has_set_note'] as int? ?? 0) != 0,
-        noteSnippet = (map['note_snippet'] as String?)?.isNotEmpty == true
-            ? map['note_snippet'] as String
-            : null;
+    : sessionId = map['session_id'],
+      workoutName = map['workout_name'],
+      dateCompleted = DateTime.parse(map['date_completed']),
+      exerciseCount = map['exercise_count'],
+      totalSetsLogged = map['total_sets'],
+      totalVolume = (map['total_volume'] as num).toDouble(),
+      newPrs = const [],
+      hasSessionNote = (map['has_session_note'] as int? ?? 0) != 0,
+      hasSetNote = (map['has_set_note'] as int? ?? 0) != 0,
+      isDemo = (map['is_demo'] as int? ?? 0) == 1,
+      noteSnippet = (map['note_snippet'] as String?)?.isNotEmpty == true
+          ? map['note_snippet'] as String
+          : null;
 }
 
 class SessionDetailExercise {
@@ -102,20 +105,20 @@ class SessionDetailSet {
   });
 
   SessionDetailSet.fromMap(Map<String, dynamic> map)
-      : setNumber = map['set_number'],
-        setType = map['set_type'],
-        targetRepsMin = map['reps_target_min'],
-        targetRepsMax = map['reps_target_max'],
-        targetWeight = _computeTargetWeight(
-          map['percentage_1rm'],
-          map['one_rm_at_session_time'],
-        ),
-        targetRpe = map['rpe_target'],
-        actualReps = map['reps_completed'],
-        actualWeight = map['weight_lifted'],
-        actualRpe = map['rpe_actual'],
-        oneRmAtSessionTime = (map['one_rm_at_session_time'] as num?)?.toDouble(),
-        notes = map['notes'] as String?;
+    : setNumber = map['set_number'],
+      setType = map['set_type'],
+      targetRepsMin = map['reps_target_min'],
+      targetRepsMax = map['reps_target_max'],
+      targetWeight = _computeTargetWeight(
+        map['percentage_1rm'],
+        map['one_rm_at_session_time'],
+      ),
+      targetRpe = map['rpe_target'],
+      actualReps = map['reps_completed'],
+      actualWeight = map['weight_lifted'],
+      actualRpe = map['rpe_actual'],
+      oneRmAtSessionTime = (map['one_rm_at_session_time'] as num?)?.toDouble(),
+      notes = map['notes'] as String?;
 
   static double? _computeTargetWeight(
     double? percentage1rm,

@@ -22,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   OneRmFormula _formula = OneRmFormula.rpeRts;
   bool _keepScreenAwakeDuringRest = false;
+  bool _demoModeEnabled = false;
   bool _loading = true;
   bool _backupBusy = false;
   bool _restoreBusy = false;
@@ -35,10 +36,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final formula = await _settingsRepo.getOneRmFormula();
     final keepAwake = await _settingsRepo.getKeepScreenAwakeDuringRest();
+    final demoModeEnabled = await _settingsRepo.getDemoModeEnabled();
     if (mounted) {
       setState(() {
         _formula = formula;
         _keepScreenAwakeDuringRest = keepAwake;
+        _demoModeEnabled = demoModeEnabled;
         _loading = false;
       });
     }
@@ -207,6 +210,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _onDemoModeChanged(bool value) async {
+    await _settingsRepo.setDemoModeEnabled(value);
+    if (mounted) {
+      setState(() => _demoModeEnabled = value);
+      _showSnack(value ? 'Demo Mode enabled.' : 'Demo Mode disabled.');
+    }
+  }
+
   // ── Navigation ───────────────────────────────────────────────────────────────
 
   void _navigateToRoot() {
@@ -357,6 +368,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         value: _keepScreenAwakeDuringRest,
                         onChanged: _onKeepScreenAwakeChanged,
+                      ),
+                      const Divider(height: 32, indent: 16, endIndent: 16),
+                      _SectionHeader(title: 'Session Defaults'),
+                      SwitchListTile(
+                        title: Text(
+                          'Demo Mode',
+                          style: GoogleFonts.outfit(fontSize: 15),
+                        ),
+                        subtitle: Text(
+                          'Marks new sessions as demo and prevents progression or 1RM updates.',
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            color: const Color(0xFF888888),
+                          ),
+                        ),
+                        value: _demoModeEnabled,
+                        onChanged: _onDemoModeChanged,
                       ),
                       const Divider(height: 32, indent: 16, endIndent: 16),
                       _SectionHeader(title: '1RM Formula'),

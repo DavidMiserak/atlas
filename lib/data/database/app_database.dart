@@ -111,6 +111,28 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       );
     });
   }
+  if (oldVersion < 7) {
+    await db.transaction((txn) async {
+      await txn.execute(
+        'ALTER TABLE $tableSessions ADD COLUMN $colSessionIsDemo INTEGER NOT NULL DEFAULT 0',
+      );
+      final existing = await txn.query(
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingDemoModeEnabled],
+      );
+      if (existing.isEmpty) {
+        await txn.insert(tableSettings, {
+          colSettingsKey: settingDemoModeEnabled,
+          colSettingsValue: 'false',
+        });
+      }
+      await txn.rawUpdate(
+        'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+        ['7', settingSchemaVersion],
+      );
+    });
+  }
 }
 
 Future<void> _createTables(Database db) async {
@@ -192,6 +214,7 @@ Future<void> _createTables(Database db) async {
       $colSessionWorkoutId INTEGER NOT NULL,
       $colSessionDateCompleted TEXT NOT NULL,
       $colSessionIsDeload INTEGER NOT NULL DEFAULT 0,
+      $colSessionIsDemo INTEGER NOT NULL DEFAULT 0,
       $colSessionNotes TEXT,
       FOREIGN KEY ($colSessionWorkoutId) REFERENCES $tableWorkouts ($colWorkoutId)
     )
@@ -270,6 +293,10 @@ Future<void> _initializeSettings(Database db) async {
   });
   await db.insert(tableSettings, {
     colSettingsKey: settingKeepScreenAwakeDuringRest,
+    colSettingsValue: 'false',
+  });
+  await db.insert(tableSettings, {
+    colSettingsKey: settingDemoModeEnabled,
     colSettingsValue: 'false',
   });
 }

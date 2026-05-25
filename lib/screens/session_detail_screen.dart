@@ -7,8 +7,7 @@ import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 
-bool _hasNoteText(String? notes) =>
-    notes != null && notes.trim().isNotEmpty;
+bool _hasNoteText(String? notes) => notes != null && notes.trim().isNotEmpty;
 
 class SessionDetailScreen extends StatelessWidget {
   final int sessionId;
@@ -30,7 +29,11 @@ class SessionDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Header(workoutName: workoutName, dateCompleted: dateCompleted),
+            _Header(
+              sessionId: sessionId,
+              workoutName: workoutName,
+              dateCompleted: dateCompleted,
+            ),
             Expanded(child: _ExerciseList(sessionId: sessionId)),
           ],
         ),
@@ -42,15 +45,30 @@ class SessionDetailScreen extends StatelessWidget {
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
+  final int sessionId;
   final String workoutName;
   final DateTime dateCompleted;
 
-  const _Header({required this.workoutName, required this.dateCompleted});
+  const _Header({
+    required this.sessionId,
+    required this.workoutName,
+    required this.dateCompleted,
+  });
 
   String _formatDate(DateTime date) {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     final day = weekdays[date.weekday - 1];
@@ -69,7 +87,11 @@ class _Header extends StatelessWidget {
             children: [
               GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 16),
               Text(
@@ -96,6 +118,32 @@ class _Header extends StatelessWidget {
               height: 0.9,
             ),
           ),
+          const SizedBox(height: 8),
+          FutureBuilder<Session?>(
+            future: SessionRepository().getSessionById(sessionId),
+            builder: (context, snapshot) {
+              final isDemo = snapshot.data?.isDemo ?? false;
+              if (!isDemo) return const SizedBox.shrink();
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color(0xFFFFC857).withValues(alpha: 0.45),
+                  ),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'DEMO SESSION',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: const Color(0xFFFFC857),
+                  ),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 20),
           Container(height: 1, color: const Color(0xFF1A1A1A)),
         ],
@@ -115,14 +163,19 @@ class _ExerciseList extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = Provider.of<SessionProvider>(context);
 
-    return FutureBuilder<({List<SessionDetailExercise> exercises, Session? session})>(
-      future: Future.wait([
-        provider.getSessionDetail(sessionId),
-        SessionRepository().getSessionById(sessionId),
-      ]).then((results) => (
-            exercises: results[0] as List<SessionDetailExercise>,
-            session: results[1] as Session?,
-          )),
+    return FutureBuilder<
+      ({List<SessionDetailExercise> exercises, Session? session})
+    >(
+      future:
+          Future.wait([
+            provider.getSessionDetail(sessionId),
+            SessionRepository().getSessionById(sessionId),
+          ]).then(
+            (results) => (
+              exercises: results[0] as List<SessionDetailExercise>,
+              session: results[1] as Session?,
+            ),
+          ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -141,7 +194,10 @@ class _ExerciseList extends StatelessWidget {
           return Center(
             child: Text(
               snapshot.error.toString(),
-              style: GoogleFonts.outfit(color: const Color(0xFF444444), fontSize: 13),
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF444444),
+                fontSize: 13,
+              ),
             ),
           );
         }
@@ -154,7 +210,10 @@ class _ExerciseList extends StatelessWidget {
           return Center(
             child: Text(
               'No data',
-              style: GoogleFonts.outfit(color: const Color(0xFF333333), fontSize: 13),
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF333333),
+                fontSize: 13,
+              ),
             ),
           );
         }
@@ -235,10 +294,10 @@ class _ExerciseBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final warmUpSets =
-        exercise.sets.where((s) => _isWarmUp(s.setType)).toList();
-    final mainSets =
-        exercise.sets.where((s) => !_isWarmUp(s.setType)).toList();
+    final warmUpSets = exercise.sets
+        .where((s) => _isWarmUp(s.setType))
+        .toList();
+    final mainSets = exercise.sets.where((s) => !_isWarmUp(s.setType)).toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 28),
@@ -276,10 +335,15 @@ class _ExerciseBlock extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       exercise.variantName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.spaceGrotesk(
-                    fontSize: Responsive.font(context, base: 20, min: 17, max: 21),
+                        fontSize: Responsive.font(
+                          context,
+                          base: 20,
+                          min: 17,
+                          max: 21,
+                        ),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: -0.5,
@@ -299,9 +363,7 @@ class _ExerciseBlock extends StatelessWidget {
               child: Wrap(
                 spacing: 6,
                 runSpacing: 5,
-                children: exercise.newPrs
-                    .map((pr) => _PrPill(pr: pr))
-                    .toList(),
+                children: exercise.newPrs.map((pr) => _PrPill(pr: pr)).toList(),
               ),
             ),
           ],
@@ -326,12 +388,14 @@ class _ExerciseBlock extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    warmUpSets.map((s) {
-                      if (s.actualReps != null && s.actualWeight != null) {
-                        return '${s.actualWeight!.toStringAsFixed(0)}×${s.actualReps}';
-                      }
-                      return '—';
-                    }).join('   ·   '),
+                    warmUpSets
+                        .map((s) {
+                          if (s.actualReps != null && s.actualWeight != null) {
+                            return '${s.actualWeight!.toStringAsFixed(0)}×${s.actualReps}';
+                          }
+                          return '—';
+                        })
+                        .join('   ·   '),
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
                       color: const Color(0xFF2E2E2E),
@@ -348,10 +412,12 @@ class _ExerciseBlock extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: warmUpSets
                       .where((s) => _hasNoteText(s.notes))
-                      .map((s) => _SetNoteLine(
-                            setNumber: s.setNumber,
-                            notes: s.notes!.trim(),
-                          ))
+                      .map(
+                        (s) => _SetNoteLine(
+                          setNumber: s.setNumber,
+                          notes: s.notes!.trim(),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -529,7 +595,6 @@ class _WorkingSetRow extends StatelessWidget {
   }
 }
 
-
 class _SetNoteLine extends StatelessWidget {
   final int setNumber;
   final String notes;
@@ -582,7 +647,9 @@ class _PrPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF00D9FF).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFF00D9FF).withValues(alpha: 0.2),
+        ),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Row(

@@ -24,9 +24,17 @@ void main() {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Future<int> createSession({bool isDeload = false}) async {
+  Future<int> createSession({
+    bool isDeload = false,
+    bool isDemo = false,
+  }) async {
     return SessionRepository().createSession(
-      Session(workoutId: 1, dateCompleted: DateTime.now(), isDeload: isDeload),
+      Session(
+        workoutId: 1,
+        dateCompleted: DateTime.now(),
+        isDeload: isDeload,
+        isDemo: isDemo,
+      ),
     );
   }
 
@@ -416,6 +424,76 @@ void main() {
       expect(sessionRows, isEmpty);
       expect(exerciseRows, isEmpty);
       expect(setRows, isEmpty);
+    });
+
+    test('11. getLastUsedVariantId ignores demo sessions', () async {
+      await loadSeedData();
+      final ids = await firstSlot();
+      final slotId = ids['slotId']!;
+      final db = await getDatabase();
+      final variants = await db.query(
+        tableExerciseVariants,
+        where: '$colVariantSlotId = ?',
+        whereArgs: [slotId],
+        orderBy: '$colVariantId ASC',
+      );
+      final baseVariantId = variants.first[colVariantId] as int;
+      final demoVariantId = variants.length > 1
+          ? variants[1][colVariantId] as int
+          : baseVariantId;
+
+      final demoSessionId = await createSession(isDemo: true);
+      await createSessionExercise(demoSessionId, slotId, demoVariantId);
+
+      final realSessionId = await createSession(isDemo: false);
+      await createSessionExercise(realSessionId, slotId, baseVariantId);
+
+      final resolved = await SessionRepository().getLastUsedVariantId(slotId);
+      expect(resolved, baseVariantId);
+    });
+
+    test('12. getHighestWeightForVariant ignores demo sessions', () async {
+      await loadSeedData();
+      final ids = await firstSlot();
+      final slotId = ids['slotId']!;
+      final variantId = ids['variantId']!;
+
+      final realSessionId = await createSession(isDemo: false);
+      final realSeId = await createSessionExercise(
+        realSessionId,
+        slotId,
+        variantId,
+      );
+      await logSet(realSeId, 1, reps: 5, weight: 225.0);
+
+      final demoSessionId = await createSession(isDemo: true);
+      final demoSeId = await createSessionExercise(
+        demoSessionId,
+        slotId,
+        variantId,
+      );
+      await logSet(demoSeId, 1, reps: 5, weight: 405.0);
+
+      final highest = await SessionRepository().getHighestWeightForVariant(
+        variantId,
+      );
+      expect(highest, 225.0);
+    });
+
+    test('13. Demo sessions remain visible in session summaries', () async {
+      await loadSeedData();
+      final ids = await firstSlot();
+      final sessionId = await createSession(isDemo: true);
+      final seId = await createSessionExercise(
+        sessionId,
+        ids['slotId']!,
+        ids['variantId']!,
+      );
+      await logSet(seId, 1, reps: 5, weight: 185.0);
+
+      final summaries = await SessionRepository().getAllSessionSummaries();
+      final summary = summaries.firstWhere((s) => s.sessionId == sessionId);
+      expect(summary.isDemo, isTrue);
     });
   });
 }

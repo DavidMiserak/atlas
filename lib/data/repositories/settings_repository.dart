@@ -43,6 +43,25 @@ class SettingsRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<bool> getDemoModeEnabled() async {
+    final db = await getDatabase();
+    final rows = await db.query(
+      tableSettings,
+      where: '$colSettingsKey = ?',
+      whereArgs: [settingDemoModeEnabled],
+    );
+    if (rows.isEmpty) return false;
+    return (rows.first[colSettingsValue] as String).toLowerCase() == 'true';
+  }
+
+  Future<void> setDemoModeEnabled(bool value) async {
+    final db = await getDatabase();
+    await db.insert(tableSettings, {
+      colSettingsKey: settingDemoModeEnabled,
+      colSettingsValue: value.toString(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<void> clearOneRmHistory() async {
     final db = await getDatabase();
     await db.delete(tableVariantOneRmHistory);

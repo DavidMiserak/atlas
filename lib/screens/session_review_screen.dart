@@ -581,7 +581,8 @@ class _SessionRowState extends State<_SessionRow>
                               ),
                           ],
                         ),
-                        if (widget.session.newPrs.isNotEmpty ||
+                        if (widget.session.isDemo ||
+                            widget.session.newPrs.isNotEmpty ||
                             widget.session.hasSessionNote ||
                             widget.session.hasSetNote) ...[
                           const SizedBox(height: 10),
@@ -589,6 +590,8 @@ class _SessionRowState extends State<_SessionRow>
                             spacing: 6,
                             runSpacing: 6,
                             children: [
+                              if (widget.session.isDemo)
+                                const _LabelPill(label: 'Demo'),
                               if (widget.session.newPrs
                                   .where((p) => !p.is1rm)
                                   .isNotEmpty)

@@ -5,6 +5,7 @@ import 'package:atlas/data/database/database_constants.dart';
 import 'package:atlas/data/repositories/program_repository.dart';
 import 'package:atlas/data/repositories/session_repository.dart';
 import 'package:atlas/data/repositories/one_rm_repository.dart';
+import 'package:atlas/data/repositories/settings_repository.dart';
 import 'package:atlas/data/models/session.dart';
 import 'package:atlas/data/seed/seed_data.dart';
 
@@ -79,6 +80,21 @@ void main() {
 
       expect(keepAwake.isNotEmpty, true);
       expect(keepAwake.first[colSettingsValue], 'false');
+
+      final demoMode = await db.query(
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingDemoModeEnabled],
+      );
+      expect(demoMode.isNotEmpty, true);
+      expect(demoMode.first[colSettingsValue], 'false');
+    });
+
+    test('Sessions table includes is_demo column', () async {
+      final db = await getDatabase();
+      final columns = await db.rawQuery('PRAGMA table_info($tableSessions)');
+      final names = columns.map((row) => row['name']).toSet();
+      expect(names.contains(colSessionIsDemo), isTrue);
     });
   });
 
@@ -220,6 +236,18 @@ void main() {
       final history = await repo.getOneRmHistory(1);
       expect(history.length, 3); // seed(135) + 285 + 310
       expect(history.where((h) => h.isCurrent).length, 1);
+    });
+  });
+
+  group('SettingsRepository Tests', () {
+    test('Demo mode setting persists', () async {
+      final repo = SettingsRepository();
+
+      expect(await repo.getDemoModeEnabled(), isFalse);
+      await repo.setDemoModeEnabled(true);
+      expect(await repo.getDemoModeEnabled(), isTrue);
+      await repo.setDemoModeEnabled(false);
+      expect(await repo.getDemoModeEnabled(), isFalse);
     });
   });
 

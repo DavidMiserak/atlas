@@ -3,6 +3,7 @@ class Session {
   final int workoutId;
   final DateTime dateCompleted;
   final bool isDeload;
+  final bool isDemo;
   final String? notes;
 
   Session({
@@ -10,6 +11,7 @@ class Session {
     required this.workoutId,
     required this.dateCompleted,
     this.isDeload = false,
+    this.isDemo = false,
     this.notes,
   });
 
@@ -19,6 +21,7 @@ class Session {
       'workout_id': workoutId,
       'date_completed': dateCompleted.toIso8601String(),
       'is_deload': isDeload ? 1 : 0,
+      'is_demo': isDemo ? 1 : 0,
       'notes': notes,
     };
   }
@@ -29,6 +32,7 @@ class Session {
       workoutId: map['workout_id'] as int,
       dateCompleted: DateTime.parse(map['date_completed'] as String),
       isDeload: (map['is_deload'] as int?) == 1,
+      isDemo: (map['is_demo'] as int?) == 1,
       notes: map['notes'] as String?,
     );
   }

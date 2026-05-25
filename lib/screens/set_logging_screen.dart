@@ -111,6 +111,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   Future<void> _loadSetContext() async {
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
+    final isDemoSession = provider.currentSession?.isDemo ?? false;
     final slot = provider.getSlotForExercise(widget.slotId);
 
     final variant = await provider.getVariantDetails(widget.chosenVariantId);
@@ -144,12 +145,14 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
           oneRm = estimate;
           _estimatedOneRm = estimate;
           provider.storeEstimatedOneRm(widget.sessionExerciseId, estimate);
-          await oneRmRepo.recordNewOneRm(
-            widget.chosenVariantId,
-            estimate,
-            DateTime.now(),
-            notes: 'Estimated during session',
-          );
+          if (!isDemoSession) {
+            await oneRmRepo.recordNewOneRm(
+              widget.chosenVariantId,
+              estimate,
+              DateTime.now(),
+              notes: 'Estimated during session',
+            );
+          }
         }
       }
     }
@@ -336,6 +339,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
+    final isDemoSession = provider.currentSession?.isDemo ?? false;
     final loggedSetIndex = _currentSetIndex;
     final dbSetNumber = loggedSetIndex + 1;
 
@@ -360,7 +364,11 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
       if (_weight > 0 && (_pr == null || _weight > _pr!)) {
         if (mounted) setState(() => _pr = _weight);
       }
-      if (!currentCtx.isWarmup && _weight > 0 && _rpe >= 6 && _rpe <= 10) {
+      if (!isDemoSession &&
+          !currentCtx.isWarmup &&
+          _weight > 0 &&
+          _rpe >= 6 &&
+          _rpe <= 10) {
         final estimatedOneRm = calculateOneRmFromLift(_weight, _rpe);
         final roundedOneRm = (estimatedOneRm / 5).floor() * 5.0;
         if (currentOneRm == null || roundedOneRm > currentOneRm) {
@@ -482,7 +490,10 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.of(sheetContext).pop(),
-                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white70,
+                    ),
                     tooltip: 'Close notes',
                   ),
                 ],

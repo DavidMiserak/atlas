@@ -64,6 +64,7 @@ class SessionRepository {
       FROM $tableSessionExercises se
       JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
       WHERE se.$colSessionExerciseSlotId = ?
+        AND s.$colSessionIsDemo = 0
       ORDER BY s.$colSessionDateCompleted DESC
       LIMIT 1
     ''',
@@ -182,7 +183,10 @@ class SessionRepository {
       'SELECT MAX($colSessionSetWeightLifted) as max_weight FROM $tableSessionSets '
       'INNER JOIN $tableSessionExercises ON '
       '$tableSessionSets.$colSessionSetSessionExerciseId = $tableSessionExercises.$colSessionExerciseId '
-      'WHERE $tableSessionExercises.$colSessionExerciseChosenVariantId = ?',
+      'INNER JOIN $tableSessions ON '
+      '$tableSessionExercises.$colSessionExerciseSessionId = $tableSessions.$colSessionId '
+      'WHERE $tableSessionExercises.$colSessionExerciseChosenVariantId = ? '
+      'AND $tableSessions.$colSessionIsDemo = 0',
       [variantId],
     );
     if (result.isEmpty || result.first['max_weight'] == null) return null;
@@ -201,6 +205,7 @@ class SessionRepository {
         COALESCE(SUM(ss.$colSessionSetWeightLifted * ss.$colSessionSetRepsCompleted), 0) AS total_volume,
         MAX(CASE WHEN TRIM(COALESCE(s.$colSessionNotes, '')) != '' THEN 1 ELSE 0 END) AS has_session_note,
         MAX(CASE WHEN TRIM(COALESCE(ss.$colSessionSetNotes, '')) != '' THEN 1 ELSE 0 END) AS has_set_note,
+        s.$colSessionIsDemo AS is_demo,
         SUBSTR(
           COALESCE(
             NULLIF(TRIM(COALESCE(s.$colSessionNotes, '')), ''),
@@ -236,6 +241,7 @@ class SessionRepository {
         newPrs: prs,
         hasSessionNote: s.hasSessionNote,
         hasSetNote: s.hasSetNote,
+        isDemo: s.isDemo,
         noteSnippet: s.noteSnippet,
       );
     }).toList();
@@ -283,6 +289,7 @@ class SessionRepository {
            JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
            WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
              AND s2.$colSessionDateCompleted < s.$colSessionDateCompleted
+             AND s2.$colSessionIsDemo = 0
              AND ss2.$colSessionSetIsWarmup = 0
           ) AS prior_max
         FROM $tableSessionSets ss
@@ -291,6 +298,7 @@ class SessionRepository {
         JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
         WHERE ss.$colSessionSetIsWarmup = 0
           AND ss.$colSessionSetWeightLifted IS NOT NULL
+          AND s.$colSessionIsDemo = 0
         GROUP BY se.$colSessionExerciseSessionId, se.$colSessionExerciseChosenVariantId
       ) WHERE prior_max IS NOT NULL AND session_max > prior_max
     ''');
@@ -322,12 +330,14 @@ class SessionRepository {
            JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
            WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
              AND s2.$colSessionDateCompleted < s.$colSessionDateCompleted
+             AND s2.$colSessionIsDemo = 0
           ) AS prior_max
         FROM $tableSessionSets ss
         JOIN $tableSessionExercises se ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
         JOIN $tableSessions s ON se.$colSessionExerciseSessionId = s.$colSessionId
         JOIN $tableExerciseVariants ev ON ev.$colVariantId = se.$colSessionExerciseChosenVariantId
         WHERE ss.$colSessionSetOneRmAtTime IS NOT NULL
+          AND s.$colSessionIsDemo = 0
         GROUP BY se.$colSessionExerciseSessionId, se.$colSessionExerciseChosenVariantId
       ) WHERE prior_max IS NOT NULL AND session_max > prior_max
     ''');
@@ -363,7 +373,9 @@ class SessionRepository {
         (SELECT MAX(ss2.$colSessionSetWeightLifted)
          FROM $tableSessionSets ss2
          JOIN $tableSessionExercises se2 ON ss2.$colSessionSetSessionExerciseId = se2.$colSessionExerciseId
+         JOIN $tableSessions s3 ON se2.$colSessionExerciseSessionId = s3.$colSessionId
          WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
+           AND s3.$colSessionIsDemo = 0
         ) AS all_time_pr,
         (SELECT MAX(h.$col1rmHistoryWeight)
          FROM $tableVariantOneRmHistory h
@@ -375,6 +387,7 @@ class SessionRepository {
          JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
          WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
            AND s2.$colSessionDateCompleted < (SELECT $colSessionDateCompleted FROM $tableSessions WHERE $colSessionId = $sessionId)
+           AND s2.$colSessionIsDemo = 0
            AND ss2.$colSessionSetIsWarmup = 0
         ) AS prior_pr,
         (SELECT MAX(ss2.$colSessionSetOneRmAtTime)
@@ -383,6 +396,7 @@ class SessionRepository {
          JOIN $tableSessions s2 ON se2.$colSessionExerciseSessionId = s2.$colSessionId
          WHERE se2.$colSessionExerciseChosenVariantId = se.$colSessionExerciseChosenVariantId
            AND s2.$colSessionDateCompleted < (SELECT $colSessionDateCompleted FROM $tableSessions WHERE $colSessionId = $sessionId)
+           AND s2.$colSessionIsDemo = 0
         ) AS prior_1rm
       FROM $tableSessionExercises se
       JOIN $tableExerciseSlots es ON es.$colSlotId = se.$colSessionExerciseSlotId

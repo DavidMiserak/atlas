@@ -6,12 +6,14 @@ import '../data/models/session_review.dart';
 import '../data/repositories/program_repository.dart';
 import '../data/repositories/session_repository.dart';
 import '../data/repositories/one_rm_repository.dart';
+import '../data/repositories/settings_repository.dart';
 import '../utils/weight_calculator.dart';
 
 class SessionProvider extends ChangeNotifier {
   final sessionRepo = SessionRepository();
   final programRepo = ProgramRepository();
   final oneRmRepo = OneRmRepository();
+  final settingsRepo = SettingsRepository();
 
   Session? _currentSession;
   int? _selectedWorkoutId;
@@ -66,8 +68,13 @@ class SessionProvider extends ChangeNotifier {
         orElse: () => program.workouts[0],
       );
 
+      final demoModeEnabled = await settingsRepo.getDemoModeEnabled();
       final now = DateTime.now();
-      final session = Session(workoutId: workoutId, dateCompleted: now);
+      final session = Session(
+        workoutId: workoutId,
+        dateCompleted: now,
+        isDemo: demoModeEnabled,
+      );
 
       final sessionId = await sessionRepo.createSession(session);
       final createdSession = await sessionRepo.getSessionById(sessionId);

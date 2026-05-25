@@ -50,13 +50,13 @@ class _CompletionScreenState extends State<CompletionScreen>
       vsync: this,
     );
 
-    _headlineSlide = Tween<Offset>(
-      begin: const Offset(0, -0.6),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
-    ));
+    _headlineSlide =
+        Tween<Offset>(begin: const Offset(0, -0.6), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _headlineFade = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.3)),
@@ -66,13 +66,13 @@ class _CompletionScreenState extends State<CompletionScreen>
       CurvedAnimation(parent: _controller, curve: const Interval(0.25, 0.5)),
     );
 
-    _nameSlide = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.25, 0.5, curve: Curves.easeOutCubic),
-    ));
+    _nameSlide = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.25, 0.5, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _ruleProgress = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
@@ -85,13 +85,13 @@ class _CompletionScreenState extends State<CompletionScreen>
       CurvedAnimation(parent: _controller, curve: const Interval(0.55, 0.8)),
     );
 
-    _statsSlide = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.55, 0.85, curve: Curves.easeOutCubic),
-    ));
+    _statsSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.55, 0.85, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _ctaFade = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0.82, 1.0)),
@@ -106,8 +106,10 @@ class _CompletionScreenState extends State<CompletionScreen>
 
       final workoutName = provider.currentWorkout?.name;
       final exerciseCount = provider.sessionExercises.length;
-      final totalSets = provider.sessionSets.values
-          .fold<int>(0, (sum, sets) => sum + sets.length);
+      final totalSets = provider.sessionSets.values.fold<int>(
+        0,
+        (sum, sets) => sum + sets.length,
+      );
       final totalVolume = provider.sessionSets.values
           .expand((sets) => sets)
           .fold<double>(
@@ -117,10 +119,11 @@ class _CompletionScreenState extends State<CompletionScreen>
 
       final sessionId = provider.currentSession?.id;
       final sessionDate = provider.currentSession?.dateCompleted;
+      final isDemoSession = provider.currentSession?.isDemo ?? false;
       await provider.completeSession();
 
       List<ProgressionResult> progressions = const [];
-      if (sessionId != null) {
+      if (sessionId != null && !isDemoSession) {
         final formula = await SettingsRepository().getOneRmFormula();
         progressions = await ProgressionService().evaluateAndApplyProgression(
           sessionId,
@@ -206,7 +209,10 @@ class _CompletionScreenState extends State<CompletionScreen>
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.of(sheetContext).pop(),
-                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white70,
+                    ),
                     tooltip: 'Close notes',
                   ),
                 ],
@@ -393,13 +399,17 @@ class _CompletionScreenState extends State<CompletionScreen>
                                       color: const Color(0xFF1E1E1E),
                                     ),
                                     Container(
-                                      width: constraints.maxWidth * _ruleProgress.value,
+                                      width:
+                                          constraints.maxWidth *
+                                          _ruleProgress.value,
                                       height: 1.5,
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
                                             colorScheme.primary,
-                                            colorScheme.primary.withValues(alpha: 0.2),
+                                            colorScheme.primary.withValues(
+                                              alpha: 0.2,
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -494,13 +504,15 @@ class _CompletionScreenState extends State<CompletionScreen>
                             );
                           },
                         ),
-                      if (_completedSessionId != null) const SizedBox(height: 12),
+                      if (_completedSessionId != null)
+                        const SizedBox(height: 12),
                       _NewSessionButton(
                         accentColor: colorScheme.primary,
                         onTap: () {
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
-                              builder: (context) => const WorkoutSelectionScreen(),
+                              builder: (context) =>
+                                  const WorkoutSelectionScreen(),
                             ),
                             (route) => false,
                           );
@@ -538,9 +550,10 @@ class _PulsingDotState extends State<_PulsingDot>
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _opacity = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -605,12 +618,7 @@ class _RawStat extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.jetBrainsMono(
-            fontSize: Responsive.font(
-              context,
-              base: 44,
-              min: 28,
-              max: 52,
-            ),
+            fontSize: Responsive.font(context, base: 44, min: 28, max: 52),
             fontWeight: FontWeight.w700,
             color: color,
             letterSpacing: -2,

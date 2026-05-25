@@ -37,6 +37,7 @@ class ProgressionService {
     final session = await sessionRepo.getSessionById(sessionId);
     if (session == null) return [];
     if (session.isDeload) return [];
+    if (session.isDemo) return [];
 
     final sessionDate = session.dateCompleted;
     final sevenDaysAgo = sessionDate.subtract(const Duration(days: 7));
@@ -67,8 +68,9 @@ class ProgressionService {
       if (variant == null) continue;
 
       final allTemplates = templatesMap[se.slotId] ?? [];
-      final workingTemplates =
-          allTemplates.where((t) => t.setType == 'working').toList();
+      final workingTemplates = allTemplates
+          .where((t) => t.setType == 'working')
+          .toList();
       if (workingTemplates.isEmpty) continue;
       final firstTemplate = workingTemplates.first;
 
@@ -94,7 +96,8 @@ class ProgressionService {
       final double newOneRm;
       if (formula == OneRmFormula.rpeRts) {
         final percentage =
-            firstTemplate.percentage1rm ?? rpeToPercent[firstTemplate.rpeTarget];
+            firstTemplate.percentage1rm ??
+            rpeToPercent[firstTemplate.rpeTarget];
         if (percentage == null || percentage <= 0) continue;
         newOneRm = (lastWeight + increment) / percentage;
       } else {
@@ -104,7 +107,9 @@ class ProgressionService {
         final reps = lastSet.repsCompleted;
         if (reps == null) continue;
         final computed = calculateOneRmFromLiftWithFormula(
-          lastWeight, lastSet.rpeActual ?? 8, reps,
+          lastWeight,
+          lastSet.rpeActual ?? 8,
+          reps,
           formula: formula,
         );
         if (computed <= 0) continue;
@@ -124,13 +129,15 @@ class ProgressionService {
         notes: 'Auto-progression',
       );
 
-      results.add(ProgressionResult(
-        slotName: slot.name,
-        variantName: variant.name,
-        previousWeight: lastWeight,
-        newSuggestedWeight: lastWeight + increment,
-        incrementLbs: increment,
-      ));
+      results.add(
+        ProgressionResult(
+          slotName: slot.name,
+          variantName: variant.name,
+          previousWeight: lastWeight,
+          newSuggestedWeight: lastWeight + increment,
+          incrementLbs: increment,
+        ),
+      );
     }
 
     return results;
