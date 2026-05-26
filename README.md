@@ -28,6 +28,11 @@ per-exercise PR detection.
     <td align="center"><img src="screenshots/03_1rm.png" alt="1RM history" width="200"/><br/><sub>1RM history</sub></td>
     <td align="center"><img src="screenshots/04_settings.png" alt="Settings" width="200"/><br/><sub>Settings</sub></td>
   </tr>
+  <tr>
+    <td align="center"><img src="screenshots/14_home_inprogress_badge.png" alt="In-progress badge" width="200"/><br/><sub>In-progress badge</sub></td>
+    <td align="center"><img src="screenshots/15_home_two_inprogress.png" alt="Multiple in-progress" width="200"/><br/><sub>Multiple in-progress</sub></td>
+    <td></td>
+  </tr>
 </table>
 
 ## Features
@@ -49,6 +54,10 @@ per-exercise PR detection.
 - Rest timer between sets
 - Completion screen showing total sets, exercises, and volume moved, with
   optional session notes
+- Partial workout resume — if a session is left in-progress, the home screen
+  shows an amber badge and a live progress bar on that workout card; sessions
+  within the last 24 hours are resumable, and multiple workouts can be
+  in-progress simultaneously
 
 ### Training history
 
