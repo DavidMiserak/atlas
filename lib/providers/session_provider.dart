@@ -302,6 +302,9 @@ class SessionProvider extends ChangeNotifier {
     return await sessionRepo.getSessionDetail(sessionId);
   }
 
+  Future<Map<int, int>> getInProgressWorkoutCompletionCounts() =>
+      sessionRepo.getInProgressWorkoutCompletionCounts();
+
   Future<bool> hasIncompleteSessionForWorkout(int workoutId) async {
     final activeSessionId = await sessionRepo
         .getLatestIncompleteSessionIdForWorkout(workoutId);

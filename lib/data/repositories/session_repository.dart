@@ -4,6 +4,31 @@ import '../models/session.dart';
 import '../models/session_review.dart';
 
 class SessionRepository {
+  Future<Map<int, int>> getInProgressWorkoutCompletionCounts() async {
+    final db = await getDatabase();
+    final rows = await db.rawQuery('''
+      SELECT s.$colSessionWorkoutId, COUNT(ss.$colSessionSetId) as logged_sets
+      FROM $tableSessions s
+      LEFT JOIN $tableSessionExercises se ON se.$colSessionExerciseSessionId = s.$colSessionId
+      LEFT JOIN $tableSessionSets ss
+        ON ss.$colSessionSetSessionExerciseId = se.$colSessionExerciseId
+        AND ss.$colSessionSetIsWarmup = 0
+      WHERE s.$colSessionStatus = ?
+        AND strftime('%s', s.$colSessionDateCompleted) > strftime('%s', 'now', '-1 day')
+        AND s.$colSessionId = (
+          SELECT MAX(s2.$colSessionId)
+          FROM $tableSessions s2
+          WHERE s2.$colSessionWorkoutId = s.$colSessionWorkoutId
+            AND s2.$colSessionStatus = ?
+        )
+      GROUP BY s.$colSessionWorkoutId
+    ''', [sessionStatusInProgress, sessionStatusInProgress]);
+    return {
+      for (final r in rows)
+        r[colSessionWorkoutId] as int: (r['logged_sets'] as int? ?? 0),
+    };
+  }
+
   Future<int?> getLatestIncompleteSessionIdForWorkout(int workoutId) async {
     final db = await getDatabase();
     final rows = await db.query(

@@ -10,6 +10,7 @@ import 'session_review_screen.dart';
 import 'one_rm_history_list_screen.dart';
 import 'settings_screen.dart';
 import 'workout_overview_screen.dart';
+import 'widgets/demo_mode_banner.dart';
 
 class WorkoutSelectionScreen extends StatefulWidget {
   const WorkoutSelectionScreen({super.key});
@@ -18,18 +19,43 @@ class WorkoutSelectionScreen extends StatefulWidget {
   State<WorkoutSelectionScreen> createState() => _WorkoutSelectionScreenState();
 }
 
-class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
+class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen>
+    with WidgetsBindingObserver {
   late Future<Program?> _programFuture;
   int _selectedTab = 0;
   final List<bool> _tabVisited = [true, false, false];
   bool? _demoModeEnabled;
   final _settingsRepo = SettingsRepository();
+  Map<int, int> _inProgressCompletionCounts = {};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _programFuture = context.read<SessionProvider>().getProgram();
     _loadDemoMode();
+    _loadInProgressWorkouts();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadInProgressWorkouts();
+    }
+  }
+
+  Future<void> _loadInProgressWorkouts() async {
+    final counts = await context
+        .read<SessionProvider>()
+        .getInProgressWorkoutCompletionCounts();
+    if (!mounted) return;
+    setState(() => _inProgressCompletionCounts = counts);
   }
 
   Future<void> _loadDemoMode() async {
@@ -170,6 +196,22 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
             final colors = [colorScheme.primary, colorScheme.secondary];
             final accentColor = colors[(index - 1) % colors.length];
 
+            final loggedSets = workout.id != null
+                ? _inProgressCompletionCounts[workout.id]
+                : null;
+            final double? inProgressCompletion;
+            if (loggedSets == null) {
+              inProgressCompletion = null;
+            } else {
+              final totalExpected = workout.exerciseSlots
+                  .expand((slot) => slot.setTemplates)
+                  .where((st) => st.setType != 'warm-up')
+                  .length;
+              inProgressCompletion = totalExpected == 0
+                  ? 0.0
+                  : (loggedSets / totalExpected).clamp(0.0, 1.0);
+            }
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: _WorkoutCard(
@@ -178,15 +220,18 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                     .where((s) => s.variants.isNotEmpty)
                     .length,
                 accentColor: accentColor,
+                inProgressCompletion: inProgressCompletion,
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => WorkoutOverviewScreen(
-                        workout: workout,
-                        accentColor: accentColor,
-                      ),
-                    ),
-                  );
+                  Navigator.of(context)
+                      .push(
+                        MaterialPageRoute(
+                          builder: (context) => WorkoutOverviewScreen(
+                            workout: workout,
+                            accentColor: accentColor,
+                          ),
+                        ),
+                      )
+                      .then((_) => _loadInProgressWorkouts());
                 },
               ),
             );
@@ -289,20 +334,24 @@ class _WorkoutCard extends StatelessWidget {
   final int exerciseCount;
   final Color accentColor;
   final VoidCallback onPressed;
+  final double? inProgressCompletion;
 
   const _WorkoutCard({
     required this.name,
     required this.exerciseCount,
     required this.accentColor,
     required this.onPressed,
+    this.inProgressCompletion,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isInProgress = inProgressCompletion != null;
+    const amberColor = Color(0xFFFFC857);
 
     return _CardShell(
-      accentColor: accentColor,
+      accentColor: isInProgress ? amberColor : accentColor,
       onPressed: onPressed,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,7 +382,7 @@ class _WorkoutCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$exerciseCount exercises',
+                      '$exerciseCount ${exerciseCount == 1 ? 'exercise' : 'exercises'}',
                       style: GoogleFonts.outfit(
                         fontSize: Responsive.font(
                           context,
@@ -345,6 +394,10 @@ class _WorkoutCard extends StatelessWidget {
                         color: const Color(0xFFB0B0B0),
                       ),
                     ),
+                    if (isInProgress) ...[
+                      const SizedBox(height: 8),
+                      const DemoModeBanner(label: 'IN PROGRESS'),
+                    ],
                   ],
                 ),
               ),
@@ -368,10 +421,12 @@ class _WorkoutCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
-              value: 0.0,
+              value: inProgressCompletion ?? 0.0,
               minHeight: 3,
               backgroundColor: colorScheme.surfaceContainerHigh,
-              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isInProgress ? amberColor : accentColor,
+              ),
             ),
           ),
         ],
