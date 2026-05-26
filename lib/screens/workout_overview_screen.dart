@@ -307,109 +307,94 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
                         ),
                       ),
                     ),
-                  SizedBox(
-                    height: 54,
-                    child: _hasIncompleteSession
-                        ? Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _isLoadingSelections
-                                      ? null
-                                      : _resumeIncompleteSession,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    side: BorderSide(
-                                      color: widget.accentColor.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Continue Session',
-                                    style: GoogleFonts.spaceGrotesk(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                ),
+                  if (_hasIncompleteSession) ...[
+                    SizedBox(
+                      height: 54,
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoadingSelections
+                            ? null
+                            : _resumeIncompleteSession,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: widget.accentColor,
+                          foregroundColor: Colors.black,
+                          disabledBackgroundColor:
+                              widget.accentColor.withValues(alpha: 0.35),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Continue Session',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _isStarting || _isLoadingSelections
+                          ? null
+                          : _startWorkout,
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF666666),
+                        minimumSize: const Size(double.infinity, 36),
+                      ),
+                      child: _isStarting
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: const Color(0xFF666666),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _isStarting || _isLoadingSelections
-                                      ? null
-                                      : _startWorkout,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: widget.accentColor,
-                                    foregroundColor: Colors.black,
-                                    disabledBackgroundColor: widget.accentColor
-                                        .withValues(alpha: 0.35),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: _isStarting
-                                      ? SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.black.withValues(
-                                              alpha: 0.75,
-                                            ),
-                                          ),
-                                        )
-                                      : Text(
-                                          'Start New Session',
-                                          style: GoogleFonts.spaceGrotesk(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: -0.2,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : ElevatedButton(
-                            onPressed: _isStarting || _isLoadingSelections
-                                ? null
-                                : _startWorkout,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: widget.accentColor,
-                              foregroundColor: Colors.black,
-                              disabledBackgroundColor: widget.accentColor
-                                  .withValues(alpha: 0.35),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                            )
+                          : Text(
+                              'Start a new session instead',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            child: _isStarting
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.black.withValues(
-                                        alpha: 0.75,
-                                      ),
-                                    ),
-                                  )
-                                : Text(
-                                    'Start Workout',
-                                    style: GoogleFonts.spaceGrotesk(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
+                    ),
+                  ] else
+                    SizedBox(
+                      height: 54,
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isStarting || _isLoadingSelections
+                            ? null
+                            : _startWorkout,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: widget.accentColor,
+                          foregroundColor: Colors.black,
+                          disabledBackgroundColor:
+                              widget.accentColor.withValues(alpha: 0.35),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                  ),
+                        ),
+                        child: _isStarting
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                ),
+                              )
+                            : Text(
+                                'Start Workout',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                      ),
+                    ),
                 ],
               ),
             ),
