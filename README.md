@@ -31,7 +31,7 @@ per-exercise PR detection.
   <tr>
     <td align="center"><img src="screenshots/14_home_inprogress_badge.png" alt="In-progress badge" width="200"/><br/><sub>In-progress badge</sub></td>
     <td align="center"><img src="screenshots/15_home_two_inprogress.png" alt="Multiple in-progress" width="200"/><br/><sub>Multiple in-progress</sub></td>
-    <td></td>
+    <td align="center"><img src="screenshots/16_preflight_continue.png" alt="Continue session" width="200"/><br/><sub>Continue session</sub></td>
   </tr>
 </table>
 
