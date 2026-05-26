@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import '../data/models/program.dart';
+import '../data/repositories/settings_repository.dart';
 import '../theme/responsive.dart';
 import 'warmup_screen.dart';
 import 'session_review_screen.dart';
@@ -21,11 +22,38 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   late Future<Program?> _programFuture;
   int _selectedTab = 0;
   final List<bool> _tabVisited = [true, false, false];
+  bool? _demoModeEnabled;
+  final _settingsRepo = SettingsRepository();
 
   @override
   void initState() {
     super.initState();
     _programFuture = context.read<SessionProvider>().getProgram();
+    _loadDemoMode();
+  }
+
+  Future<void> _loadDemoMode() async {
+    final enabled = await _settingsRepo.getDemoModeEnabled();
+    if (!mounted) return;
+    setState(() => _demoModeEnabled = enabled);
+  }
+
+  Future<void> _toggleDemoMode() async {
+    final current = _demoModeEnabled ?? false;
+    final next = !current;
+    await _settingsRepo.setDemoModeEnabled(next);
+    if (!mounted) return;
+    setState(() => _demoModeEnabled = next);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          next
+              ? 'Demo Mode ON — next session will not update records.'
+              : 'Demo Mode OFF.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -45,12 +73,22 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: Icon(
+              Icons.visibility_outlined,
+              color: (_demoModeEnabled ?? false)
+                  ? const Color(0xFFFFC857)
+                  : null,
+            ),
+            tooltip: (_demoModeEnabled ?? false) ? 'Demo Mode ON' : 'Demo Mode OFF',
+            onPressed: _demoModeEnabled == null ? null : _toggleDemoMode,
+          ),
+          IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
+              ).then((_) => _loadDemoMode());
             },
           ),
         ],

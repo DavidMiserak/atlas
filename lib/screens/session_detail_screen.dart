@@ -6,6 +6,7 @@ import '../data/models/session_review.dart';
 import '../data/repositories/session_repository.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
+import 'widgets/demo_mode_banner.dart';
 
 bool _hasNoteText(String? notes) => notes != null && notes.trim().isNotEmpty;
 
@@ -124,24 +125,7 @@ class _Header extends StatelessWidget {
             builder: (context, snapshot) {
               final isDemo = snapshot.data?.isDemo ?? false;
               if (!isDemo) return const SizedBox.shrink();
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: const Color(0xFFFFC857).withValues(alpha: 0.45),
-                  ),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Text(
-                  'DEMO SESSION',
-                  style: GoogleFonts.outfit(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                    color: const Color(0xFFFFC857),
-                  ),
-                ),
-              );
+              return const DemoModeBanner(label: 'DEMO SESSION');
             },
           ),
           const SizedBox(height: 20),

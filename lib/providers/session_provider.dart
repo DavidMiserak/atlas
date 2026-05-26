@@ -308,6 +308,14 @@ class SessionProvider extends ChangeNotifier {
     return activeSessionId != null;
   }
 
+  Future<bool> getIncompleteSessionIsDemoForWorkout(int workoutId) async {
+    final activeSessionId = await sessionRepo
+        .getLatestIncompleteSessionIdForWorkout(workoutId);
+    if (activeSessionId == null) return false;
+    final session = await sessionRepo.getSessionById(activeSessionId);
+    return session?.isDemo ?? false;
+  }
+
   Future<void> resumeIncompleteSessionForWorkout(int workoutId) async {
     _isLoading = true;
     _error = null;

@@ -36,6 +36,11 @@ class _FakeSessionProvider extends SessionProvider {
   }
 
   @override
+  Future<bool> getIncompleteSessionIsDemoForWorkout(int workoutId) async {
+    return false;
+  }
+
+  @override
   Future<void> resumeIncompleteSessionForWorkout(int workoutId) async {
     resumeSessionCalls++;
     fakeError = null;

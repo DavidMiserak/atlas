@@ -7,6 +7,7 @@ import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 import '../utils/workout_duration_estimator.dart';
 import 'session_screen.dart';
+import 'widgets/demo_mode_banner.dart';
 
 class WorkoutOverviewScreen extends StatefulWidget {
   final Workout workout;
@@ -26,6 +27,7 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
   bool _isStarting = false;
   bool _isLoadingSelections = true;
   bool _hasIncompleteSession = false;
+  bool _incompleteSessionIsDemo = false;
   String? _startError;
   final Map<int, int> _selectedVariantsBySlot = {};
 
@@ -49,6 +51,10 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
         ? false
         : await provider.hasIncompleteSessionForWorkout(workoutId);
 
+    final incompleteIsDemo = hasIncompleteSession
+        ? await provider.getIncompleteSessionIsDemoForWorkout(workoutId)
+        : false;
+
     final selected = <int, int>{};
     for (final slot in widget.workout.exerciseSlots) {
       if (slot.id == null || slot.variants.isEmpty) continue;
@@ -70,6 +76,7 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
         ..clear()
         ..addAll(selected);
       _hasIncompleteSession = hasIncompleteSession;
+      _incompleteSessionIsDemo = incompleteIsDemo;
       _isLoadingSelections = false;
     });
   }
@@ -233,6 +240,13 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
         top: false,
         child: Column(
           children: [
+            if (_hasIncompleteSession && _incompleteSessionIsDemo)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  children: const [DemoModeBanner()],
+                ),
+              ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),

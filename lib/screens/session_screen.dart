@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
 import 'set_logging_screen.dart';
+import 'widgets/demo_mode_banner.dart';
 import 'widgets/exercise_details.dart';
 import 'widgets/pinned_action_bar.dart';
 import 'widgets/variant_selector.dart';
@@ -112,6 +113,13 @@ class _SessionScreenState extends State<SessionScreen> {
 
                   return Column(
                     children: [
+                      if (provider.currentSession?.isDemo == true)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: Row(
+                            children: const [DemoModeBanner()],
+                          ),
+                        ),
                       Expanded(
                         child: ListView(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
