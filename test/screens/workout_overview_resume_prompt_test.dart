@@ -88,7 +88,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Continue Session'), findsOneWidget);
-    expect(find.text('Start New Session'), findsOneWidget);
+    expect(find.text('Start a new session instead'), findsOneWidget);
     expect(find.textContaining('Incomplete session found.'), findsOneWidget);
   });
 
@@ -100,7 +100,7 @@ void main() {
     await tester.pumpWidget(_buildHarness(provider));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Start New Session'));
+    await tester.tap(find.text('Start a new session instead'));
     await tester.pumpAndSettle();
 
     expect(provider.startSessionCalls, 1);

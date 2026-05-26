@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import '../database/database_constants.dart';
 import '../database/app_database.dart';
+import '../database/exercise_description_migration.dart';
 
 const _rpeToPercent = <int, double>{
   10: 1.00,
@@ -50,6 +51,9 @@ Future<void> loadSeedData() async {
   developer.log('loadSeedData: Starting seed data load');
   final db = await getDatabase();
   developer.log('loadSeedData: Database initialized');
+
+  // Idempotent: existing installs may skip re-seed but still need enriched text.
+  await migrateExerciseDescriptions(db);
 
   try {
     final existing = await db.query(
@@ -286,7 +290,8 @@ Future<void> seedVariants(Database db) async {
             final variantId = await db.insert(tableExerciseVariants, {
               colVariantSlotId: slotId,
               colVariantName: variantName,
-              colVariantDescription: variantName,
+              colVariantDescription:
+                  descriptionForVariant(variantName) ?? variantName,
             });
             final baselineWeight = _beginnerBaselineWeight(
               variantName: variantName,

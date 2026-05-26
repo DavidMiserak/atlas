@@ -24,8 +24,16 @@
                 "rest_seconds": 180
               },
               "variants": [
-                { "name": "Back Squat",  "description": "Barbell back squat",  "initial_one_rm": 55 },
-                { "name": "Front Squat", "description": "Barbell front squat", "initial_one_rm": 55 }
+                {
+                  "name": "Back Squat",
+                  "description": "Primary: quads, glutes, hamstrings \u2014 barbell",
+                  "initial_one_rm": 55
+                },
+                {
+                  "name": "Front Squat",
+                  "description": "Primary: quads, core \u2014 barbell",
+                  "initial_one_rm": 55
+                }
               ]
             },
             {
@@ -41,8 +49,16 @@
                 "rest_seconds": 180
               },
               "variants": [
-                { "name": "Conventional Deadlift", "description": "Conventional deadlift", "initial_one_rm": 55 },
-                { "name": "Sumo Deadlift",         "description": "Sumo deadlift",          "initial_one_rm": 55 }
+                {
+                  "name": "Conventional Deadlift",
+                  "description": "Primary: hamstrings, glutes, back \u2014 barbell",
+                  "initial_one_rm": 55
+                },
+                {
+                  "name": "Sumo Deadlift",
+                  "description": "Primary: quads, glutes, adductors \u2014 barbell",
+                  "initial_one_rm": 55
+                }
               ]
             },
             {
@@ -58,8 +74,16 @@
                 "rest_seconds": 120
               },
               "variants": [
-                { "name": "Bulgarian Split Squat", "description": "Single leg strength", "initial_one_rm": 25 },
-                { "name": "Walking Lunges",        "description": "Walking lunges",       "initial_one_rm": 25 }
+                {
+                  "name": "Bulgarian Split Squat",
+                  "description": "Primary: quads, glutes \u2014 dumbbell",
+                  "initial_one_rm": 25
+                },
+                {
+                  "name": "Walking Lunges",
+                  "description": "Primary: quads, glutes \u2014 dumbbell",
+                  "initial_one_rm": 25
+                }
               ]
             },
             {
@@ -75,8 +99,16 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Barbell Calf Raise", "description": "Standing barbell calf raise", "initial_one_rm": 50 },
-                { "name": "Calf Raise Machine", "description": "Calf raise machine",          "initial_one_rm": 10 }
+                {
+                  "name": "Barbell Calf Raise",
+                  "description": "Primary: calves \u2014 barbell",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Calf Raise Machine",
+                  "description": "Primary: calves \u2014 machine",
+                  "initial_one_rm": 10
+                }
               ]
             }
           ]
@@ -100,8 +132,16 @@
                 "rest_seconds": 180
               },
               "variants": [
-                { "name": "Barbell Bench Press",  "description": "Flat barbell bench",    "initial_one_rm": 55 },
-                { "name": "Dumbbell Bench Press", "description": "Dumbbell bench press",  "initial_one_rm": 25 }
+                {
+                  "name": "Barbell Bench Press",
+                  "description": "Primary: chest, triceps \u2014 barbell",
+                  "initial_one_rm": 55
+                },
+                {
+                  "name": "Dumbbell Bench Press",
+                  "description": "Primary: chest, triceps \u2014 dumbbell",
+                  "initial_one_rm": 25
+                }
               ]
             },
             {
@@ -117,8 +157,16 @@
                 "rest_seconds": 150
               },
               "variants": [
-                { "name": "Barbell Row",   "description": "Barbell bent-over row", "initial_one_rm": 50 },
-                { "name": "Dumbbell Row",  "description": "Dumbbell row",           "initial_one_rm": 25 }
+                {
+                  "name": "Barbell Row",
+                  "description": "Primary: lats, rhomboids, biceps \u2014 barbell",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Dumbbell Row",
+                  "description": "Primary: lats, rhomboids \u2014 dumbbell",
+                  "initial_one_rm": 25
+                }
               ]
             },
             {
@@ -134,8 +182,16 @@
                 "rest_seconds": 150
               },
               "variants": [
-                { "name": "Overhead Press",          "description": "Standing overhead press",  "initial_one_rm": 60 },
-                { "name": "Dumbbell Shoulder Press", "description": "Dumbbell shoulder press",  "initial_one_rm": 30 }
+                {
+                  "name": "Overhead Press",
+                  "description": "Primary: shoulders, triceps \u2014 barbell",
+                  "initial_one_rm": 60
+                },
+                {
+                  "name": "Dumbbell Shoulder Press",
+                  "description": "Primary: shoulders, triceps \u2014 dumbbell",
+                  "initial_one_rm": 30
+                }
               ]
             },
             {
@@ -151,8 +207,16 @@
                 "rest_seconds": 120
               },
               "variants": [
-                { "name": "Pull-ups",  "description": "Bodyweight pull-ups", "initial_one_rm": 50 },
-                { "name": "Chin-ups",  "description": "Bodyweight chin-ups", "initial_one_rm": 50 }
+                {
+                  "name": "Pull-ups",
+                  "description": "Primary: lats, biceps \u2014 bodyweight",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Chin-ups",
+                  "description": "Primary: lats, biceps \u2014 bodyweight",
+                  "initial_one_rm": 50
+                }
               ]
             },
             {
@@ -168,8 +232,16 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Dumbbell Flys", "description": "Incline dumbbell flys", "initial_one_rm": 25  },
-                { "name": "Cable Flys",    "description": "Cable machine flys",    "initial_one_rm": 10 }
+                {
+                  "name": "Dumbbell Flys",
+                  "description": "Primary: chest \u2014 dumbbell",
+                  "initial_one_rm": 25
+                },
+                {
+                  "name": "Cable Flys",
+                  "description": "Primary: chest \u2014 cable",
+                  "initial_one_rm": 10
+                }
               ]
             }
           ]
@@ -193,8 +265,16 @@
                 "rest_seconds": 150
               },
               "variants": [
-                { "name": "Romanian Deadlift", "description": "Romanian deadlift",    "initial_one_rm": 50 },
-                { "name": "Good Morning",      "description": "Good morning exercise", "initial_one_rm": 50  }
+                {
+                  "name": "Romanian Deadlift",
+                  "description": "Primary: hamstrings, glutes \u2014 barbell",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Good Morning",
+                  "description": "Primary: hamstrings, lower back \u2014 barbell",
+                  "initial_one_rm": 50
+                }
               ]
             },
             {
@@ -210,7 +290,11 @@
                 "rest_seconds": 150
               },
               "variants": [
-                { "name": "Leg Press Machine", "description": "Leg press machine", "initial_one_rm": 10 }
+                {
+                  "name": "Leg Press Machine",
+                  "description": "Primary: quads, glutes \u2014 machine",
+                  "initial_one_rm": 10
+                }
               ]
             },
             {
@@ -226,7 +310,11 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Leg Extension Machine", "description": "Leg extension machine", "initial_one_rm": 10 }
+                {
+                  "name": "Leg Extension Machine",
+                  "description": "Primary: quads \u2014 machine",
+                  "initial_one_rm": 10
+                }
               ]
             },
             {
@@ -242,7 +330,11 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Seated Leg Curl", "description": "Seated leg curl machine", "initial_one_rm": 10 }
+                {
+                  "name": "Seated Leg Curl",
+                  "description": "Primary: hamstrings \u2014 machine",
+                  "initial_one_rm": 10
+                }
               ]
             },
             {
@@ -258,7 +350,11 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Seated Calf Raise Machine", "description": "Seated calf raise machine", "initial_one_rm": 10 }
+                {
+                  "name": "Seated Calf Raise Machine",
+                  "description": "Primary: calves \u2014 machine",
+                  "initial_one_rm": 10
+                }
               ]
             }
           ]
@@ -282,7 +378,11 @@
                 "rest_seconds": 150
               },
               "variants": [
-                { "name": "Barbell Bench Press", "description": "Flat barbell bench", "initial_one_rm": 65 }
+                {
+                  "name": "Barbell Bench Press",
+                  "description": "Primary: chest, triceps \u2014 barbell",
+                  "initial_one_rm": 65
+                }
               ]
             },
             {
@@ -298,7 +398,11 @@
                 "rest_seconds": 120
               },
               "variants": [
-                { "name": "Barbell Row", "description": "Barbell bent-over row", "initial_one_rm": 50 }
+                {
+                  "name": "Barbell Row",
+                  "description": "Primary: lats, rhomboids, biceps \u2014 barbell",
+                  "initial_one_rm": 50
+                }
               ]
             },
             {
@@ -314,8 +418,16 @@
                 "rest_seconds": 120
               },
               "variants": [
-                { "name": "Incline Barbell Press",  "description": "Incline barbell press",  "initial_one_rm": 50 },
-                { "name": "Incline Dumbbell Press", "description": "Incline dumbbell press", "initial_one_rm": 25  }
+                {
+                  "name": "Incline Barbell Press",
+                  "description": "Primary: upper chest, shoulders \u2014 barbell",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Incline Dumbbell Press",
+                  "description": "Primary: upper chest \u2014 dumbbell",
+                  "initial_one_rm": 25
+                }
               ]
             },
             {
@@ -331,7 +443,11 @@
                 "rest_seconds": 120
               },
               "variants": [
-                { "name": "Lat Pulldown", "description": "Lat pulldown machine", "initial_one_rm": 10 }
+                {
+                  "name": "Lat Pulldown",
+                  "description": "Primary: lats, biceps \u2014 cable",
+                  "initial_one_rm": 10
+                }
               ]
             },
             {
@@ -347,8 +463,16 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Tricep Dips",           "description": "Bodyweight or assisted dips", "initial_one_rm": 50 },
-                { "name": "Cable Tricep Pushdown",  "description": "Cable tricep pushdown",       "initial_one_rm": 10 }
+                {
+                  "name": "Tricep Dips",
+                  "description": "Primary: triceps, chest \u2014 bodyweight",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Cable Tricep Pushdown",
+                  "description": "Primary: triceps \u2014 cable",
+                  "initial_one_rm": 10
+                }
               ]
             },
             {
@@ -364,8 +488,16 @@
                 "rest_seconds": 90
               },
               "variants": [
-                { "name": "Barbell Curls",  "description": "Standing barbell curls", "initial_one_rm": 50 },
-                { "name": "Dumbbell Curls", "description": "Dumbbell curls",          "initial_one_rm": 25 }
+                {
+                  "name": "Barbell Curls",
+                  "description": "Primary: biceps \u2014 barbell",
+                  "initial_one_rm": 50
+                },
+                {
+                  "name": "Dumbbell Curls",
+                  "description": "Primary: biceps \u2014 dumbbell",
+                  "initial_one_rm": 25
+                }
               ]
             }
           ]

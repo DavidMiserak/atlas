@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:atlas/data/database/app_database.dart';
 import 'package:atlas/data/database/database_constants.dart';
+import 'package:atlas/data/database/exercise_description_migration.dart';
 import 'package:atlas/data/seed/seed_data.dart';
 
 void main() {
@@ -109,6 +110,23 @@ void main() {
       expect(await currentOneRmFor('Overhead Dumbbell Extension'), 25.0); // dumbbell + rpe
     });
 
+    test('seeded variants include enriched descriptions from program.json', () async {
+      await loadSeedData();
+      final db = await getDatabase();
+      final rows = await db.query(
+        tableExerciseVariants,
+        columns: [colVariantDescription],
+        where: '$colVariantName = ?',
+        whereArgs: ['Back Squat'],
+        limit: 1,
+      );
+      expect(rows, isNotEmpty);
+      expect(
+        rows.first[colVariantDescription],
+        enrichedVariantDescriptions['Back Squat'],
+      );
+    });
+
     test('calling loadSeedData twice does not duplicate data', () async {
       await loadSeedData();
       await loadSeedData();
@@ -117,6 +135,48 @@ void main() {
       final slots = await db.query(tableExerciseSlots);
       expect(workouts.length, 4);
       expect(slots.length, 20);
+    });
+
+    test('exercises.json catalog variants get enriched descriptions', () async {
+      await loadSeedData();
+      final db = await getDatabase();
+      final rows = await db.query(
+        tableExerciseVariants,
+        columns: [colVariantDescription],
+        where: '$colVariantName = ?',
+        whereArgs: ['Goblet Squat'],
+        limit: 1,
+      );
+      expect(rows, isNotEmpty);
+      expect(
+        rows.first[colVariantDescription],
+        enrichedVariantDescriptions['Goblet Squat'],
+      );
+    });
+
+    test('second loadSeedData refreshes stale variant descriptions', () async {
+      await loadSeedData();
+      final db = await getDatabase();
+      await db.update(
+        tableExerciseVariants,
+        {colVariantDescription: 'Back Squat'},
+        where: '$colVariantName = ?',
+        whereArgs: ['Back Squat'],
+      );
+
+      await loadSeedData();
+
+      final rows = await db.query(
+        tableExerciseVariants,
+        columns: [colVariantDescription],
+        where: '$colVariantName = ?',
+        whereArgs: ['Back Squat'],
+        limit: 1,
+      );
+      expect(
+        rows.first[colVariantDescription],
+        enrichedVariantDescriptions['Back Squat'],
+      );
     });
   });
 }

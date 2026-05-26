@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:atlas/data/database/app_database.dart';
 import 'package:atlas/data/database/database_constants.dart';
+import 'package:atlas/data/database/exercise_description_migration.dart';
 import 'package:atlas/data/repositories/one_rm_repository.dart';
 import 'package:atlas/data/seed/seed_data.dart';
 
@@ -239,6 +240,76 @@ void main() {
       await oneRmRepo.recordNewOneRm(variantId, testWeight, DateTime.now());
       final current = await oneRmRepo.getCurrentOneRm(variantId);
       expect(current, testWeight);
+    });
+  });
+
+  group('Exercise description migration', () {
+    test('v8 to v9 migration updates Back Squat description', () async {
+      await loadSeedData();
+      final db = await getDatabase();
+
+      await db.rawUpdate(
+        'UPDATE $tableExerciseVariants SET $colVariantDescription = ? WHERE $colVariantName = ?',
+        ['Barbell back squat', 'Back Squat'],
+      );
+
+      await migrateExerciseDescriptions(db);
+
+      final rows = await db.query(
+        tableExerciseVariants,
+        columns: [colVariantDescription],
+        where: '$colVariantName = ?',
+        whereArgs: ['Back Squat'],
+        limit: 1,
+      );
+      expect(rows.first[colVariantDescription], enrichedVariantDescriptions['Back Squat']);
+    });
+
+    test('fresh database at v9 has enriched descriptions without manual migrate',
+        () async {
+      await loadSeedData();
+      final db = await getDatabase();
+      final schema = await db.query(
+        tableSettings,
+        where: '$colSettingsKey = ?',
+        whereArgs: [settingSchemaVersion],
+      );
+      expect(schema.first[colSettingsValue], '9');
+
+      final rows = await db.query(
+        tableExerciseVariants,
+        columns: [colVariantDescription],
+        where: '$colVariantName = ?',
+        whereArgs: ['Front Squat'],
+        limit: 1,
+      );
+      expect(
+        rows.first[colVariantDescription],
+        enrichedVariantDescriptions['Front Squat'],
+      );
+    });
+
+    test('migration leaves unknown variant names unchanged', () async {
+      await loadSeedData();
+      final db = await getDatabase();
+
+      const customName = 'Custom Test Lift XYZ';
+      final slot = await firstSlot();
+      await db.insert(tableExerciseVariants, {
+        colVariantSlotId: slot['slotId'],
+        colVariantName: customName,
+        colVariantDescription: 'Original custom text',
+      });
+
+      await migrateExerciseDescriptions(db);
+
+      final rows = await db.query(
+        tableExerciseVariants,
+        where: '$colVariantName = ?',
+        whereArgs: [customName],
+        limit: 1,
+      );
+      expect(rows.first[colVariantDescription], 'Original custom text');
     });
   });
 

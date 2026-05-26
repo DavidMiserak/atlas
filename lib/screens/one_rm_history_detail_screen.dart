@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../data/repositories/one_rm_repository.dart';
+import '../data/repositories/program_repository.dart';
 import '../theme/responsive.dart';
+import '../utils/variant_description_display.dart';
+import 'widgets/one_rm_info_sheet.dart';
 import 'widgets/weight_stepper.dart';
+
+typedef _DetailData = ({List<OneRmHistory> history, String? description});
 
 class OneRmHistoryDetailScreen extends StatefulWidget {
   final int? variantId;
@@ -20,18 +25,36 @@ class OneRmHistoryDetailScreen extends StatefulWidget {
 }
 
 class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
-  late Future<List<OneRmHistory>> _historyFuture;
+  late Future<_DetailData> _dataFuture;
 
   @override
   void initState() {
     super.initState();
-    _historyFuture = _loadHistory();
+    _dataFuture = _loadData();
   }
 
-  Future<List<OneRmHistory>> _loadHistory() async {
-    if (widget.variantId == null) return [];
-    final repo = OneRmRepository();
-    return repo.getOneRmHistory(widget.variantId!);
+  Future<_DetailData> _loadData() async {
+    if (widget.variantId == null) {
+      return (history: <OneRmHistory>[], description: null);
+    }
+    final historyFuture = OneRmRepository()
+        .getOneRmHistory(widget.variantId!)
+        .catchError((_) => <OneRmHistory>[]);
+    final descriptionFuture = ProgramRepository()
+        .getVariantById(widget.variantId!)
+        .then((v) => v?.description)
+        .catchError((_) => null);
+    final results = await Future.wait([historyFuture, descriptionFuture]);
+    return (
+      history: results[0] as List<OneRmHistory>,
+      description: results[1] as String?,
+    );
+  }
+
+  void _reloadData() {
+    setState(() {
+      _dataFuture = _loadData();
+    });
   }
 
   @override
@@ -65,46 +88,79 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
                   color: const Color(0xFF555555),
                 ),
               ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Color(0xFF666666)),
+            tooltip: 'What is 1RM?',
+            onPressed: () => showOneRmInfoSheet(context),
+          ),
+        ],
       ),
       body: SafeArea(
         top: false,
         child: widget.variantId == null
             ? _buildEmptyState(context)
-            : FutureBuilder<List<OneRmHistory>>(
-              future: _historyFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00D9FF),
-                        strokeWidth: 1.5,
+            : FutureBuilder<_DetailData>(
+                future: _dataFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF00D9FF),
+                          strokeWidth: 1.5,
+                        ),
                       ),
-                    ),
-                  );
-                }
+                    );
+                  }
 
-                final history = snapshot.data ?? [];
-                if (history.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No 1RM history',
-                      style: GoogleFonts.outfit(fontSize: 16, color: Colors.white),
-                    ),
+                  final data = snapshot.data;
+                  final history = data?.history ?? [];
+                  final description = data?.description;
+                  final variantName = widget.variantName ?? '';
+                  final showDesc = shouldShowVariantDescription(
+                    variantName,
+                    description,
                   );
-                }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: history.length,
-                  separatorBuilder: (_, _) => const Divider(color: Color(0xFF222222), height: 1),
-                  itemBuilder: (_, i) => _HistoryRow(record: history[i]),
-                );
-              },
-            ),
-        ),
+                  if (history.isEmpty) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showDesc) _DescriptionCard(text: description!),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'No 1RM history',
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: history.length + (showDesc ? 1 : 0),
+                    separatorBuilder: (_, _) =>
+                        const Divider(color: Color(0xFF222222), height: 1),
+                    itemBuilder: (_, i) {
+                      if (showDesc && i == 0) {
+                        return _DescriptionCard(text: description!);
+                      }
+                      final recordIndex = showDesc ? i - 1 : i;
+                      return _HistoryRow(record: history[recordIndex]);
+                    },
+                  );
+                },
+              ),
+      ),
       floatingActionButton: widget.variantId != null
           ? FloatingActionButton.extended(
               onPressed: () => _showUpdateModal(context),
@@ -124,7 +180,11 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
         children: [
           Text(
             'Add a 1RM',
-            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -144,11 +204,29 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
       shape: const RoundedRectangleBorder(),
       builder: (context) => _UpdateOneRmModal(
         variantId: widget.variantId,
-        onUpdate: () {
-          setState(() {
-            _historyFuture = _loadHistory();
-          });
-        },
+        onUpdate: _reloadData,
+      ),
+    );
+  }
+}
+
+class _DescriptionCard extends StatelessWidget {
+  final String text;
+
+  const _DescriptionCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+      child: Text(
+        text,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.outfit(
+          fontSize: 12,
+          color: const Color(0xFF777777),
+        ),
       ),
     );
   }
@@ -170,7 +248,10 @@ class _HistoryRow extends StatelessWidget {
         children: [
           Text(
             dateStr,
-            style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF888888)),
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: const Color(0xFF888888),
+            ),
           ),
           Text(
             '${record.weight.toStringAsFixed(0)} lbs',
@@ -294,11 +375,32 @@ class _UpdateOneRmModalState extends State<_UpdateOneRmModal> {
               color: Colors.white,
             ),
           ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => showOneRmInfoSheet(context),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'What is 1RM?',
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  color: const Color(0xFF666666),
+                ),
+              ),
+            ),
+          ),
           if (_currentOneRm != null) ...[
             const SizedBox(height: 4),
             Text(
               'Current: ${_currentOneRm!.toStringAsFixed(0)} lbs',
-              style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF666666)),
+              style: GoogleFonts.outfit(
+                fontSize: 12,
+                color: const Color(0xFF666666),
+              ),
             ),
           ],
           const SizedBox(height: 24),
@@ -316,7 +418,9 @@ class _UpdateOneRmModalState extends State<_UpdateOneRmModal> {
             accentColor: const Color(0xFF00D9FF),
             errorText: _weightError,
           ),
-          if (_currentOneRm != null && _weight > 0 && _weight < _currentOneRm!) ...[
+          if (_currentOneRm != null &&
+              _weight > 0 &&
+              _weight < _currentOneRm!) ...[
             const SizedBox(height: 12),
             Text(
               'Lower than current 1RM (${_currentOneRm!.toStringAsFixed(0)} lbs) — this will reset your baseline',

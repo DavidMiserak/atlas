@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../data/models/workout.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
+import '../utils/variant_description_display.dart';
 import '../utils/workout_duration_estimator.dart';
 import 'session_screen.dart';
 import 'widgets/demo_mode_banner.dart';
@@ -185,6 +186,18 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
     return variant?.name ?? slot.variants.first.name;
   }
 
+  String? _selectedVariantDescription(ExerciseSlot slot) {
+    if (slot.variants.isEmpty) return null;
+    if (slot.id == null) return slot.variants.first.description;
+    final selectedId = _selectedVariantsBySlot[slot.id!];
+    for (final candidate in slot.variants) {
+      if (candidate.id == selectedId) {
+        return candidate.description;
+      }
+    }
+    return slot.variants.first.description;
+  }
+
   Future<void> _showVariantDialog(ExerciseSlot slot) async {
     if (slot.id == null || slot.variants.length <= 1) return;
 
@@ -272,6 +285,8 @@ class _WorkoutOverviewScreenState extends State<WorkoutOverviewScreen> {
                         index: entry.key + 1,
                         accentColor: widget.accentColor,
                         selectedVariantName: _selectedVariantName(entry.value),
+                        selectedVariantDescription:
+                            _selectedVariantDescription(entry.value),
                         canChangeVariant: entry.value.variants.length > 1,
                         onChangeVariant: _isLoadingSelections
                             ? null
@@ -561,6 +576,7 @@ class _ExerciseOverviewCard extends StatelessWidget {
   final int index;
   final Color accentColor;
   final String selectedVariantName;
+  final String? selectedVariantDescription;
   final bool canChangeVariant;
   final VoidCallback? onChangeVariant;
 
@@ -569,12 +585,17 @@ class _ExerciseOverviewCard extends StatelessWidget {
     required this.index,
     required this.accentColor,
     required this.selectedVariantName,
+    required this.selectedVariantDescription,
     required this.canChangeVariant,
     required this.onChangeVariant,
   });
 
   @override
   Widget build(BuildContext context) {
+    final showDesc = shouldShowVariantDescription(
+      selectedVariantName,
+      selectedVariantDescription,
+    );
     final groupedSets = <String, List<SetTemplate>>{
       'warm-up': [],
       'working': [],
@@ -636,13 +657,30 @@ class _ExerciseOverviewCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
-                          child: Text(
-                            selectedVariantName,
-                            style: GoogleFonts.outfit(
-                              fontSize: 14,
-                              color: const Color(0xFFB9B9B9),
-                              fontWeight: FontWeight.w500,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selectedVariantName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  color: const Color(0xFFB9B9B9),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (showDesc) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  selectedVariantDescription!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    color: const Color(0xFF777777),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         if (canChangeVariant)

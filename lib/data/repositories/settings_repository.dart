@@ -62,6 +62,25 @@ class SettingsRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<bool> getSeenOneRmDefinition() async {
+    final db = await getDatabase();
+    final rows = await db.query(
+      tableSettings,
+      where: '$colSettingsKey = ?',
+      whereArgs: [settingSeenOneRmDefinition],
+    );
+    if (rows.isEmpty) return false;
+    return (rows.first[colSettingsValue] as String).toLowerCase() == 'true';
+  }
+
+  Future<void> setSeenOneRmDefinition(bool value) async {
+    final db = await getDatabase();
+    await db.insert(tableSettings, {
+      colSettingsKey: settingSeenOneRmDefinition,
+      colSettingsValue: value.toString(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<void> clearOneRmHistory() async {
     final db = await getDatabase();
     await db.delete(tableVariantOneRmHistory);

@@ -3,14 +3,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../data/repositories/program_repository.dart';
+import '../data/repositories/settings_repository.dart';
 import '../theme/responsive.dart';
+import '../utils/variant_description_display.dart';
 import 'one_rm_history_detail_screen.dart';
+import 'widgets/one_rm_info_sheet.dart';
 
-typedef _VariantInfo = ({String name, double? weight, DateTime? lastUpdated});
+typedef _VariantInfo = ({
+  String name,
+  String? description,
+  double? weight,
+  DateTime? lastUpdated,
+});
 typedef _SlotGroup = ({
   String slotName,
   List<({int variantId, _VariantInfo info})> variants,
 });
+typedef _ListData = ({List<_SlotGroup> groups, bool showOneRmHint});
 
 class OneRmHistoryListScreen extends StatefulWidget {
   const OneRmHistoryListScreen({super.key});
@@ -20,14 +29,32 @@ class OneRmHistoryListScreen extends StatefulWidget {
 }
 
 class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
-  late Future<List<_SlotGroup>> _future;
+  late Future<_ListData> _future;
   final TextEditingController _searchController = TextEditingController();
+  final _settingsRepo = SettingsRepository();
   String _searchQuery = '';
+  bool _hintSuppressed = false;
 
   @override
   void initState() {
     super.initState();
-    _future = _loadGroups();
+    _future = _loadInitial();
+  }
+
+  Future<_ListData> _loadInitial() async {
+    final groups = await _loadGroups();
+    final seen = await _settingsRepo.getSeenOneRmDefinition();
+    return (groups: groups, showOneRmHint: !seen);
+  }
+
+  Future<void> _dismissOneRmHint() async {
+    await _settingsRepo.setSeenOneRmDefinition(true);
+    if (mounted) setState(() => _hintSuppressed = true);
+  }
+
+  void _openOneRmInfo() {
+    _dismissOneRmHint();
+    showOneRmInfoSheet(context);
   }
 
   @override
@@ -47,7 +74,7 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
 
     // Deduplicate slots by name; collect unique variant IDs per slot name.
     final slotOrder = <String>[];
-    final slotVariants = <String, Map<int, String>>{};
+    final slotVariants = <String, Map<int, ({String name, String? description})>>{};
 
     for (final workout in program.workouts) {
       for (final slot in workout.exerciseSlots) {
@@ -57,7 +84,10 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
         }
         for (final variant in slot.variants) {
           if (variant.id != null) {
-            slotVariants[slot.name]![variant.id!] = variant.name;
+            slotVariants[slot.name]![variant.id!] = (
+              name: variant.name,
+              description: variant.description,
+            );
           }
         }
       }
@@ -79,7 +109,8 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
               (
                 variantId: e.key,
                 info: (
-                  name: e.value,
+                  name: e.value.name,
+                  description: e.value.description,
                   weight: oneRmData[e.key]?.weight,
                   lastUpdated: oneRmData[e.key]?.date,
                 ),
@@ -161,6 +192,22 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
     );
   }
 
+  Widget _buildOneRmHintBar() {
+    return GestureDetector(
+      onTap: _openOneRmInfo,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        child: Text(
+          'What is 1RM? Tap ⓘ to learn.',
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            color: const Color(0xFF555555),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -178,8 +225,15 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
             color: const Color(0xFF555555),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Color(0xFF666666)),
+            tooltip: 'What is 1RM?',
+            onPressed: _openOneRmInfo,
+          ),
+        ],
       ),
-      body: FutureBuilder<List<_SlotGroup>>(
+      body: FutureBuilder<_ListData>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -204,7 +258,10 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
             );
           }
 
-          final groups = snapshot.data ?? [];
+          final data = snapshot.data;
+          final groups = data?.groups ?? [];
+          final showOneRmHint =
+              !_hintSuppressed && (data?.showOneRmHint ?? false);
           if (groups.isEmpty) {
             return Center(
               child: Padding(
@@ -213,7 +270,7 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'No exercises found',
+                      'No exercises yet',
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -222,7 +279,7 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Your program data may not have loaded. Try restarting the app.',
+                      'Complete a workout to start tracking your strength.',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         color: const Color(0xFF888888),
@@ -280,6 +337,9 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
           // Flatten groups into a linear list of header + row widgets.
           final items = <Widget>[];
           items.add(_buildSearchField(context));
+          if (showOneRmHint) {
+            items.add(_buildOneRmHintBar());
+          }
           for (final group in filteredGroups) {
             items.add(_SlotHeader(name: group.slotName));
             for (final v in group.variants) {
@@ -297,9 +357,8 @@ class _OneRmHistoryListScreenState extends State<OneRmHistoryListScreen> {
                         ),
                       ),
                     );
-                    final next = _loadGroups();
                     setState(() {
-                      _future = next;
+                      _future = _loadInitial();
                     });
                   },
                 ),
@@ -365,6 +424,8 @@ class _VariantRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showDesc = shouldShowVariantDescription(info.name, info.description);
+
     return InkWell(
       onTap: onTap,
       splashColor: const Color(0xFF00D9FF).withValues(alpha: 0.08),
@@ -388,6 +449,18 @@ class _VariantRow extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
+                  if (showDesc) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      info.description!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: const Color(0xFF777777),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     _formatDate(info.lastUpdated),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'database_constants.dart';
+import 'exercise_description_migration.dart';
 import '../seed/seed_data.dart';
 
 const String _stagingSuffix = '.restore_staging';
@@ -145,6 +146,15 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       await txn.rawUpdate(
         'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
         ['8', settingSchemaVersion],
+      );
+    });
+  }
+  if (oldVersion < 9) {
+    await db.transaction((txn) async {
+      await migrateExerciseDescriptions(txn);
+      await txn.rawUpdate(
+        'UPDATE $tableSettings SET $colSettingsValue = ? WHERE $colSettingsKey = ?',
+        ['9', settingSchemaVersion],
       );
     });
   }
