@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../data/reference/exercise_reference_urls.dart';
 import '../data/repositories/one_rm_repository.dart';
 import '../data/repositories/program_repository.dart';
 import '../theme/responsive.dart';
@@ -89,6 +90,20 @@ class _OneRmHistoryDetailScreenState extends State<OneRmHistoryDetailScreen> {
                 ),
               ),
         actions: [
+          if (widget.variantName != null)
+            IconButton(
+              icon: const Icon(Icons.open_in_new, color: Color(0xFF666666)),
+              tooltip: 'Exercise form guide',
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final ok = await launchExrxReference(widget.variantName!);
+                if (!ok && mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Could not open browser')),
+                  );
+                }
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.info_outline, color: Color(0xFF666666)),
             tooltip: 'What is 1RM?',

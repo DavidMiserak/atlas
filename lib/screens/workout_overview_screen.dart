@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../data/models/workout.dart';
 import '../providers/session_provider.dart';
 import '../theme/responsive.dart';
+import '../data/reference/exercise_reference_urls.dart';
 import '../utils/variant_description_display.dart';
 import '../utils/workout_duration_estimator.dart';
 import 'session_screen.dart';
@@ -683,20 +684,50 @@ class _ExerciseOverviewCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (canChangeVariant)
-                          TextButton.icon(
-                            onPressed: onChangeVariant,
-                            icon: const Icon(Icons.swap_horiz, size: 16),
-                            label: const Text('Change Exercise'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: accentColor,
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          children: [
+                            if (selectedVariantName.isNotEmpty)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final ok = await launchExrxReference(
+                                    selectedVariantName,
+                                  );
+                                  if (!ok && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Could not open browser'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.open_in_new, size: 16),
+                                label: const Text('Form'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF888888),
+                                  minimumSize: const Size(44, 44),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                            if (canChangeVariant)
+                              TextButton.icon(
+                                onPressed: onChangeVariant,
+                                icon: const Icon(Icons.swap_horiz, size: 16),
+                                label: const Text('Change Exercise'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: accentColor,
+                                  visualDensity: VisualDensity.compact,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                     if (slot.category != null &&
