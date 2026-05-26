@@ -33,6 +33,11 @@ per-exercise PR detection.
     <td align="center"><img src="screenshots/15_home_two_inprogress.png" alt="Multiple in-progress" width="200"/><br/><sub>Multiple in-progress</sub></td>
     <td align="center"><img src="screenshots/16_preflight_continue.png" alt="Continue session" width="200"/><br/><sub>Continue session</sub></td>
   </tr>
+  <tr>
+    <td align="center"><img src="screenshots/17_history_pr_pills.png" alt="PR &amp; 1RM pills" width="200"/><br/><sub>PR &amp; 1RM pills</sub></td>
+    <td align="center"><img src="screenshots/18_1rm_list.png" alt="1RM leaderboard" width="200"/><br/><sub>1RM leaderboard</sub></td>
+    <td align="center"><img src="screenshots/19_1rm_backsquat_history.png" alt="Back Squat progression" width="200"/><br/><sub>Back Squat progression</sub></td>
+  </tr>
 </table>
 
 ## Features
