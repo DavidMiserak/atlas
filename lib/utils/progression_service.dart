@@ -25,8 +25,8 @@ class ProgressionResult {
 class ProgressionService {
   // Called from CompletionScreen after session is finalized.
   // Returns one ProgressionResult per exercise that earned progression.
-  // TODO: add a last_progression_date throttle (7-day cooldown per variant)
-  //       here if double-bumping on back-to-back sessions becomes a problem.
+  // 7-day cooldown is enforced per variant to prevent double-bumping
+  // on back-to-back training days (see lines 119-123).
   Future<List<ProgressionResult>> evaluateAndApplyProgression(
     int sessionId,
     SessionRepository sessionRepo,
