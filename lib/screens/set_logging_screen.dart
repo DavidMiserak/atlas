@@ -89,6 +89,7 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
 
   String? _weightError;
   String? _repsError;
+  String? _rpeError;
 
   final _weightController = TextEditingController();
   final _repsController = TextEditingController();
@@ -323,28 +324,34 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
   }
 
   Future<void> _submitSet() async {
+    final loggedSetIndex = _currentSetIndex;
+    final currentCtx = _allSets[loggedSetIndex];
+
     final weightErr = _weight <= 0 ? 'Enter a weight greater than 0' : null;
     final repsErr = _reps <= 0 ? 'Reps must be at least 1' : null;
-    if (weightErr != null || repsErr != null) {
+    final rpeErr = !currentCtx.isWarmup && (_rpe < 1 || _rpe > 10)
+        ? 'RPE must be between 1 and 10'
+        : null;
+    if (weightErr != null || repsErr != null || rpeErr != null) {
       setState(() {
         _weightError = weightErr;
         _repsError = repsErr;
+        _rpeError = rpeErr;
       });
       return;
     }
     setState(() {
       _weightError = null;
       _repsError = null;
+      _rpeError = null;
     });
 
     final provider = context.read<SessionProvider>();
     final oneRmRepo = OneRmRepository();
     final isDemoSession = provider.currentSession?.isDemo ?? false;
-    final loggedSetIndex = _currentSetIndex;
     final dbSetNumber = loggedSetIndex + 1;
 
     try {
-      final currentCtx = _allSets[loggedSetIndex];
       var currentOneRm = await provider.getVariantOneRm(widget.chosenVariantId);
       currentOneRm = currentOneRm ?? _estimatedOneRm;
 
@@ -715,8 +722,12 @@ class _SetLoggingScreenState extends State<SetLoggingScreen> {
                       const SizedBox(height: 20),
                       _RpeSelector(
                         value: _rpe,
-                        onChanged: (v) => setState(() => _rpe = v),
+                        onChanged: (v) => setState(() {
+                          _rpe = v;
+                          _rpeError = null;
+                        }),
                         accentColor: accentColor,
+                        errorText: _rpeError,
                       ),
                     ],
                     SizedBox(height: Responsive.space(context, 14, max: 20)),
@@ -1144,11 +1155,13 @@ class _RpeSelector extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
   final Color accentColor;
+  final String? errorText;
 
   const _RpeSelector({
     required this.value,
     required this.onChanged,
     required this.accentColor,
+    this.errorText,
   });
 
   @override
@@ -1211,6 +1224,13 @@ class _RpeSelector extends StatelessWidget {
             );
           }).toList(),
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            errorText!,
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.redAccent),
+          ),
+        ],
       ],
     );
   }

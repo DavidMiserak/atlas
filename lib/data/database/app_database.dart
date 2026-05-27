@@ -9,6 +9,11 @@ const String _stagingSuffix = '.restore_staging';
 
 Database? _database;
 String? _testDatabasePath;
+bool _databaseWasAutoReset = false;
+
+/// True if the database was automatically wiped and recreated due to corruption
+/// on this launch. Checked once by the home screen to show a notification.
+bool get databaseWasAutoReset => _databaseWasAutoReset;
 
 void useInMemoryDatabaseForTesting() {
   _testDatabasePath = inMemoryDatabasePath;
@@ -17,8 +22,21 @@ void useInMemoryDatabaseForTesting() {
 
 Future<Database> getDatabase() async {
   if (_database != null) return _database!;
-  _database = await _initDatabase();
+  try {
+    _database = await _initDatabase();
+  } on DatabaseException {
+    await _wipeCorruptedDatabase();
+    _database = await _initDatabase();
+    _databaseWasAutoReset = true;
+  }
   return _database!;
+}
+
+Future<void> _wipeCorruptedDatabase() async {
+  await closeDatabase();
+  if (_testDatabasePath != null) return; // never delete in-memory test DB
+  final path = join(await getDatabasesPath(), databaseName);
+  await deleteDatabase(path);
 }
 
 Future<Database> _initDatabase() async {

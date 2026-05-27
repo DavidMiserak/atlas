@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
 import '../data/models/program.dart';
 import '../data/repositories/settings_repository.dart';
+import '../data/database/app_database.dart';
 import '../theme/responsive.dart';
 import 'warmup_screen.dart';
 import 'session_review_screen.dart';
@@ -35,6 +36,20 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen>
     _programFuture = context.read<SessionProvider>().getProgram();
     _loadDemoMode();
     _loadInProgressWorkouts();
+    if (databaseWasAutoReset) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Database was corrupted and has been reset. Previous sessions have been cleared.',
+            ),
+            duration: Duration(seconds: 6),
+            backgroundColor: Color(0xFFB45309),
+          ),
+        );
+      });
+    }
   }
 
   @override
